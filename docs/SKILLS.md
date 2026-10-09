@@ -1,5 +1,7 @@
 # Skills for building Raqam quickly
 
+The additional sources requested by the user are now retained locally: see [rules review](RULES_REVIEW.md) for the Spec Kit, LangChain, Jeffallan and complete frontend bundle selection. Their revisions, licenses and hashes are recorded in [sources.json](references/sources.json). These references are not globally installed skills. The original shortlist below is preserved.
+
 **Research date:** 9 October 2026. Sources below were inspected. External skills are **shortlisted, not installed** in this workspace. This is a small selection, not a recommendation to install an entire marketplace during the event.
 
 ## Use first

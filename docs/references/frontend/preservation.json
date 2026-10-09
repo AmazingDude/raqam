@@ -1,0 +1,68 @@
+{
+  "source_archive_name": "frontend-skills.zip",
+  "archive_sha256": "30020ce2951dc489f34d77cf4e3d8bfd48006b91b5287751eb21c9362891cbe5",
+  "copy_sha256": "30020ce2951dc489f34d77cf4e3d8bfd48006b91b5287751eb21c9362891cbe5",
+  "files": [
+    {
+      "path": "outer/agents-skills.zip",
+      "sha256": "5483cfd629f2e2a7b9557415d19793297df906c082c5642d104d0148b5f452c9",
+      "bytes": 11064
+    },
+    {
+      "path": "outer/SKILL.md",
+      "sha256": "37d1079c679449bcb71a1706fbf4c00d59073d03f550876bd5242695df6ef4c5",
+      "bytes": 3940
+    },
+    {
+      "path": "outer/generate.py",
+      "sha256": "85cf7349743639d4182bbfc5beaeed60e5c7744f51411319836f788a6099c9d2",
+      "bytes": 4876
+    },
+    {
+      "path": "outer/mnt/user-data/outputs/agents-skills/.agents/skills/frontend-craft/SKILL.md",
+      "sha256": "1a81853e4c4acf2ae383eb1330437846daf94e7133973209e97450cf530deecf",
+      "bytes": 3775
+    },
+    {
+      "path": "outer/AGENTS.md",
+      "sha256": "78b2af4de6239041576b3c00f759e3acc849f21a0cf2bd02413179c6284dea55",
+      "bytes": 350
+    },
+    {
+      "path": "bundle/.agents/skills/frontend-craft/SKILL.md",
+      "sha256": "1a81853e4c4acf2ae383eb1330437846daf94e7133973209e97450cf530deecf",
+      "bytes": 3775
+    },
+    {
+      "path": "bundle/.agents/skills/frontend-craft/references/anti-generic.md",
+      "sha256": "aa9080c11cc6c4f4edf6141fecaad5423ab0ed6491677b5d29376743e06d594e",
+      "bytes": 1355
+    },
+    {
+      "path": "bundle/.agents/skills/image-studio/SKILL.md",
+      "sha256": "37d1079c679449bcb71a1706fbf4c00d59073d03f550876bd5242695df6ef4c5",
+      "bytes": 3940
+    },
+    {
+      "path": "bundle/.agents/skills/image-studio/references/presets.json",
+      "sha256": "321c3513915136c368e5e115d39011e811655a757974219b24b8b6cd49441007",
+      "bytes": 1350
+    },
+    {
+      "path": "bundle/.agents/skills/image-studio/references/prompting.md",
+      "sha256": "0bf2294823f47c87797081bc2a9dae584cf12ecec89fa658af7c906f7d047615",
+      "bytes": 765
+    },
+    {
+      "path": "bundle/.agents/skills/image-studio/scripts/generate.py",
+      "sha256": "85cf7349743639d4182bbfc5beaeed60e5c7744f51411319836f788a6099c9d2",
+      "bytes": 4876
+    },
+    {
+      "path": "bundle/AGENTS.md",
+      "sha256": "78b2af4de6239041576b3c00f759e3acc849f21a0cf2bd02413179c6284dea55",
+      "bytes": 350
+    }
+  ],
+  "note": "All archive members preserved; source archive outside this repository was left unchanged."
+}

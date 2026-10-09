@@ -1,0 +1,621 @@
+{
+  "review_date": "2026-10-09",
+  "purpose": "Unmodified source references, not installed or executed skills",
+  "repositories": [
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "selection": [
+        "templates/",
+        "README.md",
+        "LICENSE",
+        "spec-driven.md",
+        "docs/quickstart.md",
+        "docs/guides/assessment.md"
+      ]
+    },
+    {
+      "repository": "langchain-ai/langchain-skills",
+      "revision": "16a992f09ab3ccfb642dd4f08d350d833d1990bf",
+      "selection": [
+        "config/skills/ecosystem-primer/",
+        "config/skills/langchain-fundamentals/",
+        "config/skills/langchain-middleware/",
+        "README.md",
+        "LICENSE"
+      ]
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "selection": [
+        "skills/api-designer/",
+        "skills/nextjs-developer/",
+        "skills/postgres-pro/",
+        "skills/secure-code-guardian/",
+        "skills/typescript-pro/",
+        "skills/playwright-expert/",
+        "README.md",
+        "LICENSE"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "LICENSE",
+      "local_path": "github--spec-kit/LICENSE",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/LICENSE",
+      "sha256": "2510b446bc1f0cf9702453075d20cd88631e20e5642658edb7325d9c1eb534f7",
+      "bytes": 1060
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "README.md",
+      "local_path": "github--spec-kit/README.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/README.md",
+      "sha256": "49d99febbcdea0bac928ed3e7bdc3b70a1f90e8a13d5bfd19760b6f4fc561f4d",
+      "bytes": 9183
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "docs/guides/assessment.md",
+      "local_path": "github--spec-kit/docs/guides/assessment.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/docs/guides/assessment.md",
+      "sha256": "dde6b1f4e717271ea16ed1df55d3c206753b6df3bbc41d4e6b22079d761a1c4b",
+      "bytes": 4567
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "docs/quickstart.md",
+      "local_path": "github--spec-kit/docs/quickstart.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/docs/quickstart.md",
+      "sha256": "826e8c0fd4982ac9f3158e7f5d31f93edcf43031f3d61e219f9f2d0404941304",
+      "bytes": 9108
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "spec-driven.md",
+      "local_path": "github--spec-kit/spec-driven.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/spec-driven.md",
+      "sha256": "1517eba9868e7066541ffa484009d5eb9c7d8d04bf740dbfd86e5e88c396f0c6",
+      "bytes": 26229
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/checklist-template.md",
+      "local_path": "github--spec-kit/templates/checklist-template.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/checklist-template.md",
+      "sha256": "c65b7f10aa9a965ea9c7f4e879d4ab0240665473731c5e9e638c4acb3ca9afc4",
+      "bytes": 2088
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/commands/analyze.md",
+      "local_path": "github--spec-kit/templates/commands/analyze.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/commands/analyze.md",
+      "sha256": "ffe0640ebe778795737937f2d4ec6f0149d7d55b72692e25369a668f985d1dfe",
+      "bytes": 11764
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/commands/checklist.md",
+      "local_path": "github--spec-kit/templates/commands/checklist.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/commands/checklist.md",
+      "sha256": "1192784f378fb977b408b72ca1bfb8fc55e129519f3f44bc5d0a7e152c480654",
+      "bytes": 22340
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/commands/clarify.md",
+      "local_path": "github--spec-kit/templates/commands/clarify.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/commands/clarify.md",
+      "sha256": "5260d798c5671deb9ac7e59d6ffdb69b30c26fb28878d3cc25e30fb71cacc734",
+      "bytes": 19507
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/commands/constitution.md",
+      "local_path": "github--spec-kit/templates/commands/constitution.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/commands/constitution.md",
+      "sha256": "a915ba6ae5fdbd499c143204eab3888b95a0ff0656e2c16b40282375acb5902c",
+      "bytes": 10329
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/commands/converge.md",
+      "local_path": "github--spec-kit/templates/commands/converge.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/commands/converge.md",
+      "sha256": "4fb017b2869ad02d58aafe272a90077187ce4231f08effee6f340b0f3a07fc16",
+      "bytes": 13219
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/commands/implement.md",
+      "local_path": "github--spec-kit/templates/commands/implement.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/commands/implement.md",
+      "sha256": "feab334232940cfd4ecbcdae41cf63ccb7d581a60380230837385f296f7b49bd",
+      "bytes": 12779
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/commands/plan.md",
+      "local_path": "github--spec-kit/templates/commands/plan.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/commands/plan.md",
+      "sha256": "206a0386d20b3eed4c087a4d9de247a3e7b2b59348bf3c801fc74f63ca2726a5",
+      "bytes": 8047
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/commands/specify.md",
+      "local_path": "github--spec-kit/templates/commands/specify.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/commands/specify.md",
+      "sha256": "7d5a88e6afa504f1d16503df6bf8664f30e3df812b83f9a456a2eaccaeb638ee",
+      "bytes": 18453
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/commands/tasks.md",
+      "local_path": "github--spec-kit/templates/commands/tasks.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/commands/tasks.md",
+      "sha256": "2f9176c6e7c23d2a83d2bd018ffa1e67aee977389a57f2a3fe35fe987b425944",
+      "bytes": 11416
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/commands/taskstoissues.md",
+      "local_path": "github--spec-kit/templates/commands/taskstoissues.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/commands/taskstoissues.md",
+      "sha256": "eb6de5058aab2e6c88b9934ec58b2d7428b3bbe1728aa799c77b0c725971d02e",
+      "bytes": 8404
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/constitution-template.md",
+      "local_path": "github--spec-kit/templates/constitution-template.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/constitution-template.md",
+      "sha256": "ce7549540fa45543cca797a150201d868e64495fdff39dc38246fb17bd4024b3",
+      "bytes": 2346
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/plan-template.md",
+      "local_path": "github--spec-kit/templates/plan-template.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/plan-template.md",
+      "sha256": "dfba43da2b2a207ff8c177a0fba03af074fd45e261696b4b64172041fad2e992",
+      "bytes": 3770
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/spec-template.md",
+      "local_path": "github--spec-kit/templates/spec-template.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/spec-template.md",
+      "sha256": "3945437fc35cd30a5b2bf7beea680337c3516826d3efa5a6b92c4a7eca1ba28e",
+      "bytes": 4556
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/tasks-template.md",
+      "local_path": "github--spec-kit/templates/tasks-template.md",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/tasks-template.md",
+      "sha256": "1e448e9153462e8c5b5a55231a54c756d870a82950d4dd9425a2bf5b7008a0d9",
+      "bytes": 9182
+    },
+    {
+      "repository": "github/spec-kit",
+      "revision": "f3a20b362dd47c0766be9f3a3485047d632ce843",
+      "upstream_path": "templates/vscode-settings.json",
+      "local_path": "github--spec-kit/templates/vscode-settings.json",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/f3a20b362dd47c0766be9f3a3485047d632ce843/templates/vscode-settings.json",
+      "sha256": "3db3a1d8417d38a56b405f60b600dce666b4fc47be7fe332a0b051c4bd1fd4b7",
+      "bytes": 350
+    },
+    {
+      "repository": "langchain-ai/langchain-skills",
+      "revision": "16a992f09ab3ccfb642dd4f08d350d833d1990bf",
+      "upstream_path": "LICENSE",
+      "local_path": "langchain-ai--langchain-skills/LICENSE",
+      "url": "https://raw.githubusercontent.com/langchain-ai/langchain-skills/16a992f09ab3ccfb642dd4f08d350d833d1990bf/LICENSE",
+      "sha256": "4ec67e4ca6e6721dba849b2ca82261597c86a61ee214bbf21416006b7b2d0478",
+      "bytes": 1067
+    },
+    {
+      "repository": "langchain-ai/langchain-skills",
+      "revision": "16a992f09ab3ccfb642dd4f08d350d833d1990bf",
+      "upstream_path": "README.md",
+      "local_path": "langchain-ai--langchain-skills/README.md",
+      "url": "https://raw.githubusercontent.com/langchain-ai/langchain-skills/16a992f09ab3ccfb642dd4f08d350d833d1990bf/README.md",
+      "sha256": "881cb5b6217c43b51e657d5ef3d17c1bca1774b9b86fb57c93360d02b2b9f6f3",
+      "bytes": 6089
+    },
+    {
+      "repository": "langchain-ai/langchain-skills",
+      "revision": "16a992f09ab3ccfb642dd4f08d350d833d1990bf",
+      "upstream_path": "config/skills/ecosystem-primer/SKILL.md",
+      "local_path": "langchain-ai--langchain-skills/config/skills/ecosystem-primer/SKILL.md",
+      "url": "https://raw.githubusercontent.com/langchain-ai/langchain-skills/16a992f09ab3ccfb642dd4f08d350d833d1990bf/config/skills/ecosystem-primer/SKILL.md",
+      "sha256": "cc786e2a06096142f93bda47bd9e9419338b21fead8d5c3d7b997cef43ed32cb",
+      "bytes": 8124
+    },
+    {
+      "repository": "langchain-ai/langchain-skills",
+      "revision": "16a992f09ab3ccfb642dd4f08d350d833d1990bf",
+      "upstream_path": "config/skills/langchain-fundamentals/SKILL.md",
+      "local_path": "langchain-ai--langchain-skills/config/skills/langchain-fundamentals/SKILL.md",
+      "url": "https://raw.githubusercontent.com/langchain-ai/langchain-skills/16a992f09ab3ccfb642dd4f08d350d833d1990bf/config/skills/langchain-fundamentals/SKILL.md",
+      "sha256": "00dc50a19d6eec308e3c4a5b8ca237fdddeb00195e7e29d009049f5d0566f5c2",
+      "bytes": 12524
+    },
+    {
+      "repository": "langchain-ai/langchain-skills",
+      "revision": "16a992f09ab3ccfb642dd4f08d350d833d1990bf",
+      "upstream_path": "config/skills/langchain-middleware/SKILL.md",
+      "local_path": "langchain-ai--langchain-skills/config/skills/langchain-middleware/SKILL.md",
+      "url": "https://raw.githubusercontent.com/langchain-ai/langchain-skills/16a992f09ab3ccfb642dd4f08d350d833d1990bf/config/skills/langchain-middleware/SKILL.md",
+      "sha256": "2c5e499a818d1b17bdcbe8b827c69679aab175f772e89c6180fe01fedf435968",
+      "bytes": 10768
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "LICENSE",
+      "local_path": "Jeffallan--claude-skills/LICENSE",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/LICENSE",
+      "sha256": "06dcddbb6908a0c6dd4a9e8ec822eea41d5a460a53089fecccc8a68049e99241",
+      "bytes": 1056
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "README.md",
+      "local_path": "Jeffallan--claude-skills/README.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/README.md",
+      "sha256": "1ef5f3669ee9261c85995268b7812f5cf51798677d458b0f6e9858af22020a40",
+      "bytes": 6384
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/api-designer/SKILL.md",
+      "local_path": "Jeffallan--claude-skills/skills/api-designer/SKILL.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/api-designer/SKILL.md",
+      "sha256": "02f7480c64238595ad94b340c6fcefa1d4050dc3c562ea96de3a7be29a7b0f7a",
+      "bytes": 8008
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/api-designer/references/error-handling.md",
+      "local_path": "Jeffallan--claude-skills/skills/api-designer/references/error-handling.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/api-designer/references/error-handling.md",
+      "sha256": "f4f53b35360da99e4abd5edc86e53d1a34adc77f5172fa7ba8c50acff8df9c87",
+      "bytes": 11580
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/api-designer/references/openapi.md",
+      "local_path": "Jeffallan--claude-skills/skills/api-designer/references/openapi.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/api-designer/references/openapi.md",
+      "sha256": "cef05ac175cb3f69e3ff247fba5b05838229d3644ad7f9f4e53b1eff1750988f",
+      "bytes": 16380
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/api-designer/references/pagination.md",
+      "local_path": "Jeffallan--claude-skills/skills/api-designer/references/pagination.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/api-designer/references/pagination.md",
+      "sha256": "6f12180b54539525048610ab2cbc22a3c09792623f4b64be85b4cb335213ea6b",
+      "bytes": 9634
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/api-designer/references/rest-patterns.md",
+      "local_path": "Jeffallan--claude-skills/skills/api-designer/references/rest-patterns.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/api-designer/references/rest-patterns.md",
+      "sha256": "d1d493065f10387a5c9198ea5c0c1d45c7757daf188aff763e582f342c8ce21b",
+      "bytes": 7516
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/api-designer/references/versioning.md",
+      "local_path": "Jeffallan--claude-skills/skills/api-designer/references/versioning.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/api-designer/references/versioning.md",
+      "sha256": "7abc655037778fbf09a575f7b245a18710d49a11e340ca0eee62e97fcd76a034",
+      "bytes": 7945
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/nextjs-developer/SKILL.md",
+      "local_path": "Jeffallan--claude-skills/skills/nextjs-developer/SKILL.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/nextjs-developer/SKILL.md",
+      "sha256": "cbe6b04b18fa956f2a6563d996dde44a4c14e13862f58fdbe9eb891e65acf562",
+      "bytes": 5687
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/nextjs-developer/references/app-router.md",
+      "local_path": "Jeffallan--claude-skills/skills/nextjs-developer/references/app-router.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/nextjs-developer/references/app-router.md",
+      "sha256": "6ad5dcb2db0c98b13e87846936670c861da27346edebe75bf096cb08b78f6330",
+      "bytes": 6862
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/nextjs-developer/references/data-fetching.md",
+      "local_path": "Jeffallan--claude-skills/skills/nextjs-developer/references/data-fetching.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/nextjs-developer/references/data-fetching.md",
+      "sha256": "abbea7c3351c7ad77ca820e48e6f27cd68f29638b82e39dc65560a75f5151255",
+      "bytes": 10389
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/nextjs-developer/references/deployment.md",
+      "local_path": "Jeffallan--claude-skills/skills/nextjs-developer/references/deployment.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/nextjs-developer/references/deployment.md",
+      "sha256": "ff554f01556c5c07125e9931dee8645461fae9b42f172d84107f2f492035b06c",
+      "bytes": 10647
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/nextjs-developer/references/server-actions.md",
+      "local_path": "Jeffallan--claude-skills/skills/nextjs-developer/references/server-actions.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/nextjs-developer/references/server-actions.md",
+      "sha256": "c708b825296d525744e517d630402d7d73fb64df7db02882f0107a1abc4cb549",
+      "bytes": 9658
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/nextjs-developer/references/server-components.md",
+      "local_path": "Jeffallan--claude-skills/skills/nextjs-developer/references/server-components.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/nextjs-developer/references/server-components.md",
+      "sha256": "c03e919c56f4588840cd4141e015f900fa6993567d3720d4736e3a3063663cc9",
+      "bytes": 8273
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/playwright-expert/SKILL.md",
+      "local_path": "Jeffallan--claude-skills/skills/playwright-expert/SKILL.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/playwright-expert/SKILL.md",
+      "sha256": "5ab812c48e76f555163f116e76c46df29520cfa94b3ba79bc16d5104e7fff933",
+      "bytes": 5758
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/playwright-expert/references/api-mocking.md",
+      "local_path": "Jeffallan--claude-skills/skills/playwright-expert/references/api-mocking.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/playwright-expert/references/api-mocking.md",
+      "sha256": "e4f788c6355a79c9baa21b232f55788cc80620d735d29d43dea62667120fde45",
+      "bytes": 3145
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/playwright-expert/references/configuration.md",
+      "local_path": "Jeffallan--claude-skills/skills/playwright-expert/references/configuration.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/playwright-expert/references/configuration.md",
+      "sha256": "f65f5eb5a91d3a13dafb845026ee07f41353e3b82bbb6def4fc7054e55b6f2aa",
+      "bytes": 3286
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/playwright-expert/references/debugging-flaky.md",
+      "local_path": "Jeffallan--claude-skills/skills/playwright-expert/references/debugging-flaky.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/playwright-expert/references/debugging-flaky.md",
+      "sha256": "e559423dad74e5c384ba3de0a1c0db8d7f7723bd1a19cdc46f25b0f7622d5627",
+      "bytes": 3207
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/playwright-expert/references/page-object-model.md",
+      "local_path": "Jeffallan--claude-skills/skills/playwright-expert/references/page-object-model.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/playwright-expert/references/page-object-model.md",
+      "sha256": "6df65f98c1ea3b954fee2ef68d2697e2ad3fe280809cd75c8f89873d38200be2",
+      "bytes": 3684
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/playwright-expert/references/selectors-locators.md",
+      "local_path": "Jeffallan--claude-skills/skills/playwright-expert/references/selectors-locators.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/playwright-expert/references/selectors-locators.md",
+      "sha256": "659941eebd0f53ecde7dba938ec035d76673b6b0bb7cba06441a06e46922e134",
+      "bytes": 2798
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/postgres-pro/SKILL.md",
+      "local_path": "Jeffallan--claude-skills/skills/postgres-pro/SKILL.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/postgres-pro/SKILL.md",
+      "sha256": "aa3bf7c9a5a7af779095ef7e1a1afd0939880edfb7853719bfd54fe80fc74bbe",
+      "bytes": 5997
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/postgres-pro/references/extensions.md",
+      "local_path": "Jeffallan--claude-skills/skills/postgres-pro/references/extensions.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/postgres-pro/references/extensions.md",
+      "sha256": "24151c2645e07c139afa9b6ff4ef1f2972950b7e7f08195772256a6f7f216b10",
+      "bytes": 9587
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/postgres-pro/references/jsonb.md",
+      "local_path": "Jeffallan--claude-skills/skills/postgres-pro/references/jsonb.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/postgres-pro/references/jsonb.md",
+      "sha256": "8ad7086e676f86f23305a5127714566898e4c500593e1a4679194a32c7f530f2",
+      "bytes": 8152
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/postgres-pro/references/maintenance.md",
+      "local_path": "Jeffallan--claude-skills/skills/postgres-pro/references/maintenance.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/postgres-pro/references/maintenance.md",
+      "sha256": "a9915cf08759fb92ccfbcfd2b811f36ac7c02ad0bffff2dc7f59aca9e670203c",
+      "bytes": 12114
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/postgres-pro/references/performance.md",
+      "local_path": "Jeffallan--claude-skills/skills/postgres-pro/references/performance.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/postgres-pro/references/performance.md",
+      "sha256": "b137e04782ab4c5387184862cb689d7657d5cbb13c3c41d61980a2edf7c2c8d4",
+      "bytes": 7085
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/postgres-pro/references/replication.md",
+      "local_path": "Jeffallan--claude-skills/skills/postgres-pro/references/replication.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/postgres-pro/references/replication.md",
+      "sha256": "c4993a7c459f10f4dba0ce5a2c4a703e534e588439a5e94168087f3460f15412",
+      "bytes": 9991
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/secure-code-guardian/SKILL.md",
+      "local_path": "Jeffallan--claude-skills/skills/secure-code-guardian/SKILL.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/secure-code-guardian/SKILL.md",
+      "sha256": "47715fd6db1e0507041a6674a3096f1fd65b086e23453cb7d77a202bbe15fb56",
+      "bytes": 7220
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/secure-code-guardian/references/authentication.md",
+      "local_path": "Jeffallan--claude-skills/skills/secure-code-guardian/references/authentication.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/secure-code-guardian/references/authentication.md",
+      "sha256": "4d680ac47602955de09a4bb248346a91b96158d0b7e23de4fe20ecfda2ff8ac2",
+      "bytes": 3349
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/secure-code-guardian/references/input-validation.md",
+      "local_path": "Jeffallan--claude-skills/skills/secure-code-guardian/references/input-validation.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/secure-code-guardian/references/input-validation.md",
+      "sha256": "2f227b437b0d1184ad557c3ba48bf6e0db4df43c8949c9c0fc923c69847a040a",
+      "bytes": 3372
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/secure-code-guardian/references/owasp-prevention.md",
+      "local_path": "Jeffallan--claude-skills/skills/secure-code-guardian/references/owasp-prevention.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/secure-code-guardian/references/owasp-prevention.md",
+      "sha256": "4baed17eeefd365c1b46cf54e0915e99ce85666b345faf40dd9c6bf9e33372b1",
+      "bytes": 3335
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/secure-code-guardian/references/security-headers.md",
+      "local_path": "Jeffallan--claude-skills/skills/secure-code-guardian/references/security-headers.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/secure-code-guardian/references/security-headers.md",
+      "sha256": "59333cf6d3a13b8675d98afd0888e224a1e6b644f755b08a46ebcef3fb6be281",
+      "bytes": 3020
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/secure-code-guardian/references/xss-csrf.md",
+      "local_path": "Jeffallan--claude-skills/skills/secure-code-guardian/references/xss-csrf.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/secure-code-guardian/references/xss-csrf.md",
+      "sha256": "4d9976faed6ff05ce2677cdccee1df0be2980375fcdc6151ea59553fce5ca470",
+      "bytes": 3213
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/typescript-pro/SKILL.md",
+      "local_path": "Jeffallan--claude-skills/skills/typescript-pro/SKILL.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/typescript-pro/SKILL.md",
+      "sha256": "1647f8b6f7efc926b61ccfad4832317bf336a78b13265735229e25602afb0350",
+      "bytes": 5627
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/typescript-pro/references/advanced-types.md",
+      "local_path": "Jeffallan--claude-skills/skills/typescript-pro/references/advanced-types.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/typescript-pro/references/advanced-types.md",
+      "sha256": "273042ee8dba7fe809085856cea8e71eaa363d2cd19d2ba021d852d971777f20",
+      "bytes": 6449
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/typescript-pro/references/configuration.md",
+      "local_path": "Jeffallan--claude-skills/skills/typescript-pro/references/configuration.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/typescript-pro/references/configuration.md",
+      "sha256": "4ba4a37687c20a4936b4db872fea1cbeac31ec6ee19c9b959c9d475d255f0b5b",
+      "bytes": 8965
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/typescript-pro/references/patterns.md",
+      "local_path": "Jeffallan--claude-skills/skills/typescript-pro/references/patterns.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/typescript-pro/references/patterns.md",
+      "sha256": "1a3cec402f39c71b8fe6004b98b85c134d09bbed8141c82b86b9109b238e8ddd",
+      "bytes": 11213
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/typescript-pro/references/type-guards.md",
+      "local_path": "Jeffallan--claude-skills/skills/typescript-pro/references/type-guards.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/typescript-pro/references/type-guards.md",
+      "sha256": "4d6c898d2a7dc2d4d3e762969c9a01d158301147153a6692c84e76db37d714b3",
+      "bytes": 7929
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "revision": "1be15d8064f88fc25216442406d40add8fd23b53",
+      "upstream_path": "skills/typescript-pro/references/utility-types.md",
+      "local_path": "Jeffallan--claude-skills/skills/typescript-pro/references/utility-types.md",
+      "url": "https://raw.githubusercontent.com/Jeffallan/claude-skills/1be15d8064f88fc25216442406d40add8fd23b53/skills/typescript-pro/references/utility-types.md",
+      "sha256": "10e11832c61564f63ee240fa8cca40c1dc32f9a27cde09c750077b0ec248efba",
+      "bytes": 8602
+    }
+  ]
+}

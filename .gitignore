@@ -14,6 +14,10 @@ coverage/
 *.key
 .codex/
 .agents/
+!/docs/references/frontend/bundle/.agents/
+!/docs/references/frontend/bundle/.agents/**
+!/docs/references/frontend/outer/mnt/user-data/outputs/agents-skills/.agents/
+!/docs/references/frontend/outer/mnt/user-data/outputs/agents-skills/.agents/**
 .aws/
 .DS_Store
 Thumbs.db

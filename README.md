@@ -12,6 +12,8 @@ Raqam is edge runners' AI bookkeeping app for AICON'26 Financial Operations. The
 - [Skills shortlist](docs/SKILLS.md): reviewed skills and when they are useful.
 - [Handoff](handoff.md): current state, unresolved decisions and what the next person should do.
 - [Raqam vocabulary](docs/raqam/GLOSSARY.md): current domain terminology.
+- [Rules review](docs/RULES_REVIEW.md): retained Spec Kit, LangChain, backend and frontend guidance, with conflicts and limits.
+- [Complete frontend bundle](docs/references/frontend/frontend-skills.zip): preserved ZIP; source files and nested archive also retained under `docs/references/frontend/`.
 
 Earlier ShiftProof research is retained only in the original local workspace and excluded from this repository. It is not Raqam scope or evaluation data.
 
