@@ -1,0 +1,33 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+dist/
+coverage/
+.vercel/
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.codex/
+.agents/
+.aws/
+.DS_Store
+Thumbs.db
+*.log
+
+# Previous candidate: keep locally, outside the Raqam repository
+/SHIFT_PROOF_BUILD_PLAN.md
+/HACKATHON_IDEA_DECISION_BRIEF.md
+/GLOSSARY.md
+/GLOSSARY-MAP.md
+/data/shiftproof/
+/scripts/generate_shiftproof_fixtures.py
+/agentcard-research.html
+
+# Large organizer originals: share separately with teammates
+/BUILD WITH AI - Participant Guide.pdf
+/BUILD WITH AI - RuleBook.pdf
