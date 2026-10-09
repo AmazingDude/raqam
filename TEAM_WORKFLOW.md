@@ -4,7 +4,7 @@ The active work split uses **three people**, as requested on 10 October. Names, 
 
 ## Ownership
 
-Assign roles before code starts. These are roles, not assumed team-member names.
+The user has claimed A on 10 October; B/C names and availability remain pending. A's work is on `codex/platform`, following `docs/raqam/CONTRACTS.md` and the local validation record. The user requested backend implementation and stepwise validation; B/C modules remain reserved.
 
 | Role | Responsibility | Coordination boundary |
 | --- | --- | --- |

@@ -29,12 +29,12 @@ Breaks/travel and remaining official activities are outside these estimates. Ref
 
 ## Task board
 
-Roles: Person 1 = A platform/backend/integrator; Person 2 = B product UI/demo; Person 3 = C AI workflow. Individual deliverables and exclusive file ownership are in [TEAM_TASKS.md](TEAM_TASKS.md). The lead below coordinates the complete task; contributors own their modules. All implementation statuses remain `todo`. Assign names before building.
+Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo; Person 3/C AI workflow. Individual deliverables and exclusive ownership are in [TEAM_TASKS.md](TEAM_TASKS.md). A has started readiness/platform work; B/C names remain pending. The lead coordinates the complete task; contributors own their modules.
 
 | ID | Task | Blocked by | Suggested lead | Status |
 | --- | --- | --- | --- | --- |
-| RQ-00 | Record owners, cutoff and environment readiness | None | A + team | todo |
-| RQ-01 | Bootstrap and deploy authenticated persisted workspace | RQ-00 setup readiness; cutoff may remain pending | A; B workspace UI | todo |
+| RQ-00 | Record owners, cutoff and environment readiness | None | User (A) + team | in_progress |
+| RQ-01 | Bootstrap and deploy authenticated persisted workspace | RQ-00 setup readiness; cutoff may remain pending | User (A); B workspace UI | in_progress |
 | RQ-02 | Prove live Groq OCR on 3 fresh English images | RQ-00 setup readiness; cutoff may remain pending | C | todo |
 | RQ-03 | Independently label dev/evaluation cases | None; follow confirmed PRD | A prepares; B independently checks | todo |
 | RQ-04 | Import/review CSV into persisted cashbook | RQ-01 | B coordinates; A import/persistence | todo |
@@ -49,6 +49,8 @@ Roles: Person 1 = A platform/backend/integrator; Person 2 = B product UI/demo; P
 
 ### RQ-00 - Readiness and contracts
 
+- **Active claim, 10 October:** user/A on `codex/platform`. Files: `src/lib/contracts/**`, `src/lib/server/**`, `src/app/api/**`, root page/layout/sign-in platform shell, `src/proxy.ts`, `supabase/migrations/**`, `tests/backend/**`, `tests/security/**`, `scripts/{check-env,smoke-platform}.mjs`, package/Next/TypeScript/environment configuration and readiness/skills/handoff documents. Disk cleanup enabled framework installation. B/C product/AI modules remain reserved.
+- **Local progress:** shared contracts/runtime validation, exact financial helpers, schema/RLS and the Next.js/Clerk/Supabase shell implemented. See [validation record](docs/raqam/VALIDATION.md). Live account provisioning, B/C contract acknowledgement and exact cutoff remain pending; RQ-00 is not done.
 - [ ] Assign registered builders and a single integrator; record actual availability.
 - [x] Record repository URL/initial branch: `https://github.com/AmazingDude/raqam.git`, local branch `main`. Remote publication remains pending; see handoff.
 - [ ] Provision Clerk, Supabase, Groq and hosting; verify credentials privately. No secrets in docs.
@@ -58,6 +60,7 @@ Roles: Person 1 = A platform/backend/integrator; Person 2 = B product UI/demo; P
 
 ### RQ-01 - Authenticated persisted spine
 
+- **Local progress:** platform dependencies, middleware, request-scoped token-aware clients, workspace/source/cashbook-read routes and one-time spine migration exist. Embedded PostgreSQL uses simulated claims; no actual Clerk/Supabase credentials are configured. The checklist below remains open until its real behavior is demonstrated. Tested CSV/summary/export helpers are preparatory work, not completion of RQ-04/RQ-06/RQ-09.
 - [ ] Clerk login works locally and on an early deployment.
 - [ ] Configure Clerk session middleware/proxy for the pinned Next.js version; app/API/required Clerk paths work and sign-in has no redirect loop. Keep database/AI work outside middleware.
 - [ ] Protected server pages, routes and actions verify the session at data access; Supabase clients obtain the current Clerk token through `accessToken`. Server clients are request-scoped. Follow PRD section 8; do not add a separate Supabase Auth refresh flow.
@@ -134,7 +137,9 @@ If any answer is no, stretch stays closed. Core **OCR, Clerk and Supabase are no
 - [x] Event documents independently checked; probable cutoff distinguished from confirmation.
 - [x] PRD, phased task board, shared-repo workflow, skills shortlist and handoff drafted.
 - [x] Three-person task split and exclusive module ownership documented on 10 October in `TEAM_TASKS.md`; names/availability still pending.
-- [ ] Actual app implementation started.
+- [x] Role-A platform/backend implementation started on `codex/platform` at the user's request, 10 October.
 - [ ] Any product test or deployment completed.
+
+Local automated/backend checks are recorded separately in `docs/raqam/VALIDATION.md`; no complete product journey, live AI evaluation or deployment has passed.
 
 Do not mark implementation tasks done because these planning documents exist.

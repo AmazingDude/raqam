@@ -1,5 +1,13 @@
 # Skills for building Raqam quickly
 
+## Active role-A selection, 10 October
+
+The user took platform/backend role A and requested skills research before implementation. The smallest useful set is the retained API designer, TypeScript, Next.js and Secure Code Guardian guidance, applied under `RULES_REVIEW.md`'s Raqam-specific limits. Use Postgres guidance for schema/RLS and Playwright when a real app exists. Their retained source revisions/licenses remain in `references/sources.json`.
+
+Complementary sources checked directly: [TDD and its test/mocking references](https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd), [OpenAI Playwright](https://github.com/openai/skills/tree/main/skills/.curated/playwright), and [security best practices](https://github.com/openai/skills/tree/main/skills/.curated/security-best-practices). TDD requires agreed test interfaces before invocation; current checks follow the PRD's financial/security boundaries without invoking that additional skill. Playwright becomes useful at the browser gate. No generic hackathon pack or extra agent framework is needed for A's current work.
+
+The official skill-installer catalog request timed out; direct source pages were inspected instead. No external skill was installed globally, no third-party helper was run and no source snapshot was added. The existing references are sufficient to begin. Skill discovery does not establish a completed build.
+
 The additional sources requested by the user are now retained locally: see [rules review](RULES_REVIEW.md) for the Spec Kit, LangChain, Jeffallan and complete frontend bundle selection. Their revisions, licenses and hashes are recorded in [sources.json](references/sources.json). These references are not globally installed skills. The original shortlist below is preserved.
 
 **Research date:** 9 October 2026. Sources below were inspected. External skills are **shortlisted, not installed** in this workspace. This is a small selection, not a recommendation to install an entire marketplace during the event.

@@ -4,6 +4,7 @@ node_modules/
 out/
 dist/
 coverage/
+*.tsbuildinfo
 .vercel/
 
 # Credentials and local configuration

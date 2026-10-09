@@ -3,7 +3,7 @@
 **Version:** 0.1, 9 October 2026  
 **Team:** edge runners  
 **Domain:** Financial Operations, AICON'26 Build With AI  
-**Status:** core product choices confirmed through the planning interview; implementation and validation have not started. Exact submission time, named owners and service provisioning remain open.
+**Status:** core product choices confirmed; user/A has started platform/backend implementation with validation at each step. Shared contracts, financial helpers and the platform shell have local checks; live identity/cloud/OCR evaluation and deployment remain unverified. Exact submission time, B/C owners and service provisioning remain open.
 
 ## 1. Product decision
 
@@ -212,7 +212,7 @@ Include this within **F01 / RQ-01 / P1**, owned by the platform integrator; it i
 
 ## 9. Validation plan and release gate
 
-No tests have been run. The following are **planned engineering gates**, not official competition thresholds.
+Local financial/security tests have started under role A. Counts, commands and limitations are in `docs/raqam/VALIDATION.md` and `handoff.md`; they do not pass the live release gates below. The following are **planned engineering gates**, not official competition thresholds.
 
 ### Test layers
 
@@ -302,6 +302,7 @@ Prepare signed-in access before the slot; verify sign-in separately during QA. A
 | D09 | Active work split: three people; named owners and actual availability | Three-person assignment requested on 10 October; see TEAM_TASKS.md. Exact registered roster/names/availability pending |
 | D10 | Repo remote: `https://github.com/AmazingDude/raqam.git`; hosting and environment provisioning | Remote supplied by user; local Git initialized on `main`. Push status in handoff; hosting/provider accounts still unverified |
 | D11 | Session middleware with Clerk tokens for Supabase access; resource checks and row/file policies | User requested middleware if suitable; selected within existing F01/RQ-01 under delegated stack choice. No separate Supabase Auth session |
+| D12 | User owns A; platform/backend implementation with validation at each step | Confirmed on 10 October. Work on codex/platform; B/C modules reserved. Live accounts/deployment remain pending |
 
 ## 14. Source documents
 

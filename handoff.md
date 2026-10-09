@@ -1,11 +1,11 @@
 # Raqam handoff
 
-**Last updated:** 10 October 2026, PKT. Three-person work split documented; implementation not started.
+**Last updated:** 10 October 2026, PKT. User/A's platform/backend foundation is locally validated; live account gates remain pending.
 
 ## Current state
 
 - Product name confirmed: **Raqam**.
-- Active assignments: **Person 1 platform/backend/integrator, Person 2 product UI/demo, Person 3 AI workflow**. See `TEAM_TASKS.md` for individual tasks and exclusive file ownership. Evaluation is distributed across these three; no fourth-person dependency. Names and availability remain pending.
+- Active assignments: **user = Person 1/A platform/backend/integrator, Person 2/B product UI/demo, Person 3/C AI workflow**. User authorized role-A implementation with validation at each step. A's work is on `codex/platform`; B/C modules remain reserved. Names/availability for B/C and their contract acknowledgement remain pending.
 - Team: **edge runners**; domain: **Financial Operations**.
 - User clarified that Raqam is a **bookkeeping/accounting app inspired by Fortune**, with reconciliation included. The agreed hackathon core is a reviewed cashbook, rather than full double-entry financial statements.
 - Confirmed persona/language/currency: **small service business, English, PKR**. Local-shop and multilingual workflows are later work.
@@ -14,8 +14,8 @@
 - Runtime AI: **Groq free tier**. Stack choice delegated; plan selects **Next.js + TypeScript** and native Clerk/Supabase third-party auth. Model IDs and account access must be verified at bootstrap.
 - User requested Supabase middleware if it fits. Plan includes **Clerk session middleware + token-aware Supabase clients + resource authorization and row/file policies** within existing F01/RQ-01/P1. Clerk remains the sole session provider; Supabase Auth's separate SSR refresh flow is not needed for this design. See PRD section 8 for verified sources and version-dependent filenames.
 - User requested a well-built PRD, phased goals, tested core before stretch goals, a relevant skills shortlist and this repository handoff. Ask about material uncertainties instead of assuming.
-- No application code has been built. No product tests, live transactions, deployment or customer validation have occurred.
-- Local Git is initialized on `main` with `origin` configured as `https://github.com/AmazingDude/raqam.git`. Baseline planning commit `a1b9907` is published; remote `main` also contains `be333ef` (reviewed rules and retained references). On 10 October, fetching succeeded with narrowly scoped elevated Git access after the sandbox denied `.git/FETCH_HEAD` writes. The three-person assignment update is prepared for publication on top of that remote history; verify its delivery using the remote revision.
+- Platform shell and shared contracts/financial helpers are implemented locally. **22/22 automated tests, strict typecheck and production build pass**; local HTTP smoke checks missing-configuration failure for all five private API requests. Embedded Postgres claims/Storage schemas are simulated. No live Clerk/Supabase/Groq validation, complete product browser journey, real transactions, deployment or customer validation has occurred. See `docs/raqam/VALIDATION.md`.
+- Local Git is initialized on `main` with `origin` configured as `https://github.com/AmazingDude/raqam.git`. The three-person assignment update is published as `7a432a4`, preserving baseline `a1b9907` and rules/reference commit `be333ef`. Push succeeded and `git ls-remote` confirmed the full remote main SHA matched local HEAD on 10 October. Git metadata/network operations required narrowly scoped elevated access after the sandbox denied `.git/FETCH_HEAD` writes.
 
 ## Read these artifacts
 
@@ -23,6 +23,7 @@
 - [Build plan](BUILD_PLAN.md): milestone gates and task tracking.
 - [Team workflow](TEAM_WORKFLOW.md): owner boundaries and integration process.
 - [Individual tasks](TEAM_TASKS.md): three-person feature split, first deliverables and module ownership.
+- [Contracts](docs/raqam/CONTRACTS.md), [setup](docs/raqam/SETUP.md) and [validation](docs/raqam/VALIDATION.md): implemented boundaries, account instructions and measured local evidence.
 - [Skills](docs/SKILLS.md): relevant skills, dependencies and portability notes.
 - [Vocabulary](docs/raqam/GLOSSARY.md): current Raqam terms.
 
@@ -38,14 +39,14 @@
 
 1. Organizer-confirmed submission cutoff; probable 23:59 is not confirmed.
 2. Exact registered roster, named task owners and actual availability; active plan assigns three people with evaluation/demo distributed among them.
-3. Publish the prepared three-person assignment update to the configured `origin/main` and verify the remote revision. Hosting account remains unconfirmed.
-4. Clerk/Supabase/Groq accounts, credentials and model access have not been tested. Do not write keys into these documents.
+3. Git publication of the assignment update is complete. Hosting account remains unconfirmed.
+4. User confirmed Clerk/Supabase are not yet provisioned and requested setup steps. Follow `docs/raqam/SETUP.md`; credentials belong in ignored `.env.local`. Groq/model access belongs to C and remains untested.
 
 Core scope questions were answered. Do not repeat them unless the user changes direction. Handle remaining setup facts through RQ-00 and the organizer briefing; record the answers when available.
 
 ## Immediate next action
 
-Use `TEAM_TASKS.md` to distribute the three assignments and fill in names/availability. When the user requests implementation, start RQ-00 in `BUILD_PLAN.md`, agree contracts/file paths, then build the authenticated persisted spine and prove live OCR in parallel. Read the PRD first. Do not bootstrap an alternative product or add stretch features before the gate.
+Provision Clerk/Supabase, configure `.env.local` privately and apply the reviewed spine migration to the new Raqam project. Then verify real two-user identity/row/file/API isolation, save/reload and private source access before marking RQ-01 done. Fill B/C names and coordinate `docs/raqam/CONTRACTS.md`. C proves live OCR in their lane; A then completes atomic import/audited reviews. No stretch before the existing gate.
 
 ## Suggested skills
 
@@ -67,12 +68,14 @@ The two large organizer PDFs are also excluded from Git; share originals separat
 
 - Both event PDFs were directly inspected with the installed Python 3.12 `pypdf` runtime.
 - PDF page references and judging requirements are recorded in the PRD/build plan; no criterion weights are invented.
-- Node/npm/npx exist locally. No app framework or package manifest exists yet.
+- Next.js 16.4.0, React/DOM 19.2.8, Clerk 7.9.13, Supabase JS 2.117.3, Zod 4.6.5 and TypeScript 5.9.3 are pinned with npm's lockfile. Local Node is 25.9.0. Build/typecheck/runtime dependency audit passed; account compatibility still needs live checks.
 - Current primary documentation for Groq vision/structured outputs/tool calling/rate limits and native Clerk/Supabase integration was inspected; links and caveats are in PRD section 8.
 - Default `python` points to MSYS Python without PDF packages. PDF-capable Python: `C:/Users/Rehan/AppData/Local/Programs/Python/Python312/python.exe`.
 
 ## Session log
 
+- 10 October: completed role-A local foundation on `codex/platform` after researching complementary skills and applying retained API/TypeScript/Next/security guidance. Changed shared contracts, financial helpers, root platform/sign-in shell, middleware, private APIs, spine/RLS migration, tests, dependency/configuration files and readiness documents. Verified 22/22 tests, strict typecheck, production build, runtime dependency audit (0 reported vulnerabilities) and local HTTP fail-closed smoke (5/5 private requests). SQL claims/Storage are simulated; no live accounts, AI, deployment or complete product flow tested. Authorized cleanup removed other-project caches/compiler output and seven confirmed dist builds; source/reference files preserved. Known issues: providers unprovisioned, B/C acknowledgement/names and exact cutoff pending; import/review/match/tool integrations unfinished. Next action: follow SETUP.md and validate real two-user persisted spine. RQ-00/RQ-01 remain in_progress; downstream feature tasks are not marked done from helper tests.
+- 10 October: publication completed. Rebased the five-file task-split commit onto `be333ef` without conflicts, pushed `7a432a4` to `origin/main`, and verified GitHub's main SHA exactly matched local HEAD. Git whitespace checks passed; working tree was clean after the push. No product tests or deployment performed. Known issues: names/availability, exact cutoff and provider access remain pending. Next action: distribute TEAM_TASKS.md and fill in owners before implementation readiness work.
 - 10 October: user requested publication to main. Inspected the five assignment files, fetched remote main and identified the newer rules/reference commit to preserve. Prepared only the Raqam planning update for commit; prior no-commit/no-remote status above corrected from Git evidence. No application checks apply to this documentation-only change. Publication verification is recorded after pushing.
 - 10 October: completed planning task TEAM-SPLIT across `TEAM_TASKS.md`, `TEAM_WORKFLOW.md`, `BUILD_PLAN.md`, `PRD.md` and `handoff.md`. Assigned three exclusive lanes (platform/backend, product UI/demo, AI) and distributed independent evaluation without a fourth-person dependency; added integration order and a two-person-start rule. Checked scope/dependency consistency, local links and Git whitespace. Known issues: names/availability/provider access and Git publication remain pending. Next action: distribute assignments, then agree contracts in RQ-00 when implementation is requested. No application code, product tests or deployment performed.
 - 9 October: inspected workspace, verified event constraints and researched the linked grilling workflow and useful implementation skills.

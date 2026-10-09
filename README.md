@@ -2,13 +2,15 @@
 
 Raqam is edge runners' AI bookkeeping app for AICON'26 Financial Operations. The agreed core is a reviewed cashbook with OCR, category/match suggestions, evidence-backed questions, Clerk login and Supabase cloud persistence. The first user is a small service business using English and PKR.
 
-**Current stage:** product planning. No Raqam application has been implemented or tested in this folder.
+**Current stage:** role-A platform/backend foundation on `codex/platform`. Local financial/security checks and the Next.js production shell are available; real Clerk/Supabase provisioning, the complete product journey, live AI evaluation and deployment remain pending.
 
 ## Start here
 
 - [PRD](PRD.md): confirmed product choices, core scope, acceptance criteria, evaluation and remaining setup facts.
 - [Build plan](BUILD_PLAN.md): phases, task owners, dependencies, release gates and stretch-feature rules.
 - [Team workflow](TEAM_WORKFLOW.md): shared-repository coordination and integration rules.
+- [Three-person assignments](TEAM_TASKS.md): user/A backend, B product UI/demo and C AI workflow.
+- [Shared contracts](docs/raqam/CONTRACTS.md), [setup](docs/raqam/SETUP.md) and [validation](docs/raqam/VALIDATION.md): current interfaces, account provisioning and measured local checks.
 - [Skills shortlist](docs/SKILLS.md): reviewed skills and when they are useful.
 - [Handoff](handoff.md): current state, unresolved decisions and what the next person should do.
 - [Raqam vocabulary](docs/raqam/GLOSSARY.md): current domain terminology.
