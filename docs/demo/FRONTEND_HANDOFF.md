@@ -2,6 +2,8 @@
 
 Design: [DESIGN.md](../../DESIGN.md). Branch `codex/raqam-frontend`, base `796ce4f`. The user switched this chat to B; another person now continues A. The root landing entry is the only changed A-owned application file: it imports B's `Landing` component. The Clerk root layout, sign-in, middleware, dependencies, schemas, APIs and migrations were preserved. B's CSS module includes a body-margin reset conditional on its own root surface; no root global stylesheet was edited.
 
+Published to `origin/codex/raqam-frontend`; implementation commit `b71c78c`. Synced main's `f95ddfc` C-planning documents through merge `e801866`, verified on the remote. A's executable contract remains canonical; C's detailed proposals still need A/B agreement before live wiring. No main merge/push or deployment by B.
+
 ## Run and inspect
 
 `npm run dev` or `npm run build` followed by `npm run start`.
