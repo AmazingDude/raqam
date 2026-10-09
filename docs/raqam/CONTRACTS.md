@@ -1,6 +1,6 @@
 # Raqam shared contract v0.1
 
-Owner: user/A on `codex/platform`. Types and runtime schemas live in `src/lib/contracts/index.ts` and `schemas.ts`. B owns screens and C owns AI modules; neither redefines these shapes. A selected this first contract under the user's implementation request. B/C acknowledgement is pending; request changes through A before diverging.
+Owner: user/A on `codex/raqam-backend`. Types and runtime schemas live in `src/lib/contracts/index.ts` and `schemas.ts`. B owns screens and C owns AI modules; neither redefines these shapes. A selected this first contract under the user's implementation request. B/C acknowledgement is pending; request changes through A before diverging.
 
 ## Financial representation and states
 

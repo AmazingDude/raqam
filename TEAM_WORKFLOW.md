@@ -4,7 +4,7 @@ The active work split uses **three people**, as requested on 10 October. Names, 
 
 ## Ownership
 
-The user has claimed A on 10 October; B/C names and availability remain pending. A's work is on `codex/platform`, following `docs/raqam/CONTRACTS.md` and the local validation record. The user requested backend implementation and stepwise validation; B/C modules remain reserved.
+The user has claimed A on 10 October; B/C names and availability remain pending. A's work is on `codex/raqam-backend`, following `docs/raqam/CONTRACTS.md` and the local validation record. The user requested backend implementation and stepwise validation; B/C modules remain reserved.
 
 | Role | Responsibility | Coordination boundary |
 | --- | --- | --- |
@@ -20,15 +20,17 @@ Agree the minimum transaction, document, proposal, review-decision and source-re
 
 Work should land as small demonstrable slices, not three independently completed applications. The first slice includes sign-in, a persisted owner-scoped record and a private source. In parallel, prove actual Groq OCR. Later slices add cashbook, AI and review behavior to that path.
 
-## Git process once configured
+## Hackathon Git process: direct pushes, optional PRs
+
+For the current three-person hackathon, PRs are optional. Each person pushes small commits to their owned branch. A reviews the diff/check evidence, integrates completed slices sequentially and pushes the tested result to `main` directly. B/C do not independently push overlapping work to `main`. Review can be a quick paired diff check; record the checker and result in the task/handoff rather than requiring a PR ceremony. Existing repository branch rules still apply; this workflow does not change them.
 
 1. Create or connect the intended team repository and record its URL. Do not publish private research or personal records accidentally.
 2. Integrator creates the first working baseline and records its revision. Each person uses a separate clone, branch or worktree.
 3. Claim one unblocked task with owner, status and expected files. Suggested branch naming: `codex/rq-XX-short-description`.
 4. Keep changes local to that task. Coordinate dependency, schema, migration and global styling changes with their owner.
 5. Before integration, sync with the current base and resolve conflicts while preserving other contributors' behavior.
-6. Review against the task's acceptance criteria and run the applicable checks. Include verification evidence in the PR or task entry.
-7. Integrator merges completed slices sequentially and performs a short combined-flow check. Record failures immediately.
+6. Review against the task's acceptance criteria and run the applicable checks. Include verification evidence in the task/handoff entry; a PR is optional when useful for a larger change.
+7. Integrator merges completed slices sequentially, performs a short combined-flow check and pushes the tested result to main directly. Record failures immediately.
 8. At release freeze, pin the exact demo/submission revision. Use that revision for evaluation, deployment and the deck's reported results.
 
 Do not use force pushes, destructive resets or broad file replacement to resolve ordinary integration conflicts.

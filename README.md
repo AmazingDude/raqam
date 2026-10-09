@@ -2,7 +2,7 @@
 
 Raqam is edge runners' AI bookkeeping app for AICON'26 Financial Operations. The agreed core is a reviewed cashbook with OCR, category/match suggestions, evidence-backed questions, Clerk login and Supabase cloud persistence. The first user is a small service business using English and PKR.
 
-**Current stage:** role-A platform/backend foundation on `codex/platform`. Local financial/security checks and the Next.js production shell are available; real Clerk/Supabase provisioning, the complete product journey, live AI evaluation and deployment remain pending.
+**Current stage:** role-A platform/backend foundation on `codex/raqam-backend`. Local financial/security checks and the Next.js production shell are available; real Clerk/Supabase provisioning, the complete product journey, live AI evaluation and deployment remain pending.
 
 ## Start here
 

@@ -23,7 +23,7 @@
 - Raqam is the current project: bookkeeping is primary, reconciliation is supporting.
 - The earlier ShiftProof plans, root `GLOSSARY.md` and `data/shiftproof/` describe a different candidate. Preserve them; do not implement them as Raqam requirements.
 - The PRD marks proposals and unanswered questions explicitly. Do not silently turn them into accepted requirements. Ask the user about material product choices.
-- On 10 October the user took role A and requested continued platform/backend implementation against the PRD, with validation at every step and relevant skills research first. Work in A's owned modules on `codex/platform`. Dependency setup needed for that implementation is authorized. External issue publication and deployment still require the relevant release request; prior planning publication was authorized to `https://github.com/AmazingDude/raqam.git`.
+- On 10 October the user took role A and requested continued platform/backend implementation against the PRD, with validation at every step and relevant skills research first. Work in A's owned modules on `codex/raqam-backend`. Dependency setup needed for that implementation is authorized. External issue publication and deployment still require the relevant release request; prior planning publication was authorized to `https://github.com/AmazingDude/raqam.git`.
 - Do not add stretch features until the release gate in `BUILD_PLAN.md` is met and the feature is selected by the team.
 
 ## Shared repo

@@ -302,7 +302,7 @@ Prepare signed-in access before the slot; verify sign-in separately during QA. A
 | D09 | Active work split: three people; named owners and actual availability | Three-person assignment requested on 10 October; see TEAM_TASKS.md. Exact registered roster/names/availability pending |
 | D10 | Repo remote: `https://github.com/AmazingDude/raqam.git`; hosting and environment provisioning | Remote supplied by user; local Git initialized on `main`. Push status in handoff; hosting/provider accounts still unverified |
 | D11 | Session middleware with Clerk tokens for Supabase access; resource checks and row/file policies | User requested middleware if suitable; selected within existing F01/RQ-01 under delegated stack choice. No separate Supabase Auth session |
-| D12 | User owns A; platform/backend implementation with validation at each step | Confirmed on 10 October. Work on codex/platform; B/C modules reserved. Live accounts/deployment remain pending |
+| D12 | User owns A; platform/backend implementation with validation at each step | Confirmed on 10 October. Work on codex/raqam-backend; B/C modules reserved. Live accounts/deployment remain pending |
 
 ## 14. Source documents
 

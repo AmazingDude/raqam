@@ -1,6 +1,6 @@
 # Role A setup and validation
 
-User/A owns setup on `codex/platform`; B/C consume [CONTRACTS.md](CONTRACTS.md). The Next.js platform shell and local financial code run; live provider checks remain pending. Local tests alone cannot complete RQ-01.
+User/A owns setup on `codex/raqam-backend`; B/C consume [CONTRACTS.md](CONTRACTS.md). The Next.js platform shell and local financial code run; live provider checks remain pending. Local tests alone cannot complete RQ-01.
 
 ## Local prerequisites
 

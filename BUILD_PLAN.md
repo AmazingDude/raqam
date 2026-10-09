@@ -49,7 +49,7 @@ Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo
 
 ### RQ-00 - Readiness and contracts
 
-- **Active claim, 10 October:** user/A on `codex/platform`. Files: `src/lib/contracts/**`, `src/lib/server/**`, `src/app/api/**`, root page/layout/sign-in platform shell, `src/proxy.ts`, `supabase/migrations/**`, `tests/backend/**`, `tests/security/**`, `scripts/{check-env,smoke-platform}.mjs`, package/Next/TypeScript/environment configuration and readiness/skills/handoff documents. Disk cleanup enabled framework installation. B/C product/AI modules remain reserved.
+- **Active claim, 10 October:** user/A on `codex/raqam-backend`. Files: `src/lib/contracts/**`, `src/lib/server/**`, `src/app/api/**`, root page/layout/sign-in platform shell, `src/proxy.ts`, `supabase/migrations/**`, `tests/backend/**`, `tests/security/**`, `scripts/{check-env,smoke-platform}.mjs`, package/Next/TypeScript/environment configuration and readiness/skills/handoff documents. Disk cleanup enabled framework installation. B/C product/AI modules remain reserved.
 - **Local progress:** shared contracts/runtime validation, exact financial helpers, schema/RLS and the Next.js/Clerk/Supabase shell implemented. See [validation record](docs/raqam/VALIDATION.md). Live account provisioning, B/C contract acknowledgement and exact cutoff remain pending; RQ-00 is not done.
 - [ ] Assign registered builders and a single integrator; record actual availability.
 - [x] Record repository URL/initial branch: `https://github.com/AmazingDude/raqam.git`, local branch `main`. Remote publication remains pending; see handoff.
@@ -137,7 +137,7 @@ If any answer is no, stretch stays closed. Core **OCR, Clerk and Supabase are no
 - [x] Event documents independently checked; probable cutoff distinguished from confirmation.
 - [x] PRD, phased task board, shared-repo workflow, skills shortlist and handoff drafted.
 - [x] Three-person task split and exclusive module ownership documented on 10 October in `TEAM_TASKS.md`; names/availability still pending.
-- [x] Role-A platform/backend implementation started on `codex/platform` at the user's request, 10 October.
+- [x] Role-A platform/backend implementation started on `codex/raqam-backend` at the user's request, 10 October.
 - [ ] Any product test or deployment completed.
 
 Local automated/backend checks are recorded separately in `docs/raqam/VALIDATION.md`; no complete product journey, live AI evaluation or deployment has passed.

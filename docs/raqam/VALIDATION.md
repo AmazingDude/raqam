@@ -1,5 +1,7 @@
 # Role A local validation, 10 October 2026 (PKT)
 
+The working branch was subsequently renamed to `codex/raqam-backend`, preserving the validated commits. The original validation record below retains its historical branch name. Branch/documentation changes do not alter the tested application code.
+
 Checker: Codex, working for user/A on `codex/platform`. Revision: the platform-foundation commit carrying this record. Model/prompt version: none; no runtime AI was invoked. Inputs are synthetic test literals and a local embedded PostgreSQL fixture, not reserved live evaluation packets or customer data.
 
 ## Completed local slice
