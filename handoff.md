@@ -1,10 +1,11 @@
 # Raqam handoff
 
-**Last updated:** 9 October 2026, PKT. Planning artifacts completed; implementation not started.
+**Last updated:** 10 October 2026, PKT. Three-person work split documented; implementation not started.
 
 ## Current state
 
 - Product name confirmed: **Raqam**.
+- Active assignments: **Person 1 platform/backend/integrator, Person 2 product UI/demo, Person 3 AI workflow**. See `TEAM_TASKS.md` for individual tasks and exclusive file ownership. Evaluation is distributed across these three; no fourth-person dependency. Names and availability remain pending.
 - Team: **edge runners**; domain: **Financial Operations**.
 - User clarified that Raqam is a **bookkeeping/accounting app inspired by Fortune**, with reconciliation included. The agreed hackathon core is a reviewed cashbook, rather than full double-entry financial statements.
 - Confirmed persona/language/currency: **small service business, English, PKR**. Local-shop and multilingual workflows are later work.
@@ -14,13 +15,14 @@
 - User requested Supabase middleware if it fits. Plan includes **Clerk session middleware + token-aware Supabase clients + resource authorization and row/file policies** within existing F01/RQ-01/P1. Clerk remains the sole session provider; Supabase Auth's separate SSR refresh flow is not needed for this design. See PRD section 8 for verified sources and version-dependent filenames.
 - User requested a well-built PRD, phased goals, tested core before stretch goals, a relevant skills shortlist and this repository handoff. Ask about material uncertainties instead of assuming.
 - No application code has been built. No product tests, live transactions, deployment or customer validation have occurred.
-- Local Git is initialized on `main`; user supplied and authorized publication to `https://github.com/AmazingDude/raqam.git`. **No files are staged, no commit exists and no remote is configured.** The environment denied writes to `.git/config` and `.git/index.lock`; GitHub connectivity also failed through its proxy (`127.0.0.1:9`). Publication must be completed outside this restricted environment.
+- Local Git is initialized on `main` with `origin` configured as `https://github.com/AmazingDude/raqam.git`. Baseline planning commit `a1b9907` is published; remote `main` also contains `be333ef` (reviewed rules and retained references). On 10 October, fetching succeeded with narrowly scoped elevated Git access after the sandbox denied `.git/FETCH_HEAD` writes. The three-person assignment update is prepared for publication on top of that remote history; verify its delivery using the remote revision.
 
 ## Read these artifacts
 
 - [PRD](PRD.md): product requirements and decision register. Proposed details are not accepted by default.
 - [Build plan](BUILD_PLAN.md): milestone gates and task tracking.
 - [Team workflow](TEAM_WORKFLOW.md): owner boundaries and integration process.
+- [Individual tasks](TEAM_TASKS.md): three-person feature split, first deliverables and module ownership.
 - [Skills](docs/SKILLS.md): relevant skills, dependencies and portability notes.
 - [Vocabulary](docs/raqam/GLOSSARY.md): current Raqam terms.
 
@@ -30,20 +32,20 @@
 - The PDFs confirm Saturday-night submission; exact clock time is announced at the briefing.
 - Mandatory on-site Saturday module 09:00-14:00; development session 09:00-13:30.
 - Allocated presentation: **Sunday 11 October 09:42-09:47 PKT, SEECS CR-01**.
-- Exact available working hours and registered builder count remain unanswered; prior user context is 3-4 builders.
+- Exact available working hours and registered builder count remain unanswered; the user requested an active three-person work split on 10 October.
 
 ## Remaining setup facts
 
 1. Organizer-confirmed submission cutoff; probable 23:59 is not confirmed.
-2. Exact registered roster, named task owners and actual availability; plan has roles for three plus an optional fourth builder.
-3. Stage/commit the prepared planning files, configure the supplied Git remote and push from an environment permitting Git metadata writes/network access. Hosting account remains unconfirmed.
+2. Exact registered roster, named task owners and actual availability; active plan assigns three people with evaluation/demo distributed among them.
+3. Publish the prepared three-person assignment update to the configured `origin/main` and verify the remote revision. Hosting account remains unconfirmed.
 4. Clerk/Supabase/Groq accounts, credentials and model access have not been tested. Do not write keys into these documents.
 
 Core scope questions were answered. Do not repeat them unless the user changes direction. Handle remaining setup facts through RQ-00 and the organizer briefing; record the answers when available.
 
 ## Immediate next action
 
-When the user requests implementation, start RQ-00 in `BUILD_PLAN.md`, assign owners, then build the authenticated persisted spine and prove live OCR in parallel. Read the PRD first. Do not bootstrap an alternative product or add stretch features before the gate.
+Use `TEAM_TASKS.md` to distribute the three assignments and fill in names/availability. When the user requests implementation, start RQ-00 in `BUILD_PLAN.md`, agree contracts/file paths, then build the authenticated persisted spine and prove live OCR in parallel. Read the PRD first. Do not bootstrap an alternative product or add stretch features before the gate.
 
 ## Suggested skills
 
@@ -71,6 +73,8 @@ The two large organizer PDFs are also excluded from Git; share originals separat
 
 ## Session log
 
+- 10 October: user requested publication to main. Inspected the five assignment files, fetched remote main and identified the newer rules/reference commit to preserve. Prepared only the Raqam planning update for commit; prior no-commit/no-remote status above corrected from Git evidence. No application checks apply to this documentation-only change. Publication verification is recorded after pushing.
+- 10 October: completed planning task TEAM-SPLIT across `TEAM_TASKS.md`, `TEAM_WORKFLOW.md`, `BUILD_PLAN.md`, `PRD.md` and `handoff.md`. Assigned three exclusive lanes (platform/backend, product UI/demo, AI) and distributed independent evaluation without a fourth-person dependency; added integration order and a two-person-start rule. Checked scope/dependency consistency, local links and Git whitespace. Known issues: names/availability/provider access and Git publication remain pending. Next action: distribute assignments, then agree contracts in RQ-00 when implementation is requested. No application code, product tests or deployment performed.
 - 9 October: inspected workspace, verified event constraints and researched the linked grilling workflow and useful implementation skills.
 - 9 October: user confirmed reviewed cashbook, small service business/English/PKR, OCR core, Clerk/Supabase core and Groq free tier; delegated stack choice.
 - 9 October: created PRD, phased task board with release/stretch gates, shared-repo workflow, skills shortlist, agent instructions and context glossary. No application implementation, product test, deployment, Git initialization or skill installation performed.

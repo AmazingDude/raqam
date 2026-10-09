@@ -8,7 +8,7 @@
 - Saturday-night submission; **23:59 is provisional**, supplied by the user as probable. Verify at briefing and replace it here.
 - Sunday demo: 09:42-09:47, SEECS CR-01.
 - Plan to submit by **22:00 Saturday only if the official cutoff permits it**, leaving a buffer against the probable 23:59 cutoff. If the organizer sets an earlier time, move every freeze and submission checkpoint earlier.
-- Named roster and actual availability are unconfirmed. Assign A/B/C and optional D before building. With fewer available hours, discuss the smallest acceptable scope with the user; do not assume stretch will fit.
+- Active split: three people, A/B/C, as requested on 10 October; see [TEAM_TASKS.md](TEAM_TASKS.md). Names, registered roster and actual availability remain unconfirmed. With fewer available hours, discuss the smallest acceptable scope with the user; do not assume stretch will fit.
 
 ## Phase gates
 
@@ -29,22 +29,22 @@ Breaks/travel and remaining official activities are outside these estimates. Ref
 
 ## Task board
 
-Roles: A platform/integrator, B bookkeeping UI, C AI workflow, D evaluation/demo. Assign names in `TEAM_WORKFLOW.md`. Pairing is expected; each completed task includes UI/API/state and verification relevant to that behavior.
+Roles: Person 1 = A platform/backend/integrator; Person 2 = B product UI/demo; Person 3 = C AI workflow. Individual deliverables and exclusive file ownership are in [TEAM_TASKS.md](TEAM_TASKS.md). The lead below coordinates the complete task; contributors own their modules. All implementation statuses remain `todo`. Assign names before building.
 
 | ID | Task | Blocked by | Suggested lead | Status |
 | --- | --- | --- | --- | --- |
 | RQ-00 | Record owners, cutoff and environment readiness | None | A + team | todo |
-| RQ-01 | Bootstrap and deploy authenticated persisted workspace | RQ-00 setup readiness; cutoff may remain pending | A, B | todo |
+| RQ-01 | Bootstrap and deploy authenticated persisted workspace | RQ-00 setup readiness; cutoff may remain pending | A; B workspace UI | todo |
 | RQ-02 | Prove live Groq OCR on 3 fresh English images | RQ-00 setup readiness; cutoff may remain pending | C | todo |
-| RQ-03 | Independently label dev/evaluation cases | None; follow confirmed PRD | D or B + A | todo |
-| RQ-04 | Import/review CSV into persisted cashbook | RQ-01 | A, B | todo |
-| RQ-05 | Upload/OCR/review a private supporting document | RQ-01, RQ-02 | C, B | todo |
-| RQ-06 | Propose/review categories; display exact cash summaries | RQ-04 | C, A, B | todo |
-| RQ-07 | Propose/review one-to-one reconciliation | RQ-04, RQ-05 | C, A, B | todo |
-| RQ-08 | Answer grounded questions through scoped tools | RQ-06, RQ-07 | C, A | todo |
-| RQ-09 | Export/reopen the reviewed cashbook | RQ-06, RQ-07 | B, A | todo |
-| RQ-10 | Run reserved evaluation and release checks | RQ-03, RQ-05 through RQ-09 | D + team | todo |
-| RQ-11 | Prepare deck, demo script and attribution | Can draft now; results require RQ-10 | D or B + team | todo |
+| RQ-03 | Independently label dev/evaluation cases | None; follow confirmed PRD | A prepares; B independently checks | todo |
+| RQ-04 | Import/review CSV into persisted cashbook | RQ-01 | B coordinates; A import/persistence | todo |
+| RQ-05 | Upload/OCR/review a private supporting document | RQ-01, RQ-02 | C coordinates; A storage/routes; B review UI | todo |
+| RQ-06 | Propose/review categories; display exact cash summaries | RQ-04 | B coordinates; C proposals; A totals/reviews | todo |
+| RQ-07 | Propose/review one-to-one reconciliation | RQ-04, RQ-05 | C coordinates; A approval constraints; B review UI | todo |
+| RQ-08 | Answer grounded questions through scoped tools | RQ-06, RQ-07 | C coordinates; A scoped tools/routes; B assistant UI | todo |
+| RQ-09 | Export/reopen the reviewed cashbook | RQ-06, RQ-07 | A export/persistence; B controls/browser check | todo |
+| RQ-10 | Run reserved evaluation and release checks | RQ-03, RQ-05 through RQ-09 | A coordinates; B browser/independent scoring; C AI measurements | todo |
+| RQ-11 | Prepare deck, demo script and attribution | Can draft now; results require RQ-10 | B; A/C supply evidence/contributions | todo |
 | RQ-12 | Pin release, verify links and submit | RQ-10, RQ-11 | A + presenter | todo |
 
 ### RQ-00 - Readiness and contracts
@@ -133,6 +133,7 @@ If any answer is no, stretch stays closed. Core **OCR, Clerk and Supabase are no
 - [x] Core cashbook, OCR, persona/language/currency, Clerk/Supabase and Groq choice clarified.
 - [x] Event documents independently checked; probable cutoff distinguished from confirmation.
 - [x] PRD, phased task board, shared-repo workflow, skills shortlist and handoff drafted.
+- [x] Three-person task split and exclusive module ownership documented on 10 October in `TEAM_TASKS.md`; names/availability still pending.
 - [ ] Actual app implementation started.
 - [ ] Any product test or deployment completed.
 

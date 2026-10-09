@@ -1,6 +1,6 @@
 # Raqam team workflow
 
-This is the recommended collaboration process for the user's 3-4-person team. Exact registered roster and named owners remain to confirm. Local Git is initialized on `main`; the intended remote is `https://github.com/AmazingDude/raqam.git`. See handoff for publication status.
+The active work split uses **three people**, as requested on 10 October. Names, registered roster and availability remain to confirm. Local Git is initialized on `main`; the intended remote is `https://github.com/AmazingDude/raqam.git`. See handoff for publication status. Use [TEAM_TASKS.md](TEAM_TASKS.md) for individual assignments and file ownership.
 
 ## Ownership
 
@@ -11,9 +11,8 @@ Assign roles before code starts. These are roles, not assumed team-member names.
 | A: Integrator/platform | Bootstrap, Clerk session middleware, token-aware Supabase clients/ownership policies, shared data contract, financial calculations, merges, deployment | Sole editor of package manifests/lockfile, shared schemas, migrations and infrastructure unless work is handed off |
 | B: Bookkeeping UI | Import preview, records table, corrections, category review, summaries and source viewer | Consumes the agreed contracts; requests changes before editing them |
 | C: AI workflow | Groq adapter, extraction, category/match proposals, evidence-backed assistant | Returns schema-validated proposals; does not directly approve or post books |
-| D: Evaluation/demo | Independently labeled cases, integration checks, deployment smoke check, deck and demo | Keeps reserved expected answers separate from app/model context |
 
-With three builders, A and B split D's fixture and demo work; everyone contributes review, and C does not grade their own extraction output alone. Do not leave evaluation and presentation until the final hour.
+Person 1 = A, Person 2 = B, Person 3 = C. A owns evaluation fixtures, security/financial checks and release integration; B independently checks fixture answers, runs the browser journey and owns the deck/demo script; C records live AI measurements and provider failure checks. A/B check C's AI results. There is no fourth-person dependency in the active plan. Do not leave evaluation and presentation until the final hour.
 
 ## One shared contract before parallel implementation
 
@@ -25,7 +24,7 @@ Work should land as small demonstrable slices, not three independently completed
 
 1. Create or connect the intended team repository and record its URL. Do not publish private research or personal records accidentally.
 2. Integrator creates the first working baseline and records its revision. Each person uses a separate clone, branch or worktree.
-3. Claim one unblocked task with owner, status and expected files. Suggested branch naming: `rq-XX-short-description`.
+3. Claim one unblocked task with owner, status and expected files. Suggested branch naming: `codex/rq-XX-short-description`.
 4. Keep changes local to that task. Coordinate dependency, schema, migration and global styling changes with their owner.
 5. Before integration, sync with the current base and resolve conflicts while preserving other contributors' behavior.
 6. Review against the task's acceptance criteria and run the applicable checks. Include verification evidence in the PR or task entry.

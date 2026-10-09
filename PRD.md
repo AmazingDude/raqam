@@ -299,7 +299,7 @@ Prepare signed-in access before the slot; verify sign-in separately during QA. A
 | D06 | Groq free tier runtime; stack choice delegated | Confirmed by user; account/model access not tested |
 | D07 | Next.js/TypeScript; native Clerk/Supabase integration | Selected recommendation under delegated stack choice; bootstrap verifies compatibility |
 | D08 | Submission likely 10 Oct 23:59 PKT | User expectation; organizer confirmation pending |
-| D09 | 3-4 builders; named owners and actual availability | Count range supplied earlier; exact registered roster/availability pending |
+| D09 | Active work split: three people; named owners and actual availability | Three-person assignment requested on 10 October; see TEAM_TASKS.md. Exact registered roster/names/availability pending |
 | D10 | Repo remote: `https://github.com/AmazingDude/raqam.git`; hosting and environment provisioning | Remote supplied by user; local Git initialized on `main`. Push status in handoff; hosting/provider accounts still unverified |
 | D11 | Session middleware with Clerk tokens for Supabase access; resource checks and row/file policies | User requested middleware if suitable; selected within existing F01/RQ-01 under delegated stack choice. No separate Supabase Auth session |
 
