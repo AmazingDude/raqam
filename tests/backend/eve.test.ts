@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createEveAssistant } from '../../src/lib/ai/eve.ts';
+import { createEveBudget } from '../../src/lib/ai/eve-budget.ts';
 import { createAIProvider } from '../../src/lib/ai/factory.ts';
 import { createAssistantTools } from '../../src/lib/server/assistant/full-tools.ts';
 import { runAssistant } from '../../src/lib/server/assistant/engine.ts';
@@ -9,6 +10,19 @@ import type { ToolConversationRequest } from '../../src/lib/ai/provider.ts';
 
 const requestId = '20000000-0000-4000-8000-000000000001';
 const context = () => ({ requestId, deadlineAtMs: Date.now() + 10_000 });
+
+test('Eve usage guard caps attempts at 20/day, limits concurrency and fails closed on unsafe settings', () => {
+  let now = 0;
+  const budget = createEveBudget(() => now);
+  for (const setting of ['-1','21','invalid','1.5','0']) assert.equal(budget.acquire(setting),null);
+  const first = budget.acquire(undefined); assert.ok(first);
+  assert.equal(budget.acquire(undefined),null); first(); first();
+  for (let i=1;i<20;i++) { const release = budget.acquire(undefined); assert.ok(release); release(); }
+  assert.equal(budget.acquire(undefined),null);
+  now = 86_400_000;
+  const nextDay = budget.acquire('1'); assert.ok(nextDay); nextDay();
+  assert.equal(budget.acquire('1'),null);
+});
 const routes = ['summary','categories','receipts','documents','transactions','evidence','greeting','clarify','scope'];
 function reply(choice = 'summary', probability = 0.99) {
   return Response.json({ object:'decisions',model:'eve',prompt_format_version:3,
@@ -68,4 +82,8 @@ test('Eve missing keys, credit/auth denial, oversized output and cancellation fa
   const controller = new AbortController(); controller.abort();
   const cancelled = await missing.requestToolConversation(input('Cash totals'),{...context(),signal:controller.signal});
   assert.equal(cancelled.ok,false); if (!cancelled.ok) assert.equal(cancelled.error.reason,'cancelled');
+  const disabled = createEveAssistant({environment:() => ({RUNA_CLOUD_KEY:'synthetic',EVE_DAILY_REQUEST_LIMIT:'0'}),fetch:async () => {requests++;return reply();}});
+  const capped = await disabled.requestToolConversation(input('Cash totals'),context());
+  assert.equal(capped.ok,false); if (!capped.ok) assert.equal(capped.error.reason,'budget_exhausted');
+  assert.equal(requests,0);
 });

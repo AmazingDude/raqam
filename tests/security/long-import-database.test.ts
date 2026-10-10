@@ -25,7 +25,7 @@ test('long-import migration confirms 1000 rows, resolves native headers, preserv
       grant usage on schema storage to authenticated,anon;
       grant select,insert,update,delete on storage.objects to authenticated;
     `);
-    for (const name of ['202610100001_workspace_spine.sql','202610100002_csv_imports.sql','202610100003_cashbook_review.sql','202610100004_import_resolution.sql','202610100005_review_conflict.sql','202610100009_long_statement_imports.sql']) {
+    for (const name of ['202610100001_workspace_spine.sql','202610100002_csv_imports.sql','202610100003_cashbook_review.sql','202610100004_import_resolution.sql','202610100005_review_conflict.sql','202610100010_long_statement_imports.sql']) {
       await db.exec(await readFile(new URL('../../supabase/migrations/' + name, import.meta.url), 'utf8'));
     }
 

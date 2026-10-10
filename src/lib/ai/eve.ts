@@ -1,6 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { assistantToolSchemas } from '../contracts/schemas.ts';
+import { eveBudget } from './eve-budget.ts';
 import type { ProviderContext, ProviderDependencies, ProviderFailureReason, ProviderMetadata, ProviderResult, ToolConversationRequest, ToolName } from './provider.ts';
 
 const routes = ['summary', 'categories', 'receipts', 'documents', 'transactions', 'evidence', 'greeting', 'clarify', 'scope'] as const;
@@ -26,7 +27,9 @@ export function createEveAssistant(deps: ProviderDependencies = {}) {
       providerVersion: 'runanywhere-eve-router-v1', promptVersion: input.versions.prompt, schemaVersion: input.versions.schema,
       attempts: 0, durationMs: 0, providerRequestIds: [], usage: null };
     const fail = (reason: ProviderFailureReason, retryable = false): ProviderResult => ({ ok: false,
-      error: { code: 'UNAVAILABLE', reason, message: 'Eve could not verify the lookup. Check the RunAnywhere Cloud key and credit, then retry.', retryable, retryAfterMs: null },
+      error: { code: 'UNAVAILABLE', reason, message: reason === 'budget_exhausted'
+        ? 'The Eve usage limit has been reached or another lookup is running. Your question is preserved; try later.'
+        : 'Eve could not verify the lookup. Check the RunAnywhere Cloud key and credit, then retry.', retryable, retryAfterMs: null },
       metadata: { ...metadata, durationMs: Date.now() - started } });
     const finish = (kind: string, ids: number[] = []): ProviderResult => ({ ok: true,
       output: { content: JSON.stringify({ kind, observationIds: ids }), toolCalls: [] }, metadata: { ...metadata, durationMs: Date.now() - started } });
@@ -56,6 +59,8 @@ export function createEveAssistant(deps: ProviderDependencies = {}) {
     if (context.budget) {
       try { if (!context.budget.take()) return fail('budget_exhausted'); } catch { return fail('budget_unavailable'); }
     }
+    const release = eveBudget.acquire(settings.EVE_DAILY_REQUEST_LIMIT);
+    if (!release) return fail('budget_exhausted');
     const abort = new AbortController();
     const cancel = () => abort.abort();
     context.signal?.addEventListener('abort', cancel, { once: true });
@@ -109,6 +114,6 @@ export function createEveAssistant(deps: ProviderDependencies = {}) {
       return { ok: true, output: { content: null, toolCalls: [{ id: 'eve-lookup-1', name, arguments: JSON.stringify(args) }] },
         metadata: { ...metadata, durationMs: Date.now() - started } };
     } catch { return fail(context.signal?.aborted ? 'cancelled' : abort.signal.aborted ? 'provider_timeout' : 'provider_unavailable', true); }
-    finally { clearTimeout(timer); context.signal?.removeEventListener('abort', cancel); }
+    finally { clearTimeout(timer); context.signal?.removeEventListener('abort', cancel); release(); }
   } };
 }

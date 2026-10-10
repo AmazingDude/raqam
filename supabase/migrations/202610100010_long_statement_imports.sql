@@ -1,5 +1,5 @@
 -- Long PDF imports: 20,000 rows/import, 50,000 records/workspace.
--- Apply after migrations 001-008. Ownership, locks, audit and retry semantics retained.
+-- Apply after migrations 001-009. Ownership, locks, audit and retry semantics retained.
 -- Index JSON arrays once to avoid repeated scans during large confirmations.
 begin;
 create or replace function public.register_csv_import(p_workspace_id uuid, p_hash text, p_name text, p_preview jsonb)
