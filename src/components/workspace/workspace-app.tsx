@@ -9,6 +9,7 @@ import { CATEGORIES } from '../../lib/contracts/index.ts';
 import { exampleDocuments, exampleProposals } from '../../lib/client/examples.ts';
 import { categoryLabels, displayDate, downloadExample, downloadText, money } from '../../lib/client/presentation.ts';
 import { api } from '../../lib/client/api.ts';
+import { categoryPreparationBatch } from '../../lib/client/proposal-batch.ts';
 import { usePrivateRequests } from '../../lib/client/use-private-requests.ts';
 import { Icon, Mark } from '../ui/icon.tsx';
 import type { IconName } from '../ui/icon.tsx';
@@ -56,7 +57,7 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
   documents?:DocumentRecord[];documentsError?:string;proposals?:ProposalRecord[];proposalsError?:string;matchProposals?:ProposalRecord[];matchesError?:string;matchProposalsCursor?:string|null;loadMoreMatchProposals?:(()=>Promise<void>)|undefined;
   summary?:CashSummary|null;summaryError?:string;onChanged?:(()=>Promise<void>)|undefined;
 }) {
-  const run=usePrivateRequests(),exportLock=useRef(false);
+  const run=usePrivateRequests(),exportLock=useRef(false),extractionLock=useRef(false);
   const [exporting,setExporting]=useState(false),[exportError,setExportError]=useState('');
   const [view,setView]=useState<View>('cashbook'),[demoRecords,setDemoRecords]=useState(liveRecords),[demoDocuments,setDemoDocuments]=useState(demo?exampleDocuments():[]),[demoProposals,setDemoProposals]=useState(demo?exampleProposals():[]),[liveDocuments,setLiveDocuments]=useState(initialDocuments),[liveProposalRecords,setLiveProposalRecords]=useState(initialProposals),[liveMatchProposals,setLiveMatchProposals]=useState(initialMatchProposals);
   const [matches,setMatches]=useState<{documentId:string;transactionId:string}[]>([]),[rejectedMatches,setRejectedMatches]=useState<string[]>([]),[sources,setSources]=useState<UploadedSource[]>([]),[loadingMatchPage,setLoadingMatchPage]=useState(false);
@@ -141,32 +142,28 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
     return saved;
   }
   async function extractDocument(id:string) {
+    if(extractionLock.current)return;
     const current=liveDocuments.find(item=>item.document.id===id);
     if(!current){setFailure('Document state is unavailable. Reload the documents list.');return;}
+    extractionLock.current=true;
     setExtractingDocumentId(id);setFailure('');
     try {
       const result=await run(signal=>api.extractDocument(id,{requestId:crypto.randomUUID(),expectedVersion:current.reviewVersion},signal));
       setLiveDocuments(items=>upsertDocument(items,result.currentRecord));
-      setNotice(result.state==='failed'?'Extraction could not complete. Review the safe status and retry when ready.':'Extraction finished. Verify every proposed field against the private image.');
+      setNotice(result.state==='failed'?'Extraction could not complete. Review the safe status and retry when ready.':result.state==='cached'?'Saved extraction reused. Your reviewed corrections are retained.':'Extraction finished. Verify every proposed field against the private image.');
     } catch(error) {setFailure(error instanceof Error?error.message:'Receipt extraction could not complete. The source and cashbook are unchanged.');}
-    finally {setExtractingDocumentId(null);}
+    finally {extractionLock.current=false;setExtractingDocumentId(null);}
   }
   async function generateCategories() {
     if(generatingCategories)return;
-    const unreviewed=records.filter(item=>item.categoryStatus!=='accepted');
-    if(!unreviewed.length){setCategoryError('There are no unreviewed transactions to prepare.');return;}
-    const transactionIds=unreviewed.slice(0, 10).map(item=>item.id);
+    const batch=categoryPreparationBatch(records,liveProposalRecords),transactionIds=batch.transactionIds;
+    if(!transactionIds.length){setCategoryError('Loaded unreviewed transactions already have pending suggestions, or all loaded categories are accepted. Review suggestions or load more transactions.');return;}
     setGeneratingCategories(true);setCategoryError('');
     try {
       await run(signal=>api.generateCategoryProposals({requestId:crypto.randomUUID(),transactionIds},signal));
       const refreshed=await run(signal=>api.categoryProposals(signal));
       setLiveProposalRecords(refreshed.items);
-      const remaining=unreviewed.length - transactionIds.length;
-      setNotice(remaining > 0
-        ? `Prepared ${transactionIds.length} category suggestions. ${remaining} more unreviewed transactions remaining.`
-        : refreshed.items.some(item=>item.status==='proposed'||item.status==='needs_review')
-          ? 'Category suggestions are ready for your review.'
-          : 'No new category suggestions were needed. Existing accepted categories remain unchanged.');
+      setNotice((refreshed.items.some(item=>item.status==='proposed'||item.status==='needs_review')?'Category suggestions are ready for your review.':'No new category suggestions were needed. Existing accepted categories remain unchanged.')+(batch.remainingLoadedCount?` ${batch.remainingLoadedCount} additional loaded transactions remain outside this batch.`:''));
     } catch(error) {setCategoryError(error instanceof Error?error.message:'Category preparation failed. Existing books are unchanged.');}
     finally {setGeneratingCategories(false);}
   }
