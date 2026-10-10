@@ -252,7 +252,7 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
         {view==='payments'&&<PaymentsScreen key={workspace.id} demo={demo} workspaceId={workspace.id}/>}
         {view==='books'&&<LedgerScreen key={workspace.id} demo={demo} workspaceId={workspace.id}/>}
         {view==='profile'&&<ProfileScreen workspace={workspace} onTaxReadiness={()=>navigate('tax')}/>}
-        {view==='tax-workpaper'&&<TaxWorkpaperScreen/>}
+        {view==='tax-workpaper'&&<TaxWorkpaperScreen workspaceId={workspace.id} onTaxReadiness={()=>navigate('tax')}/>}
         {view==='import'&&!demo&&<LiveImportScreen onChanged={onChanged}/>}
         {view==='import'&&demo&&<ImportScreen demo={demo} workspaceId={workspace.id} imported={imported} onConfirm={(next,remaining)=>{if(!demo||imported)return;setDemoRecords(current=>[...current,...next]);setUnresolved(remaining);setImported(true);decision('example-import-csv','accept',null,{validRows:next.length,unresolvedRows:remaining});setNotice(`${next.length} example rows imported; ${remaining} unresolved rows excluded from totals.`);}}/>}
         {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} hasMoreDocuments={documentCursor!==null} loadingMoreDocuments={loadingDocumentPage} onLoadMoreDocuments={loadDocumentPage} liveRecords={liveDocuments} documentError={documentsError} extractingDocumentId={extractingDocumentId} onExtractDocument={demo?undefined:extractDocument} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink} onStatement={()=>navigate('import')} onBill={()=>navigate('bills')} onInvoice={()=>navigate('invoices')}/>}

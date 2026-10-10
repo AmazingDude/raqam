@@ -186,6 +186,14 @@
 .taxGate p, .taxFooter { color: var(--muted); font-size: 13px; }
 .taxGateIcon { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border-radius: 12px; background: var(--canvas); }
 .taxFooter { margin-top: 18px; }
+.workpaperPreview { margin-top: 20px; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); }
+.workpaperPreview h3 { margin: 0 0 12px; }
+.workpaperPreview p { margin: 8px 0; font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+@media print {
+  body * { visibility: hidden !important; }
+  .workpaperPreview, .workpaperPreview * { visibility: visible !important; }
+  .workpaperPreview { position: absolute; inset: 0; width: 100%; border: 0; background: white; color: black; }
+}
 .intakeRoutes { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 20px 24px; margin-bottom: 24px; }
 .intakeRoutes > div { flex: 1 1 100%; }
 .intakeRoutes > p { flex-basis: 100%; margin: 0; }

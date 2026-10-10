@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   getCurrentPakistanTaxYear, pakistanTaxPeriod, taxReadinessAnswersSchema,
-  taxReadinessSaveSchema, taxReadinessStateSchema,
+  taxReadinessSaveSchema, taxReadinessStateSchema, taxReadinessCompletion,
 } from '../../src/lib/contracts/tax-readiness.ts';
 
 const answers = {
@@ -37,4 +37,17 @@ test('profile writes require every answer and explicit confirmation; responses c
   const profile = { workspaceId: '10000000-0000-4000-8000-000000000001', taxYear: 2027, answers, version: 1, updatedAt: '2026-10-10T12:00:00Z' };
   assert.equal(taxReadinessStateSchema.safeParse({ taxYear: 2027, periodStart: '2026-07-01', periodEnd: '2027-06-30', profile }).success, true);
   assert.equal(taxReadinessStateSchema.safeParse({ taxYear: 2026, periodStart: '2025-07-01', periodEnd: '2026-06-30', profile }).success, false);
+});
+
+test('profile completion requires confirmed choices and a declared matching record for each income source', () => {
+  const profile = (nextAnswers: unknown) => ({ workspaceId: '10000000-0000-4000-8000-000000000001', taxYear: 2027, answers: nextAnswers, version: 1, updatedAt: '2026-10-10T12:00:00Z' });
+  assert.deepEqual(taxReadinessCompletion(null), { complete: false, missing: ['Save a tax readiness profile'] });
+  const uncertain = taxReadinessCompletion(profile({ ...answers, taxpayerType: 'not_sure' }) as never);
+  assert.equal(uncertain.complete, false);
+  assert.ok(uncertain.missing.includes('Confirm taxpayer type'));
+  const noBusinessRecord = taxReadinessCompletion(profile({ ...answers, residency: 'resident' }) as never);
+  assert.equal(noBusinessRecord.complete, false);
+  assert.ok(noBusinessRecord.missing.some(item => item.includes('business or freelance')));
+  const complete = taxReadinessCompletion(profile({ ...answers, residency: 'resident', recordsOnHand: ['salary_certificate', 'business_income_expense_records'] }) as never);
+  assert.equal(complete.complete, true);
 });

@@ -54,6 +54,32 @@ export const taxReadinessProfileSchema = z.strictObject({
 });
 export type TaxReadinessProfile = z.infer<typeof taxReadinessProfileSchema>;
 
+const REQUIRED_RECORDS_BY_INCOME: Partial<Record<(typeof TAX_INCOME_SOURCES)[number], (typeof TAX_RECORDS_ON_HAND)[number]>> = {
+  salary: 'salary_certificate', business_or_freelance: 'business_income_expense_records', rent: 'rental_records',
+  bank_profit: 'bank_profit_certificate', dividends_or_investments: 'investment_statements', capital_gains: 'investment_statements',
+  foreign_income: 'foreign_income_tax_records', other: 'other',
+};
+
+/** Self-reported completeness only; this never implies verified evidence or tax readiness. */
+export function taxReadinessCompletion(profile: TaxReadinessProfile | null): { complete: boolean; missing: string[] } {
+  if (!profile) return { complete: false, missing: ['Save a tax readiness profile'] };
+  const { answers } = profile;
+  const missing: string[] = [];
+  if (answers.taxpayerType === 'not_sure') missing.push('Confirm taxpayer type');
+  if (answers.residency === 'not_sure') missing.push('Confirm tax residency');
+  if (answers.provinceOrTerritory === 'not_sure') missing.push('Confirm region');
+  if (answers.filingHistory === 'not_sure') missing.push('Confirm filing history');
+  if (answers.incomeSources.includes('not_sure')) missing.push('Confirm income sources');
+  if (answers.recordsOnHand.includes('not_sure') || answers.recordsOnHand.includes('not_collected_yet')) missing.push('Confirm records on hand');
+  if (answers.wealthRecords.includes('not_sure') || answers.wealthRecords.includes('not_collected_yet')) missing.push('Confirm wealth records');
+  const available = new Set(answers.recordsOnHand);
+  for (const income of answers.incomeSources) {
+    const required = REQUIRED_RECORDS_BY_INCOME[income];
+    if (required && !available.has(required)) missing.push(`Identify supporting records for ${income.replaceAll('_', ' ')}`);
+  }
+  return { complete: missing.length === 0, missing };
+}
+
 export const taxReadinessStateSchema = z.strictObject({
   taxYear: z.number().int().min(2000).max(2200),
   periodStart: z.iso.date(),
