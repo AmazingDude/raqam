@@ -43,7 +43,7 @@ Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo
 | RQ-05 | Upload/OCR/review a private supporting document | RQ-01, RQ-02 | C coordinates; A storage/routes; B review UI | todo |
 | RQ-06 | Propose/review categories; display exact cash summaries | RQ-04 | B coordinates; C proposals; A totals/reviews | in_progress |
 | RQ-07 | Propose/review one-to-one reconciliation | RQ-04, RQ-05 | C coordinates; A approval constraints; B review UI | todo |
-| RQ-08 | Answer grounded questions through scoped tools | RQ-06, RQ-07 | C coordinates; A scoped tools/routes; B assistant UI | todo |
+| RQ-08 | Answer grounded questions through scoped tools | RQ-06, RQ-07 | C coordinates; A scoped tools/routes; B assistant UI | in_review — assistant route, four scoped tools and live UI connected; synthetic Groq checks pass; signed-in browser/evaluation gates remain |
 | RQ-09 | Export/reopen the reviewed cashbook | RQ-06, RQ-07 | A export/persistence; B controls/browser check | in_progress |
 | RQ-10 | Run reserved evaluation and release checks | RQ-03, RQ-05 through RQ-09 | A coordinates; B browser/independent scoring; C AI measurements | todo |
 | RQ-11 | Prepare deck, demo script and attribution | Can draft now; results require RQ-10 | B; A/C supply evidence/contributions | todo |

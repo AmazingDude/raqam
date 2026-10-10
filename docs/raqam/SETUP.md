@@ -4,6 +4,12 @@ User/A owns setup on `codex/raqam-backend`; B/C consume [CONTRACTS.md](CONTRACTS
 
 ## Local prerequisites
 
+For the assistant, configure the ignored `.env.local` with `GROQ_API_KEY`, `GROQ_TEXT_MODEL=openai/gpt-oss-20b` and `GROQ_VISION_MODEL=qwen/qwen3.8-27b`; the existing provider adapter validates both model settings even for a text operation. These IDs were verified against this account's model discovery endpoint on 10 October. Restart the dev server after environment changes. Deployment environments need the same configuration supplied privately.
+
+Read-only assistant smoke: `node --env-file-if-exists=.env.local --conditions=react-server scripts/smoke-assistant.mjs`. An optional `--url=http://localhost:3189` selects an isolated local server, while the Origin remains configured by APP_URL. Authenticated factual/isolation checks require two existing active sessions in workspaces named exactly `Raqam synthetic validation`; ordinary business records are never read or sent to the model. The script creates no accounts, sessions or financial records.
+
+On Node 22, the current npm test script's `--test-isolation=none` option is unsupported. Run the same suites with `node --test --test-concurrency=1 tests/backend/*.test.ts tests/security/*.test.ts`. Provider adapter checks use `node --conditions=react-server --test --test-concurrency=1 tests/ai/provider.test.ts tests/ai/gemini.test.ts`.
+
 1. Keep adequate free space for dependencies/build output (roughly 2 GiB before a clean installation is a useful starting allowance). Cleanup initially left about 300 MiB; later available space rose to about 1.8 GiB, enabling the successful framework install/build. Authorized cleanup removed other-project caches/compiler output and seven confirmed Vite dist directories. No Raqam/reference files were deleted; no temp files older than one day were found.
 2. Use npm and the lockfile. Node 22.18+ supports the current TypeScript test command; local runtime is 25.9.0. Pin a supported deployment Node LTS at framework bootstrap. Native TypeScript execution does not replace type checking.
 3. Run `npm ci`, `npm test`, `npm run typecheck`. The tests disable subprocess isolation because sandbox child-process spawn failed; fixtures are synthetic and embedded database instances are isolated and closed.

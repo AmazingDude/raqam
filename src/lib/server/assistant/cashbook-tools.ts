@@ -70,8 +70,6 @@ export function createCashbookTools(options: Options) {
       const parsed = assistantToolSchemas.list_transactions.safeParse(input);
       if (!parsed.success) throw new BackendError('INVALID_INPUT', 'Provide valid bounded transaction filters.');
       const args = parsed.data;
-      // The existing mapper has a placeholder match status. Wait for A1's persisted projection.
-      if (args.matchStatus !== undefined) throw new BackendError('UNAVAILABLE', 'Match-filtered lookup is not available yet.');
       if (args.cursor !== undefined && !z.uuid().safeParse(args.cursor).success) {
         throw new BackendError('INVALID_INPUT', 'Provide a valid transaction cursor.');
       }
@@ -80,7 +78,8 @@ export function createCashbookTools(options: Options) {
         (args.dateFrom === undefined || record.date >= args.dateFrom) &&
         (args.dateTo === undefined || record.date <= args.dateTo) &&
         (args.category === undefined || record.category === args.category) &&
-        (args.categoryStatus === undefined || record.categoryStatus === args.categoryStatus)
+        (args.categoryStatus === undefined || record.categoryStatus === args.categoryStatus) &&
+        (args.matchStatus === undefined || record.matchStatus === args.matchStatus)
       ).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
       const cursorIndex = args.cursor === undefined ? -1 : filtered.findIndex(record => record.id === args.cursor);
       if (args.cursor !== undefined && cursorIndex < 0) {
@@ -95,11 +94,10 @@ export function createCashbookTools(options: Options) {
     async get_cash_summary(input: unknown) {
       const parsed = assistantToolSchemas.get_cash_summary.safeParse(input);
       if (!parsed.success) throw new BackendError('INVALID_INPUT', 'Provide the valid imported cash summary scope.');
-      if (parsed.data.dateFrom !== undefined || parsed.data.dateTo !== undefined) {
-        throw new BackendError('UNAVAILABLE', 'Date-filtered summary scope is not available yet.');
-      }
       const { records, unresolvedImportRowCount } = await load();
-      const summary = calculateCashSummary(records, workspaceId, unresolvedImportRowCount);
+      const { dateFrom, dateTo } = parsed.data;
+      const filtered = records.filter(record => (!dateFrom || record.date >= dateFrom) && (!dateTo || record.date <= dateTo));
+      const summary = calculateCashSummary(filtered, workspaceId, unresolvedImportRowCount);
       assertActive();
       return summary;
     },
