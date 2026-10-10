@@ -196,14 +196,17 @@ test('an unexpected provider rejection returns a safe failure without leaking it
 
 test('cache identity is stable and changes across owners, source bytes, or processing versions', () => {
   const base = { ownerId: 'owner-a', workspaceId: 'workspace-a', sourceHash: 'a'.repeat(64), provider: 'groq' as const,
-    modelId: 'qwen/qwen3.8-27b', promptVersion: 'receipt-v1', schemaVersion: 'fields-v1', preprocessingVersion: 'image-v1' };
+    providerVersion: 'groq-provider-v1', modelId: 'qwen/qwen3.8-27b', promptVersion: 'receipt-v1', schemaVersion: 'fields-v1', preprocessingVersion: 'image-v1' };
   const identity = createExtractionCacheIdentity(base);
   assert.equal(identity, createExtractionCacheIdentity({ ...base }));
   assert.notEqual(identity, createExtractionCacheIdentity({ ...base, ownerId: 'owner-b' }));
   assert.notEqual(identity, createExtractionCacheIdentity({ ...base, sourceHash: 'b'.repeat(64) }));
+  assert.notEqual(identity, createExtractionCacheIdentity({ ...base, providerVersion: 'groq-provider-v2' }));
+  assert.notEqual(identity, createExtractionCacheIdentity({ ...base, provider: 'gemini' }));
   assert.notEqual(identity, createExtractionCacheIdentity({ ...base, modelId: 'gemini-3.8-flash' }));
   assert.notEqual(identity, createExtractionCacheIdentity({ ...base, promptVersion: 'receipt-v2' }));
   assert.notEqual(identity, createExtractionCacheIdentity({ ...base, schemaVersion: 'fields-v2' }));
   assert.notEqual(identity, createExtractionCacheIdentity({ ...base, preprocessingVersion: 'image-v2' }));
+  assert.throws(() => createExtractionCacheIdentity({ ...base, providerVersion: 'not a-version' }));
   assert.throws(() => createExtractionCacheIdentity({ ...base, sourceHash: 'not-a-hash' }));
 });

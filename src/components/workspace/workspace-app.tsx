@@ -25,6 +25,11 @@ import { AssistantScreen } from './assistant-screen.tsx';
 import s from '../ui/theme.module.css';
 type View = 'cashbook' | 'import' | 'documents' | 'review' | 'assistant';
 const views: {id:View;label:string;icon:IconName}[] = [{id:'cashbook',label:'Cashbook',icon:'book'},{id:'documents',label:'Documents',icon:'file'},{id:'review',label:'Review queue',icon:'review'},{id:'assistant',label:'Ask Raqam',icon:'spark'}];
+const EMPTY_DOCUMENTS: DocumentRecord[] = [];
+const EMPTY_PROPOSALS: ProposalRecord[] = [];
+function sameSnapshot<T>(current:T[], incoming:T[]):boolean {
+  return current===incoming||(current.length===incoming.length&&current.every((item,index)=>item===incoming[index]||JSON.stringify(item)===JSON.stringify(incoming[index])));
+}
 function upsertDocument(records:DocumentRecord[], value:DocumentRecord):DocumentRecord[] {
   return [...records.filter(item=>item.document.id!==value.document.id),value].sort((a,b)=>a.document.id.localeCompare(b.document.id));
 }
@@ -35,7 +40,7 @@ function RecordDetail({record,demo,onSave,onClose}: {record:Transaction;demo:boo
     <form className={s.stack} onSubmit={event=>{event.preventDefault();if(description.trim())onSave(description.trim(),category);}}><label className={s.field}>Reviewed description<textarea rows={3} maxLength={2000} value={description} onChange={event=>setDescription(event.target.value)} disabled={!demo} required/></label><label className={s.field}>Reviewed category<select value={category??''} disabled={!demo} onChange={event=>setCategory(event.target.value?(event.target.value as Category):null)}><option value="">Leave unreviewed</option>{CATEGORIES.map(c=><option key={c} value={c}>{categoryLabels[c]}</option>)}</select></label>{demo?<><p className={`${s.small} ${s.muted}`}>Saving a selected category confirms your review. Example edits preserve the original source text and create a session review entry.</p><button className={s.button} type="submit" disabled={!description.trim()}>Save reviewed changes</button></>:<p className={`${s.small} ${s.muted}`}>Audited corrections are awaiting the transaction update API.</p>}</form>
   </div></Dialog>;
 }
-export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,loadMore,onUpload,getLink,account,onReload,summary=null,summaryError='',documents:initialDocuments=[],documentsError='',proposals:initialProposals=[],proposalsError='',onChanged=async()=>{throw new Error('Reload the workspace to refresh saved records.');}}: {
+export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,loadMore,onUpload,getLink,account,onReload,summary=null,summaryError='',documents:initialDocuments=EMPTY_DOCUMENTS,documentsError='',proposals:initialProposals=EMPTY_PROPOSALS,proposalsError='',onChanged=async()=>{throw new Error('Reload the workspace to refresh saved records.');}}: {
   demo:boolean;workspace:Workspace;records:Transaction[];hasMore?:boolean;loadMore?: (()=>Promise<void>) | undefined;
   onUpload?: ((file:File)=>Promise<UploadedSource>) | undefined;getLink?: ((id:string)=>Promise<PrivateLink>) | undefined;
   account?:ReactNode;onReload?: (()=>void) | undefined;
@@ -54,8 +59,10 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
     category:item.suggestion.kind==='category'?item.suggestion.category:'uncategorized',rationale:item.rationale,status:item.status,
     reviewVersion:item.reviewVersion,transactionVersion:item.transactionVersion,
   }));
-  useEffect(()=>{if(!demo)setLiveDocuments(initialDocuments);},[demo,initialDocuments]);
-  useEffect(()=>{if(!demo)setLiveProposalRecords(initialProposals);},[demo,initialProposals]);
+  // Refreshed parents can supply new array identities for unchanged snapshots.
+  // Preserve local state in that case so the prop-sync effects cannot render-loop.
+  useEffect(()=>{if(!demo)setLiveDocuments(current=>sameSnapshot(current,initialDocuments)?current:initialDocuments);},[demo,initialDocuments]);
+  useEffect(()=>{if(!demo)setLiveProposalRecords(current=>sameSnapshot(current,initialProposals)?current:initialProposals);},[demo,initialProposals]);
   const reviewCount=proposals.filter(p=>p.status==='proposed'||p.status==='needs_review').length+documents.filter(d=>!matches.some(m=>m.documentId===d.id)&&!rejectedMatches.includes(d.id)).length;
   function navigate(next:View) {setView(next);setFailure(''); document.querySelector<HTMLDetailsElement>('[data-mobile-nav]')?.removeAttribute('open');}
   function decision(targetId:string,action:'accept'|'correct'|'reject',previous:unknown,current:unknown) {
