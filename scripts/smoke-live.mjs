@@ -133,6 +133,45 @@ try {
     assert.match(await exported.text(), /Synthetic validation expense,Live reviewed expense,out,10\.05,PKR,LIVE-2,travel,accepted,unmatched/);
     ok('audited review persistence, stale-write denial, exact summary and reviewed CSV export');
   }
+  if (process.argv.includes('--resolutions')) {
+    const resolutionCsv = 'date,description,direction,amount,reference\n2026-10-10,Synthetic later correction,out,?,RESOLVE-1\n2026-10-10,Synthetic later rejection,out,?,RESOLVE-2\n';
+    const form = new FormData(); form.set('file', new File([resolutionCsv], 'synthetic-resolution.csv', { type: 'text/csv' }));
+    const outstanding = await json('/api/imports', { method: 'POST', expected: 201, form });
+    assert.equal(outstanding.preview.invalidCount, 2);
+    const initial = await json(`/api/imports/${outstanding.importId}/confirmation`, { method: 'POST', body: {} });
+    assert.equal(initial.importedCount, 0); assert.equal(initial.unresolvedCount, 2);
+    const path = `/api/imports/${outstanding.importId}/resolutions`;
+    const before = await json(path);
+    const beforeSummary = await json('/api/summary');
+    assert.ok([0, 2].includes(before.unresolvedCount), 'fixture must be outstanding or fully resolved by an earlier run');
+    const command = { requestId: '30000000-0000-4000-8000-000000000001', rows: [
+      { rowNumber: 2, action: 'correct', transaction: { date: '2026-10-10', description: 'Live resolved expense', direction: 'out', amountMinor: '1005', currency: 'PKR', reference: 'RESOLVE-1' } },
+      { rowNumber: 3, action: 'reject' },
+    ] };
+    const resolved = await json(path, { method: 'POST', body: command });
+    assert.equal(resolved.correctedCount, 1); assert.equal(resolved.rejectedCount, 1); assert.equal(resolved.remainingUnresolvedCount, 0);
+    assert.equal(resolved.transactionIds.length, 1);
+    assert.deepEqual(await json(path, { method: 'POST', body: command }), { ...resolved, duplicate: true });
+    const current = await json(path);
+    assert.equal(current.importedCount, 1); assert.equal(current.rejectedCount, 1); assert.equal(current.unresolvedCount, 0);
+    const conflict = await request(path, { method: 'POST', expected: 409,
+      body: { ...command, rows: [{ rowNumber: 2, action: 'reject' }] } });
+    assert.equal((await conflict.json()).error.code, 'CONFLICT');
+    const alreadyReviewed = await request(path, { method: 'POST', expected: 409,
+      body: { requestId: '30000000-0000-4000-8000-000000000002', rows: [{ rowNumber: 3, action: 'reject' }] } });
+    assert.equal((await alreadyReviewed.json()).error.code, 'CONFLICT');
+    const saved = await json(`/api/imports/${outstanding.importId}`);
+    assert.deepEqual(saved.preview, outstanding.preview);
+    assert.equal(saved.confirmation.importedCount, 0); assert.equal(saved.confirmation.unresolvedCount, 2);
+    const resolvedCash = (await json('/api/transactions?limit=50')).items.filter(row => row.source.sourceId === outstanding.importId);
+    assert.equal(resolvedCash.length, 1); assert.equal(resolvedCash[0].amountMinor, '1005');
+    assert.equal(resolvedCash[0].originalDescription, 'Synthetic later correction');
+    const afterSummary = await json('/api/summary');
+    assert.equal(afterSummary.unresolvedImportRowCount, beforeSummary.unresolvedImportRowCount - before.unresolvedCount);
+    assert.equal(afterSummary.outflowMinor, (BigInt(beforeSummary.outflowMinor) + (before.unresolvedCount === 2 ? 1005n : 0n)).toString());
+    ok('confirmed-row correction/rejection, immutable originals, conflict denial, retry receipts and exact current totals');
+  }
+  const beforeImageCount = (await json('/api/transactions?limit=50')).items.length;
   const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWQAAAABJRU5ErkJggg==', 'base64');
   const uploadImage = async () => {
     const form = new FormData(); form.set('file', new File([image], 'synthetic-pixel.png', { type: 'image/png' }));
@@ -148,7 +187,7 @@ try {
   assert.equal(original.status, 200); assert.deepEqual(Buffer.from(await original.arrayBuffer()), image);
   const publicUrl = new URL(signedUrl.pathname.replace('/object/sign/', '/object/public/'), signedUrl.origin);
   assert.notEqual((await fetch(publicUrl, { signal: AbortSignal.timeout(15000) })).status, 200);
-  assert.equal((await json('/api/transactions?limit=50')).items.length, book.items.length);
+  assert.equal((await json('/api/transactions?limit=50')).items.length, beforeImageCount);
   ok('private source upload/retry, signed retrieval and no cash created from images');
   const foreign = await request('/api/workspace', { method: 'POST', expected: 422, origin: 'https://invalid.example', body: { businessName } });
   assert.equal((await foreign.json()).error.code, 'INVALID_INPUT');
