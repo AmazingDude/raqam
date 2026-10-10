@@ -63,7 +63,7 @@ test('proposal boundaries require unique scoped versions and cannot claim user a
 test('proposal decisions require explicit versions and keep category/match corrections distinct', () => {
   const base = { requestId: id, proposalId: id, expectedVersion: 0 };
   for (const decision of [{ decision: 'accept' }, { decision: 'reject' },
-    { decision: 'correct_category', category: 'travel' }, { decision: 'correct_match', transactionId: id }]) {
+    { decision: 'correct_category', category: 'travel' }, { decision: 'correct_match', transactionId: id, transactionVersion: 0 }]) {
     assert.equal(proposalReviewSchema.safeParse({ ...base, ...decision }).success, true);
   }
   assert.equal(proposalReviewSchema.safeParse({ ...base, decision: 'correct_match', category: 'travel' }).success, false);

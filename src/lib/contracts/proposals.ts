@@ -36,10 +36,32 @@ export const proposalReviewSchema = z.discriminatedUnion('decision', [
   z.strictObject({ ...reviewBase, decision: z.literal('accept') }),
   z.strictObject({ ...reviewBase, decision: z.literal('reject') }),
   z.strictObject({ ...reviewBase, decision: z.literal('correct_category'), category: categorySchema }),
-  z.strictObject({ ...reviewBase, decision: z.literal('correct_match'), transactionId: recordIdSchema }),
+  z.strictObject({ ...reviewBase, decision: z.literal('correct_match'), transactionId: recordIdSchema, transactionVersion: reviewVersionSchema }),
 ]);
+export const acceptedMatchSchema = z.strictObject({
+  id: recordIdSchema, workspaceId: recordIdSchema, transactionId: recordIdSchema,
+  documentId: recordIdSchema, reviewDecisionId: recordIdSchema,
+});
+export const proposalReviewResultSchema = z.strictObject({
+  requestId: requestIdSchema, proposal: proposalRecordSchema, reviewDecisionId: recordIdSchema,
+  affectedTransactionIds: z.array(recordIdSchema).max(2), match: acceptedMatchSchema.nullable(), duplicate: z.boolean(),
+}).superRefine((value, ctx) => {
+  if (new Set(value.affectedTransactionIds).size !== value.affectedTransactionIds.length ||
+      ((value.proposal.status === 'accepted' && value.proposal.suggestion.kind === 'match') !== (value.match !== null)) ||
+      (value.match !== null && (value.proposal.suggestion.kind !== 'match' || value.proposal.status !== 'accepted' ||
+        value.match.workspaceId !== value.proposal.workspaceId || value.match.documentId !== value.proposal.suggestion.documentId ||
+        value.match.transactionId !== value.proposal.transactionId))) {
+    ctx.addIssue({ code: 'custom', message: 'Reviewed proposal and allocation must agree' });
+  }
+});
+export const proposalReviewHistoryItemSchema = z.strictObject({
+  id: recordIdSchema, workspaceId: recordIdSchema, targetId: recordIdSchema, actorSubject: z.string().min(1),
+  decision: z.record(z.string(), z.unknown()), previous: proposalRecordSchema, current: proposalRecordSchema,
+  reviewVersion: reviewVersionSchema.refine(version => version > 0), createdAt: z.string().min(1),
+});
 
 export type ProposalRecord = z.infer<typeof proposalRecordSchema>;
 export type CategoryGenerationRequest = z.infer<typeof categoryGenerationRequestSchema>;
 export type MatchGenerationRequest = z.infer<typeof matchGenerationRequestSchema>;
 export type ProposalReviewCommand = z.infer<typeof proposalReviewSchema>;
+export type ProposalReviewResult = z.infer<typeof proposalReviewResultSchema>;

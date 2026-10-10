@@ -1,5 +1,13 @@
 # Role A local validation, 10 October 2026 (PKT)
 
+## BA-04 local approval/allocation checks
+
+Successful approved retries supersede the initial tooling blockers below: production build including TypeScript passes, localhost:3188 smoke passes **18/18 signed-out private routes** plus home/sign-in/health/headers, and native signed-in zero-write 006 readiness passes **12/12**. The latter checks six table grants and six installed RPC guard paths with verified nonexistent IDs/empty batches, not actual financial writes or cross-owner mutations. Direct generic P0 SQL exceptions return HTTP 500 from PostgREST; the app maps the P0002 code to safe 404. The harness status expectation was corrected; no hosted schema repair was needed.
+
+**60/60 full tests** and strict TypeScript pass. Five new embedded PostgreSQL groups validate category accept/correct/reject; match accept/replace/reject; stale/incompatible/foreign decisions; rollback preserving old allocations/manual categories; immutable receipt/actor/history/version behavior; real partial unique indexes; matching audit foreign keys; active-document/no-op/rerun fencing; unchanged exact cash and persisted match status in exports. Roles/JWT claims are simulated, and tests are sequential; true managed concurrent clients remain unverified.
+
+User reports migration 006 executed. Read-only hosted probes independently see all six new tables and deny anonymous reads with 401/42501. The signed-in read/grant/RPC-guard script initially hit an automatic approval-review usage cap; no signed-in pass is inferred. Migration 007 is not applied to the hosted database. Initial production build compiled but could not spawn its TypeScript worker in the process sandbox; standalone strict typecheck passes. Successful retries, if any, must be recorded separately.
+
 ## BA-00/01 foundation — 10 October 2026
 
 After A1 reviewed/integrated A2's `30acdfe` read-only cashbook tool slice, independent combined validation passes **55/55 tests** and strict types. Seven A2 tests exercise scoped/unique bounded snapshots, exact whole-workspace money, detached request caches, filtered/paginated lookup, safe unsupported-scope failures, sanitized read errors and deadline/abort handling. These are scripted readers, not hosted authentication or live C inference. The underlying existing snapshot read cannot receive cancellation; late output is rejected. No assistant route/model loop or match-aware projection is complete.
