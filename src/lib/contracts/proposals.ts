@@ -33,6 +33,28 @@ export const proposalBatchResultSchema = z.strictObject({
   requestId: requestIdSchema, items: z.array(proposalRecordSchema).max(50), duplicate: z.boolean(),
 }).refine(value => new Set(value.items.map(item => item.id)).size === value.items.length, 'Proposal IDs must be unique');
 
+export const matchGenerationSnapshotSchema = z.strictObject({
+  documentId: recordIdSchema, documentVersion: reviewVersionSchema,
+  transactionCount: z.number().int().min(0), eligibleCount: z.number().int().min(0),
+  candidateCount: z.number().int().min(0), alreadyPendingCount: z.number().int().min(0),
+  createdCount: z.number().int().min(0).max(50), omittedCount: z.number().int().min(0),
+  complete: z.boolean(), capturedAt: z.iso.datetime({ offset: true }),
+}).superRefine((snapshot, ctx) => {
+  if (snapshot.candidateCount > snapshot.eligibleCount || snapshot.createdCount > snapshot.candidateCount ||
+      snapshot.createdCount + snapshot.alreadyPendingCount + snapshot.omittedCount !== snapshot.candidateCount ||
+      snapshot.complete !== (snapshot.omittedCount === 0))
+    ctx.addIssue({ code: 'custom', message: 'Match snapshot counts must agree' });
+});
+export const matchGenerationResultSchema = z.strictObject({
+  ...proposalBatchResultSchema.shape,
+  snapshot: matchGenerationSnapshotSchema,
+}).superRefine((result, ctx) => {
+  if (result.items.length !== result.snapshot.createdCount || result.items.some(item =>
+      item.suggestion.kind !== 'match' || item.suggestion.documentId !== result.snapshot.documentId ||
+      item.suggestion.documentVersion !== result.snapshot.documentVersion))
+    ctx.addIssue({ code: 'custom', message: 'Generated matches must refer to the captured document snapshot' });
+});
+
 const reviewBase = { requestId: requestIdSchema, proposalId: recordIdSchema, expectedVersion: reviewVersionSchema };
 export const proposalReviewSchema = z.discriminatedUnion('decision', [
   z.strictObject({ ...reviewBase, decision: z.literal('accept') }),
