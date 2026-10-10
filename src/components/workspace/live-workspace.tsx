@@ -3,12 +3,14 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { UserButton, useUser } from '@clerk/nextjs';
 import type { CashSummary, Transaction, Workspace } from '../../lib/contracts/index.ts';
+import type { DocumentRecord } from '../../lib/contracts/documents.ts';
+import type { ProposalRecord } from '../../lib/contracts/proposals.ts';
 import { validateCashbook } from '../../lib/server/summary.ts';
 import { api, ClientError } from '../../lib/client/api.ts';
 import { Icon, Mark } from '../ui/icon.tsx';
 import { WorkspaceApp } from './workspace-app.tsx';
 import s from '../ui/theme.module.css';
-type State = { kind:'loading' } | { kind:'new' } | { kind:'error'; message:string; code:string } | { kind:'ready'; workspace:Workspace; records:Transaction[]; cursor:string|null; summary:CashSummary|null; summaryError:string };
+type State = { kind:'loading' } | { kind:'new' } | { kind:'error'; message:string; code:string } | { kind:'ready'; workspace:Workspace; records:Transaction[]; cursor:string|null; summary:CashSummary|null; summaryError:string; documents:DocumentRecord[]; documentsError:string; proposals:ProposalRecord[]; proposalsError:string };
 function Gate({title,children}:{title:string;children:React.ReactNode}) {return <div className={s.root} data-raqam-ui><main className={s.gate}><Link href="/" className={s.brand}><Mark/>raqam</Link><section className={`${s.panel} ${s.gatePanel} ${s.stack}`}><h1 style={{fontSize:28,letterSpacing:-1}}>{title}</h1>{children}</section></main></div>;}
 function OwnedWorkspace() {
   const [state,setState]=useState<State>({kind:'loading'}),[name,setName]=useState(''),[saving,setSaving]=useState(false),[saveError,setSaveError]=useState(''),[reload,setReload]=useState(0);
@@ -22,9 +24,14 @@ function OwnedWorkspace() {
     void api.workspace(controller.signal).then(async workspace=>{
       if(!active)return;
       if(!workspace){setState({kind:'new'});return;}
-      const [page,summaryResult]=await Promise.all([api.transactions(controller.signal),api.summary(controller.signal).then(summary=>({summary,summaryError:''})).catch(error=>({summary:null,summaryError:error instanceof Error?error.message:'Workspace cash totals could not load. Retry.'}))]);
+      const [page,summaryResult,documentsResult,proposalsResult]=await Promise.all([
+        api.transactions(controller.signal),
+        api.summary(controller.signal).then(summary=>({summary,summaryError:''})).catch(error=>({summary:null,summaryError:error instanceof Error?error.message:'Workspace cash totals could not load. Retry.'})),
+        api.documents(controller.signal).then(result=>({documents:result.items,documentsError:''})).catch(error=>({documents:[],documentsError:error instanceof Error?error.message:'Supporting documents could not load. Retry.'})),
+        api.categoryProposals(controller.signal).then(result=>({proposals:result.items,proposalsError:''})).catch(error=>({proposals:[],proposalsError:error instanceof Error?error.message:'Category proposals could not load. Retry.'})),
+      ]);
       validateCashbook(page.items,workspace.id);
-      if(active)setState({kind:'ready',workspace,records:page.items,cursor:page.nextCursor,...summaryResult});
+      if(active)setState({kind:'ready',workspace,records:page.items,cursor:page.nextCursor,...summaryResult,...documentsResult,...proposalsResult});
     }).catch(error=>{if(active)setState({kind:'error',message:error instanceof Error?error.message:'The workspace could not be loaded. Retry.',code:error instanceof ClientError?error.code:'UNAVAILABLE'});}).finally(()=>controllers.current.delete(controller));
     return()=>{active=false;controller.abort();controllers.current.delete(controller);};
   },[reload]);
@@ -34,9 +41,14 @@ function OwnedWorkspace() {
     const version=++refreshVersion.current;
     setState(current=>current.kind==='ready'?{...current,summary:null,summaryError:''}:current);
     try {
-      const [page,summaryResult]=await run(signal=>Promise.all([api.transactions(signal),api.summary(signal).then(summary=>({summary,summaryError:''})).catch(error=>({summary:null,summaryError:error instanceof Error?error.message:'Workspace cash totals could not load. Retry.'}))]));
+      const [page,summaryResult,documentsResult,proposalsResult]=await run(signal=>Promise.all([
+        api.transactions(signal),
+        api.summary(signal).then(summary=>({summary,summaryError:''})).catch(error=>({summary:null,summaryError:error instanceof Error?error.message:'Workspace cash totals could not load. Retry.'})),
+        api.documents(signal).then(result=>({documents:result.items,documentsError:''})).catch(error=>({documents:[],documentsError:error instanceof Error?error.message:'Supporting documents could not load. Retry.'})),
+        api.categoryProposals(signal).then(result=>({proposals:result.items,proposalsError:''})).catch(error=>({proposals:[],proposalsError:error instanceof Error?error.message:'Category proposals could not load. Retry.'})),
+      ]));
       validateCashbook(page.items,workspace.id);
-      if(version===refreshVersion.current)setState(current=>current.kind==='ready'?{...current,records:page.items,cursor:page.nextCursor,...summaryResult}:current);
+      if(version===refreshVersion.current)setState(current=>current.kind==='ready'?{...current,records:page.items,cursor:page.nextCursor,...summaryResult,...documentsResult,...proposalsResult}:current);
     } catch(error) {
       if(version===refreshVersion.current)setState(current=>current.kind==='ready'?{...current,summary:null,summaryError:'Saved records could not reload. Retry the cashbook totals or reload the workspace.'}:current);
       throw error;
@@ -49,7 +61,7 @@ function OwnedWorkspace() {
   if(state.kind==='loading')return <Gate title="Opening your workspace"><p className={s.muted} role="status">Loading your private cashbook…</p></Gate>;
   if(state.kind==='error')return <Gate title="Your workspace needs attention"><p role="alert" className={s.error}>{state.message}</p><div className={s.actions}>{state.code==='UNAUTHENTICATED'&&<Link className={s.button} href="/sign-in?redirect_url=%2Fworkspace">Sign in again</Link>}<button className={s.secondary} onClick={()=>setReload(value=>value+1)}>Retry workspace</button><Link href="/demo" className={s.textButton}>Explore an example</Link><UserButton/></div></Gate>;
   if(state.kind==='new')return <Gate title="Make a home for your books"><p className={s.muted}>One business workspace. Your records stay connected to your account.</p><form className={s.stack} onSubmit={event=>{event.preventDefault();void create();}}><label className={s.field}>Business name<input value={name} onChange={event=>setName(event.target.value)} placeholder="Your business name" maxLength={200} required disabled={saving}/></label><p className={`${s.small} ${s.muted}`}>Currency: PKR · Language: English</p>{saveError&&<p className={s.error} role="alert">{saveError}</p>}<button className={s.button} disabled={saving||!name.trim()}>{saving?'Creating workspace…':'Create workspace'}</button></form><UserButton/></Gate>;
-  return <WorkspaceApp key={reload} demo={false} workspace={state.workspace} records={state.records} summary={state.summary} summaryError={state.summaryError} onChanged={()=>refresh(state.workspace)} hasMore={state.cursor!==null} onReload={()=>setReload(value=>value+1)} account={<UserButton/>} onUpload={upload} getLink={getLink} loadMore={async()=>{if(state.kind!=='ready'||!state.cursor)return;const page=await run(signal=>api.transactions(signal,state.cursor));const records=[...state.records,...page.items];validateCashbook(records,state.workspace.id);setState(current=>current.kind==='ready'?{...current,records,cursor:page.nextCursor}:current);}}/>;
+  return <WorkspaceApp key={reload} demo={false} workspace={state.workspace} records={state.records} summary={state.summary} summaryError={state.summaryError} documents={state.documents} documentsError={state.documentsError} proposals={state.proposals} proposalsError={state.proposalsError} onChanged={()=>refresh(state.workspace)} hasMore={state.cursor!==null} onReload={()=>setReload(value=>value+1)} account={<UserButton/>} onUpload={upload} getLink={getLink} loadMore={async()=>{if(state.kind!=='ready'||!state.cursor)return;const page=await run(signal=>api.transactions(signal,state.cursor));const records=[...state.records,...page.items];validateCashbook(records,state.workspace.id);setState(current=>current.kind==='ready'?{...current,records,cursor:page.nextCursor}:current);}}/>;
 }
 function AuthenticatedGate() {
   const {isLoaded,isSignedIn,user}=useUser();

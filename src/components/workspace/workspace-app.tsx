@@ -1,8 +1,10 @@
 'use client';
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { CashSummary, Category, DocumentFields, ReviewDecision, Transaction, Workspace } from '../../lib/contracts/index.ts';
+import { documentReviewSchema, type DocumentRecord } from '../../lib/contracts/documents.ts';
+import type { ProposalRecord } from '../../lib/contracts/proposals.ts';
 import { CATEGORIES } from '../../lib/contracts/index.ts';
 import { exampleDocuments, exampleProposals } from '../../lib/client/examples.ts';
 import { categoryLabels, displayDate, downloadExample, downloadText, money } from '../../lib/client/presentation.ts';
@@ -18,10 +20,14 @@ import { LiveRecordDetail } from './live-record-detail.tsx';
 import { DocumentsScreen } from './documents-screen.tsx';
 import type { PrivateLink, UploadedSource } from './documents-screen.tsx';
 import { ReviewScreen } from './review-screen.tsx';
+import type { ReviewableCategoryProposal } from './review-screen.tsx';
 import { AssistantScreen } from './assistant-screen.tsx';
 import s from '../ui/theme.module.css';
 type View = 'cashbook' | 'import' | 'documents' | 'review' | 'assistant';
 const views: {id:View;label:string;icon:IconName}[] = [{id:'cashbook',label:'Cashbook',icon:'book'},{id:'documents',label:'Documents',icon:'file'},{id:'review',label:'Review queue',icon:'review'},{id:'assistant',label:'Ask Raqam',icon:'spark'}];
+function upsertDocument(records:DocumentRecord[], value:DocumentRecord):DocumentRecord[] {
+  return [...records.filter(item=>item.document.id!==value.document.id),value].sort((a,b)=>a.document.id.localeCompare(b.document.id));
+}
 function RecordDetail({record,demo,onSave,onClose}: {record:Transaction;demo:boolean;onSave:(description:string,category:Category|null)=>void;onClose:()=>void}) {
   const [description,setDescription]=useState(record.description);
   const [category,setCategory]=useState<Category|null>(record.category);
@@ -29,32 +35,65 @@ function RecordDetail({record,demo,onSave,onClose}: {record:Transaction;demo:boo
     <form className={s.stack} onSubmit={event=>{event.preventDefault();if(description.trim())onSave(description.trim(),category);}}><label className={s.field}>Reviewed description<textarea rows={3} maxLength={2000} value={description} onChange={event=>setDescription(event.target.value)} disabled={!demo} required/></label><label className={s.field}>Reviewed category<select value={category??''} disabled={!demo} onChange={event=>setCategory(event.target.value?(event.target.value as Category):null)}><option value="">Leave unreviewed</option>{CATEGORIES.map(c=><option key={c} value={c}>{categoryLabels[c]}</option>)}</select></label>{demo?<><p className={`${s.small} ${s.muted}`}>Saving a selected category confirms your review. Example edits preserve the original source text and create a session review entry.</p><button className={s.button} type="submit" disabled={!description.trim()}>Save reviewed changes</button></>:<p className={`${s.small} ${s.muted}`}>Audited corrections are awaiting the transaction update API.</p>}</form>
   </div></Dialog>;
 }
-export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,loadMore,onUpload,getLink,account,onReload,summary=null,summaryError='',onChanged=async()=>{throw new Error('Reload the workspace to refresh saved records.');}}: {
+export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,loadMore,onUpload,getLink,account,onReload,summary=null,summaryError='',documents:initialDocuments=[],documentsError='',proposals:initialProposals=[],proposalsError='',onChanged=async()=>{throw new Error('Reload the workspace to refresh saved records.');}}: {
   demo:boolean;workspace:Workspace;records:Transaction[];hasMore?:boolean;loadMore?: (()=>Promise<void>) | undefined;
   onUpload?: ((file:File)=>Promise<UploadedSource>) | undefined;getLink?: ((id:string)=>Promise<PrivateLink>) | undefined;
   account?:ReactNode;onReload?: (()=>void) | undefined;
+  documents?:DocumentRecord[];documentsError?:string;proposals?:ProposalRecord[];proposalsError?:string;
   summary?:CashSummary|null;summaryError?:string;onChanged?:(()=>Promise<void>)|undefined;
 }) {
   const run=usePrivateRequests(),exportLock=useRef(false);
   const [exporting,setExporting]=useState(false),[exportError,setExportError]=useState('');
-  const [view,setView]=useState<View>('cashbook'),[demoRecords,setDemoRecords]=useState(liveRecords),[documents,setDocuments]=useState(demo?exampleDocuments():[]),[proposals,setProposals]=useState(demo?exampleProposals():[]);
+  const [view,setView]=useState<View>('cashbook'),[demoRecords,setDemoRecords]=useState(liveRecords),[demoDocuments,setDemoDocuments]=useState(demo?exampleDocuments():[]),[demoProposals,setDemoProposals]=useState(demo?exampleProposals():[]),[liveDocuments,setLiveDocuments]=useState(initialDocuments),[liveProposalRecords,setLiveProposalRecords]=useState(initialProposals);
   const [matches,setMatches]=useState<{documentId:string;transactionId:string}[]>([]),[rejectedMatches,setRejectedMatches]=useState<string[]>([]),[sources,setSources]=useState<UploadedSource[]>([]);
-  const [record,setRecord]=useState<Transaction|null>(null),[exportOpen,setExportOpen]=useState(false),[historyOpen,setHistoryOpen]=useState(false),[history,setHistory]=useState<ReviewDecision[]>([]),[notice,setNotice]=useState(''),[failure,setFailure]=useState(''),[imported,setImported]=useState(false),[unresolved,setUnresolved]=useState(0),[reset,setReset]=useState(0);
+  const [record,setRecord]=useState<Transaction|null>(null),[exportOpen,setExportOpen]=useState(false),[historyOpen,setHistoryOpen]=useState(false),[history,setHistory]=useState<ReviewDecision[]>([]),[notice,setNotice]=useState(''),[failure,setFailure]=useState(''),[imported,setImported]=useState(false),[unresolved,setUnresolved]=useState(0),[reset,setReset]=useState(0),[extractingDocumentId,setExtractingDocumentId]=useState<string|null>(null),[generatingCategories,setGeneratingCategories]=useState(false),[categoryError,setCategoryError]=useState('');
   const records=demo?demoRecords:liveRecords;
+  const documents=demo?demoDocuments:liveDocuments.map(item=>item.document);
+  const proposals:ReviewableCategoryProposal[]=demo?demoProposals:liveProposalRecords.filter(item=>item.suggestion.kind==='category').map(item=>({
+    id:item.id,workspaceId:item.workspaceId,kind:'category',transactionId:item.transactionId,
+    category:item.suggestion.kind==='category'?item.suggestion.category:'uncategorized',rationale:item.rationale,status:item.status,
+    reviewVersion:item.reviewVersion,transactionVersion:item.transactionVersion,
+  }));
+  useEffect(()=>{if(!demo)setLiveDocuments(initialDocuments);},[demo,initialDocuments]);
+  useEffect(()=>{if(!demo)setLiveProposalRecords(initialProposals);},[demo,initialProposals]);
   const reviewCount=proposals.filter(p=>p.status==='proposed'||p.status==='needs_review').length+documents.filter(d=>!matches.some(m=>m.documentId===d.id)&&!rejectedMatches.includes(d.id)).length;
   function navigate(next:View) {setView(next);setFailure(''); document.querySelector<HTMLDetailsElement>('[data-mobile-nav]')?.removeAttribute('open');}
   function decision(targetId:string,action:'accept'|'correct'|'reject',previous:unknown,current:unknown) {
     setHistory(entries=>[...entries,{id:crypto.randomUUID(),workspaceId:workspace.id,actorSubject:'example-owner',targetId,action,previous,current,createdAt:new Date().toISOString()}]);
   }
-  function reviewCategory(id:string,category:Category|null) {
-    if(!demo)return;
-    const prior=records.find(r=>r.id===id); if(!prior)return;
-    setDemoRecords(current=>current.map(r=>r.id===id?{...r,category,categoryStatus:category?'accepted':'rejected'}:r));
-    setProposals(current=>current.map(p=>p.transactionId===id?{...p,status:category?'accepted':'rejected'}:p));
-    decision(id,category?'accept':'reject',prior.category,category);setNotice(category?'Example category reviewed. Cash movement totals are unchanged.':'Example suggestion rejected. The record remains uncategorized.');
+  async function reviewCategory(proposal:ReviewableCategoryProposal,category:Category|null) {
+    const prior=records.find(r=>r.id===proposal.transactionId);
+    if(demo) {
+      if(!prior)return;
+      setDemoRecords(current=>current.map(r=>r.id===proposal.transactionId?{...r,category,categoryStatus:category?'accepted':'rejected'}:r));
+      setDemoProposals(current=>current.map(p=>p.transactionId===proposal.transactionId?{...p,status:category?'accepted':'rejected'}:p));
+      decision(proposal.transactionId,category?'accept':'reject',prior.category,category);setNotice(category?'Example category reviewed. Cash movement totals are unchanged.':'Example suggestion rejected. The record remains uncategorized.');
+      return;
+    }
+    if(proposal.reviewVersion===undefined){setCategoryError('This proposal has no saved review version. Reload the workspace.');return;}
+    setCategoryError('');
+    try {
+      const decision=category===null?{decision:'reject' as const}:category===proposal.category?{decision:'accept' as const}:{decision:'correct_category' as const,category};
+      const result=await run(signal=>api.reviewProposal({requestId:crypto.randomUUID(),proposalId:proposal.id,expectedVersion:proposal.reviewVersion!,...decision},signal));
+      if(prior)setLiveProposalRecords(current=>current.map(item=>item.id===proposal.id?result.proposal:item));
+      await onChanged();
+      const refreshed=await run(signal=>api.categoryProposals(signal));setLiveProposalRecords(refreshed.items);
+      setNotice(category===null?'Category suggestion rejected. The transaction remains visible for later review.':category===proposal.category?'Category accepted. Cash movement totals are unchanged.':'Category corrected and saved. Cash movement totals are unchanged.');
+    } catch(error) {setCategoryError(error instanceof Error?error.message:'Category review could not be saved. Reload and retry.');}
   }
-  function saveDocument(id:string,fields:DocumentFields,accepted:boolean) {
-    if(!demo)return;const prior=documents.find(d=>d.id===id);if(!prior)return;
+  async function saveDocument(id:string,fields:DocumentFields,accepted:boolean,requestId:string) {
+    const prior=documents.find(d=>d.id===id);if(!prior)return;
+    if(!demo) {
+      const current=liveDocuments.find(item=>item.document.id===id);
+      if(!current)throw new Error('Document state is unavailable. Reload the documents list.');
+      const base={requestId,expectedVersion:current.reviewVersion};
+      const command=accepted?documentReviewSchema.parse({...base,action:'accept',fields}):documentReviewSchema.parse({...base,action:'correct',fields});
+      const result=await run(signal=>api.reviewDocument(id,command,signal));
+      setLiveDocuments(items=>upsertDocument(items,result.currentRecord));
+      setNotice(accepted?'Receipt fields reviewed. No cash transaction was added.':'Receipt corrections saved; the document remains unresolved.');
+      await onChanged();
+      return;
+    }
     const allocation=matches.find(m=>m.documentId===id);
     const changed=JSON.stringify(prior.correctedFields??prior.extractedFields)!==JSON.stringify(fields);
     if(allocation&&(changed||!accepted)) {
@@ -62,7 +101,7 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
       setDemoRecords(current=>current.map(r=>r.id===allocation.transactionId?{...r,matchStatus:'unmatched'}:r));
       decision(id,'reject',{transactionId:allocation.transactionId},null);
     }
-    setDocuments(current=>current.map(d=>d.id===id?{...d,correctedFields:fields,reviewStatus:accepted?'accepted':'needs_review'}:d));
+    setDemoDocuments(current=>current.map(d=>d.id===id?{...d,correctedFields:fields,reviewStatus:accepted?'accepted':'needs_review'}:d));
     decision(id,'correct',prior.correctedFields??prior.extractedFields,fields);setNotice(allocation&&(changed||!accepted)?'Example document changed. Its earlier match was released and needs fresh review.':accepted?'Example document fields reviewed. No cash transaction was added.':'Example document kept unresolved.');
   }
   function match(documentId:string,transactionId:string) {
@@ -73,10 +112,41 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
   const nav=<nav className={s.nav} aria-label="Workspace navigation">{views.map(item=><button key={item.id} className={view===item.id?s.active:''} aria-current={view===item.id?'page':undefined} onClick={()=>navigate(item.id)}><Icon name={item.icon} size={19}/>{item.label}{item.id==='review'&&demo&&reviewCount>0&&<span className={s.navCount}>{reviewCount}</span>}</button>)}</nav>;
   async function upload(file:File) {
     if(!onUpload)throw new Error('Source upload is unavailable.');
-    const saved=await onUpload(file);setSources(current=>current.some(item=>item.sourceId===saved.sourceId)?current:[...current,saved]);setNotice(saved.duplicate?'Existing private source reused.':'Private source stored. Extraction remains pending integration.');return saved;
+    const saved={...await onUpload(file),name:file.name};
+    setSources(current=>current.some(item=>item.sourceId===saved.sourceId)?current.map(item=>item.sourceId===saved.sourceId?saved:item):[...current,saved]);
+    const registration=await run(signal=>api.registerDocument(saved.sourceId,signal));
+    setLiveDocuments(current=>upsertDocument(current,registration.record));
+    const extracted=await run(signal=>api.extractDocument(registration.record.document.id,{requestId:crypto.randomUUID(),expectedVersion:registration.record.reviewVersion},signal));
+    setLiveDocuments(current=>upsertDocument(current,extracted.currentRecord));
+    setNotice(extracted.state==='failed'?'Receipt stored, but extraction needs attention. The source and cashbook are safe.':'Receipt stored and read. Check the proposed fields against its original image.');
+    return saved;
+  }
+  async function extractDocument(id:string) {
+    const current=liveDocuments.find(item=>item.document.id===id);
+    if(!current){setFailure('Document state is unavailable. Reload the documents list.');return;}
+    setExtractingDocumentId(id);setFailure('');
+    try {
+      const result=await run(signal=>api.extractDocument(id,{requestId:crypto.randomUUID(),expectedVersion:current.reviewVersion},signal));
+      setLiveDocuments(items=>upsertDocument(items,result.currentRecord));
+      setNotice(result.state==='failed'?'Extraction could not complete. Review the safe status and retry when ready.':'Extraction finished. Verify every proposed field against the private image.');
+    } catch(error) {setFailure(error instanceof Error?error.message:'Receipt extraction could not complete. The source and cashbook are unchanged.');}
+    finally {setExtractingDocumentId(null);}
+  }
+  async function generateCategories() {
+    if(generatingCategories)return;
+    const transactionIds=records.filter(item=>item.categoryStatus!=='accepted').map(item=>item.id);
+    if(!transactionIds.length){setCategoryError('There are no unreviewed transactions to prepare.');return;}
+    setGeneratingCategories(true);setCategoryError('');
+    try {
+      await run(signal=>api.generateCategoryProposals({requestId:crypto.randomUUID(),transactionIds},signal));
+      const refreshed=await run(signal=>api.categoryProposals(signal));
+      setLiveProposalRecords(refreshed.items);
+      setNotice(refreshed.items.some(item=>item.status==='proposed'||item.status==='needs_review')?'Category suggestions are ready for your review.':'No new category suggestions were needed. Existing accepted categories remain unchanged.');
+    } catch(error) {setCategoryError(error instanceof Error?error.message:'Category preparation failed. Existing books are unchanged.');}
+    finally {setGeneratingCategories(false);}
   }
   function resetExample() {
-    setDemoRecords(liveRecords);setDocuments(exampleDocuments());setProposals(exampleProposals());setMatches([]);setRejectedMatches([]);setHistory([]);setImported(false);setUnresolved(0);setNotice('Example workspace reset.');setReset(value=>value+1);setView('cashbook');
+    setDemoRecords(liveRecords);setDemoDocuments(exampleDocuments());setDemoProposals(exampleProposals());setMatches([]);setRejectedMatches([]);setHistory([]);setImported(false);setUnresolved(0);setNotice('Example workspace reset.');setReset(value=>value+1);setView('cashbook');
   }
   return <div className={`${s.root} ${s.app}`} data-raqam-ui>
     <a href="#workspace-main" className={s.skip}>Skip to cashbook content</a>
@@ -90,12 +160,12 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
         {view==='cashbook'&&<Cashbook records={records} workspaceId={workspace.id} unresolved={unresolved} onRecord={setRecord} onImport={()=>navigate('import')} onReview={()=>navigate('review')} hasMore={hasMore} loadMore={loadMore} live={!demo} liveSummary={summary} summaryError={summaryError} onRefreshSummary={onChanged}/>}
         {view==='import'&&!demo&&<LiveImportScreen onChanged={onChanged}/>}
         {view==='import'&&demo&&<ImportScreen demo={demo} workspaceId={workspace.id} imported={imported} onConfirm={(next,remaining)=>{if(!demo||imported)return;setDemoRecords(current=>[...current,...next]);setUnresolved(remaining);setImported(true);decision('example-import-csv','accept',null,{validRows:next.length,unresolvedRows:remaining});setNotice(`${next.length} example rows imported; ${remaining} unresolved rows excluded from totals.`);}}/>}
-        {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink}/>}
-        {view==='review'&&<ReviewScreen demo={demo} records={records} documents={documents} proposals={proposals} matchedDocumentIds={matches.map(m=>m.documentId)} rejectedDocumentIds={rejectedMatches} onCategory={reviewCategory} onMatch={match} onRejectMatch={id=>{setRejectedMatches(current=>[...current,id]);const affected=matches.find(m=>m.documentId===id);if(affected)setDemoRecords(current=>current.map(r=>r.id===affected.transactionId?{...r,matchStatus:'unmatched'}:r));else if(id==='example-doc-1')setDemoRecords(current=>current.map(r=>r.id==='example-2'?{...r,matchStatus:'unmatched'}:r));decision(id,'reject',null,null);setNotice('Example match suggestion rejected. Unmatched records remain visible.');}} onDocuments={()=>navigate('documents')} onRecord={setRecord}/>}
+        {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} liveRecords={liveDocuments} documentError={documentsError} extractingDocumentId={extractingDocumentId} onExtractDocument={demo?undefined:extractDocument} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink}/>}
+        {view==='review'&&<ReviewScreen demo={demo} records={records} documents={documents} proposals={proposals} matchedDocumentIds={matches.map(m=>m.documentId)} rejectedDocumentIds={rejectedMatches} onCategory={reviewCategory} onGenerateCategories={demo?undefined:generateCategories} generatingCategories={generatingCategories} categoryError={categoryError} proposalsError={proposalsError} onMatch={match} onRejectMatch={id=>{setRejectedMatches(current=>[...current,id]);const affected=matches.find(m=>m.documentId===id);if(affected)setDemoRecords(current=>current.map(r=>r.id===affected.transactionId?{...r,matchStatus:'unmatched'}:r));else if(id==='example-doc-1')setDemoRecords(current=>current.map(r=>r.id==='example-2'?{...r,matchStatus:'unmatched'}:r));decision(id,'reject',null,null);setNotice('Example match suggestion rejected. Unmatched records remain visible.');}} onDocuments={()=>navigate('documents')} onRecord={setRecord}/>}
         {view==='assistant'&&<AssistantScreen key={workspace.id} demo={demo} records={records} workspaceId={workspace.id} onRecord={setRecord}/>}
       </div>
       {record&&!demo&&<LiveRecordDetail key={record.id} record={record} onClose={()=>setRecord(null)} onChanged={onChanged}/>}
-      {record&&demo&&<RecordDetail key={record.id} record={record} demo={demo} onClose={()=>setRecord(null)} onSave={(description,category)=>{if(!demo)return;setDemoRecords(current=>current.map(r=>r.id===record.id?{...r,description,category,categoryStatus:category?'accepted':category!==record.category?'needs_review':record.categoryStatus}:r));if(category!==record.category)setProposals(current=>current.map(p=>p.transactionId===record.id?{...p,status:category?'accepted':'needs_review'}:p));decision(record.id,'correct',{description:record.description,category:record.category},{description,category});setRecord(null);setNotice('Example record reviewed. Original source text is preserved.');}}/>}
+      {record&&demo&&<RecordDetail key={record.id} record={record} demo={demo} onClose={()=>setRecord(null)} onSave={(description,category)=>{if(!demo)return;setDemoRecords(current=>current.map(r=>r.id===record.id?{...r,description,category,categoryStatus:category?'accepted':category!==record.category?'needs_review':record.categoryStatus}:r));if(category!==record.category)setDemoProposals(current=>current.map(p=>p.transactionId===record.id?{...p,status:category?'accepted':'needs_review'}:p));decision(record.id,'correct',{description:record.description,category:record.category},{description,category});setRecord(null);setNotice('Example record reviewed. Original source text is preserved.');}}/>}
       {exportOpen&&<Dialog title="Export your cashbook" onClose={()=>{setExportOpen(false);setExportError('');}}><div className={s.stack}><p>{demo?`${records.length} synthetic records with exact PKR amounts, accepted categories, review and match statuses, and source references.`:'Download every imported cash record in your private workspace, with reviewed categories and source references. Table filters do not limit this export.'}</p><p className={`${s.small} ${s.muted}`}>Unresolved import rows are excluded from cash records and counted after download. Pending category and match statuses stay visible. Spreadsheet formula text is safely encoded.</p>{exportError&&<p className={s.error} role="alert">{exportError}</p>}{demo?<button className={s.button} onClick={()=>{downloadExample(records,workspace.id);setNotice('Example cashbook downloaded. It contains synthetic records only.');setExportOpen(false);}}>Download example CSV</button>:<button className={s.button} disabled={exporting} onClick={async()=>{if(exportLock.current)return;exportLock.current=true;setExporting(true);setExportError('');try{const result=await run(signal=>api.export(signal));downloadText('raqam-cashbook.csv',result.csv);setNotice(`Cashbook downloaded. ${result.unresolved} unresolved import rows excluded from cash records.`);setExportOpen(false);}catch(error){setExportError(error instanceof Error?error.message:'Export could not complete. Retry.');}finally{exportLock.current=false;setExporting(false);}}}>{exporting?'Preparing export…':'Download cashbook CSV'}</button>}</div></Dialog>}
       {historyOpen&&<Dialog title="Example review trail" onClose={()=>setHistoryOpen(false)}><div className={s.stack}><p className={`${s.small} ${s.muted}`}>Session-only development history. Reloading resets it.</p>{history.length?history.map(entry=><article key={entry.id} className={s.stack} style={{gap:8}}><strong>{entry.action} / {entry.targetId}</strong><time className={`${s.small} ${s.muted}`} dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleTimeString()}</time><details><summary>Previous and reviewed values</summary><pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',fontSize:12}}>{JSON.stringify({previous:entry.previous,current:entry.current},null,2)}</pre></details></article>):<p>No example decisions yet. Review a category or document to add one.</p>}</div></Dialog>}
     </main>

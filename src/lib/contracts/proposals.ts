@@ -28,7 +28,9 @@ export const proposalRecordSchema = z.strictObject({
   ]),
 });
 export const proposalBatchResultSchema = z.strictObject({
-  requestId: requestIdSchema, items: z.array(proposalRecordSchema).min(1).max(50), duplicate: z.boolean(),
+  // An empty result is valid when every requested record is already reviewed
+  // or already has an open proposal. In that case no new AI call is needed.
+  requestId: requestIdSchema, items: z.array(proposalRecordSchema).max(50), duplicate: z.boolean(),
 }).refine(value => new Set(value.items.map(item => item.id)).size === value.items.length, 'Proposal IDs must be unique');
 
 const reviewBase = { requestId: requestIdSchema, proposalId: recordIdSchema, expectedVersion: reviewVersionSchema };

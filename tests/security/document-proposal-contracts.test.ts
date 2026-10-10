@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { acceptedDocumentFieldsSchema, documentReviewSchema, documentRegistrationSchema, documentExtractionSaveSchema, documentRecordSchema } from '../../src/lib/contracts/documents.ts';
-import { categoryGenerationRequestSchema, categoryPersistenceSchema, matchPersistenceSchema, proposalReviewSchema } from '../../src/lib/contracts/proposals.ts';
+import { categoryGenerationRequestSchema, categoryPersistenceSchema, matchPersistenceSchema, proposalBatchResultSchema, proposalReviewSchema } from '../../src/lib/contracts/proposals.ts';
 
 const id = '00000000-0000-4000-8000-000000000001';
 const fields = { counterparty: null, date: '2026-10-10', totalMinor: '10005', currency: 'PKR', reference: null };
@@ -55,6 +55,8 @@ test('proposal boundaries require unique scoped versions and cannot claim user a
   assert.equal(categoryPersistenceSchema.safeParse(batch).success, true);
   assert.equal(categoryPersistenceSchema.safeParse({ ...batch, proposals: [suggestion, suggestion] }).success, false);
   assert.equal(categoryPersistenceSchema.safeParse({ ...batch, proposals: [{ ...suggestion, status: 'accepted' }] }).success, false);
+  assert.equal(proposalBatchResultSchema.safeParse({requestId:id,items:[],duplicate:true}).success,true,
+    'all accepted or already-pending records can finish without another provider request');
   const match = { transactionId: id, transactionVersion: 0, documentId: id, documentVersion: 0, rationale: 'Synthetic', status: 'needs_review' };
   assert.equal(matchPersistenceSchema.safeParse({ requestId: id, provenance, proposals: [match] }).success, true);
   assert.equal(matchPersistenceSchema.safeParse({ requestId: id, provenance, proposals: [{ ...match, documentVersion: -1 }] }).success, false);
