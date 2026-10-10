@@ -150,6 +150,10 @@ Every answer must be yes:
 
 If any answer is no, stretch stays closed. Core **OCR, Clerk and Supabase are not stretch features**. Use PRD section 10 for the ordered stretch list.
 
+## Latest backend integration evidence
+
+10 October: BA-04 review/allocation foundation (`601aa08`) and reviewed A2 receipt-input/category-validation/scoped-tool helpers are integrated at `1a4db8d`. Final combined tests pass **77/77**, and the production build passes including strict TypeScript. Migration 006 passes **12/12** authenticated zero-write readiness checks; signed-out smoke passed **18/18** private requests before the helper merge. BA-04 remains in review until manual migration 007 application and hosted decision/isolation/concurrency verification. A2 routes/live adapters, integrated product journeys and deployment remain pending.
+
 ## Current progress
 
 - [x] Product name and bookkeeping direction clarified.

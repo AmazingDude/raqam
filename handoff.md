@@ -8,7 +8,11 @@
 
 **Immediate A1/A2 action:** user reports 006 installed; six-table anonymous denial is independently verified. BA-04/migration 007 adds audited proposal approvals/one-to-one allocations and `/api/reviews`; local implementation is verified, hosted application pending. Apply only `202610100007_proposal_reviews_matches.sql` next, then `scripts/check-proposal-reviews.sql`. A2 consumes `docs/raqam/A2_FOUNDATION.md` on its own branch; match correction now requires the selected transactionVersion. Signed-in 006 readiness uses `scripts/check-document-services.mjs`. Assistant result/adapter seams still need A2/C agreement; C1's standalone proof remains separate.
 
-**Current combined checks:** **55/55 tests and strict TypeScript pass** after A1 reviewed/integrated A2's transaction-lookup and whole-workspace-summary tools (`30acdfe`). Date-filtered summaries and match filters remain explicitly unavailable, and no assistant endpoint/model loop is claimed complete. Foundational document/proposal commit is `3125807`.
+**Current combined checks:** **77/77 tests and production build (including strict TypeScript) pass** on integration `1a4db8d`. A1 review/allocation implementation is `601aa08`; reviewed A2 helpers include private receipt-input preparation, category-output validation and bounded scoped cashbook tools through `ddc6f99`. Signed-out smoke passed 18/18 private requests before this helper merge; hosted 006 readiness passed 12/12 authenticated zero-write checks. Date-filtered summaries and match filters remain unavailable; document/proposal routes, live AI and managed concurrency remain open.
+
+## Latest integration record
+
+- 10 October: completed BA-04 local implementation (`601aa08`) and reviewed/merged A2's published helper slices (`1a4db8d`). Final combined `npm test` passes **77/77**; `npm run build` passes, including strict TypeScript and route generation. Stopped the isolated localhost:3188 test server. No hosted migration or deployment performed. Migration 007 must be applied manually, followed by `scripts/check-proposal-reviews.sql`; then validate hosted decisions, isolation and concurrent allocations. A2 continues its document/proposal routes and C adapter integration. Publication targets are main and codex/raqam-backend; verify remote heads after pushing.
 
 ## Current state
 

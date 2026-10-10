@@ -1,5 +1,9 @@
 # Role A local validation, 10 October 2026 (PKT)
 
+## Combined A1/A2 integration
+
+On `1a4db8d`, after reviewing and integrating A2 helpers through `ddc6f99`, `npm test` passes **77/77** and `npm run build` passes including strict TypeScript. A2 receipt-input preparation, category-output guards and scoped-tool deadline/error hardening are included. These helpers do not establish live OCR/generation, document/proposal routes or a complete assistant loop. Migration 007 remains unapplied remotely; hosted review mutations, two-owner new-table writes and managed concurrency remain pending. The earlier 18-route smoke and 12-check zero-write 006 readiness results below remain bounded to their recorded checks.
+
 ## BA-04 local approval/allocation checks
 
 Successful approved retries supersede the initial tooling blockers below: production build including TypeScript passes, localhost:3188 smoke passes **18/18 signed-out private routes** plus home/sign-in/health/headers, and native signed-in zero-write 006 readiness passes **12/12**. The latter checks six table grants and six installed RPC guard paths with verified nonexistent IDs/empty batches, not actual financial writes or cross-owner mutations. Direct generic P0 SQL exceptions return HTTP 500 from PostgREST; the app maps the P0002 code to safe 404. The harness status expectation was corrected; no hosted schema repair was needed.
