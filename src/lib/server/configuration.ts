@@ -8,6 +8,14 @@ const configurationSchema = z.object({
 });
 export type PlatformConfiguration = z.infer<typeof configurationSchema>;
 export function readPlatformConfiguration(env: Record<string, string | undefined> = process.env): PlatformConfiguration | null {
-  const parsed = configurationSchema.safeParse(env);
+  const effectiveEnv = { ...env };
+  if (!effectiveEnv.APP_URL?.trim()) {
+    const vercelHost = effectiveEnv.VERCEL_PROJECT_PRODUCTION_URL || effectiveEnv.VERCEL_URL || effectiveEnv.NEXT_PUBLIC_VERCEL_URL;
+    if (vercelHost?.trim()) {
+      const trimmed = vercelHost.trim();
+      effectiveEnv.APP_URL = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+    }
+  }
+  const parsed = configurationSchema.safeParse(effectiveEnv);
   return parsed.success ? parsed.data : null;
 }
