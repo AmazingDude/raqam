@@ -327,4 +327,4 @@ This status note tracks work against the existing requirements; it does not chan
 
 Provider configuration check: base Clerk/Supabase settings are present locally, but `node --env-file-if-exists=.env.local scripts/check-env.mjs --ai` reports missing `GROQ_API_KEY`, `GROQ_VISION_MODEL` and `GROQ_TEXT_MODEL`. No live OCR/category inference can run until these are set privately.
 
-After the refreshed-main assistant/match integration, the complete backend/security suite passes **135/135** and strict TypeScript passes. A production build was not rerun on this merged revision because the user's localhost app is using the shared `.next` output; the earlier build evidence applies to the prior integration revision only.
+After the latest `origin/main` integration, the complete backend/security suite passes **141/141** and `npm run typecheck` passes. A production build was not rerun on this merged revision because the user's localhost app is using the shared `.next` output; earlier build evidence applies to a prior integration revision only.

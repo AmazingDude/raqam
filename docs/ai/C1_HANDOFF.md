@@ -1,5 +1,7 @@
 # C1 handoff — provider, OCR and categories
 
+**Current integration status (10 October 2026, latest main):** Provider adapter consumers, receipt extraction/evidence/cache API and UI, category generation/review, and assistant paths are integrated. Authenticated 008 guards pass; signed-in receipt and category acceptance remain open, and hosted 009/010 status is unknown. Current backend suite passes 137/137; typecheck/build are blocked by the incomplete local dependency tree after Windows npm cleanup errors. Live category semantic evaluation remains step 19. Older entries are historical where contradicted below.
+
 **Owner:** user / C1. **Shared branch:** `codex/ai-two-person`. **Updated:** 10 October 2026, PKT (fast-forwarded to `54c667f`).
 Read [split/ownership](TWO_PERSON_EXECUTION.md), [original steps](IMPLEMENTATION_STEPS.md), [plan](PERSON_C_PLAN.md), [combined status](handoff.md), [contracts](contracts.md) and [feasibility](GROQ_FEASIBILITY.md). C1 edits this file; C2 records requests in its own handoff.
 
@@ -7,13 +9,13 @@ Read [split/ownership](TWO_PERSON_EXECUTION.md), [original steps](IMPLEMENTATION
 
 | Steps | State | Exact dependency / next action |
 | --- | --- | --- |
-| 4–5 | in_review | Module acceptance passed: 38 scripted tests, strict typecheck and production build. A/C2 interface acknowledgement and runtime integration pending; see PROVIDER_CONTRACT.md. |
-| 6 | in_review | C extraction module/scripted coverage and one live clean synthetic Groq sample passed; shared field-state/evidence adoption and A/B review integration remain pending. See integration.md. |
-| 7 | done (C module + local A service/database checks) | Cache identity now hashes provider version as well as owner/workspace/source/provider/model/prompt/schema/preprocessing. A's wrapper calls durable reservation/save RPCs; local tests cover cache/busy states, stale completion and correction preservation. Hosted cache acceptance is part of step 8. |
-| 8 | blocked pending hosted verification | A's extraction/result/history/review APIs and B's live upload/source/field-review screen are present on main. Scripted service and PGlite tests pass; hosted migration 008 and Clerk/Supabase app settings are missing here, so the signed-in review/reload/cash check cannot run. See integration.md. |
+| 4–5 | in_review | Provider module passes 38 scripted tests and runtime consumers use the adapter. Formal C2 acknowledgement and live app-provider request remain unverified. |
+| 6 | in_review | Extraction module/live sample passed; evidence mapping, API route and receipt UI are integrated. Signed-in upload-to-review acceptance remains open. |
+| 7 | in_review | Durable identity/cache and correction-safe persistence are integrated and locally tested; authenticated 008 guards pass. Hosted cache-hit/correction-safe retry remains unverified. |
+| 8 | in_review | Receipt API/UI integrated. Signed-in upload, live OCR, correction/review/reload/retry and unchanged-cash flow remain open; hosted 009/010 status is unknown. |
 | 9 | done (C module) | Seven-label proposal engine passes scripted coverage; A's BA-03 records guide-version adoption and maps provenance into persistence. Live semantic quality remains for step 19. |
 | 10 | blocked pending signed-in verification | A's authenticated proposal generation/list route and B's live accept/change/reject controls are present. Local tests cover persistence, protected accepted decisions and exact cash invariants; signed-in reload/rerun/summary verification still needs Clerk/Supabase app configuration and an authenticated workspace. Migration 008 is not a category prerequisite. |
-| 17 | todo | Own combined-flow items 5–6 and integration.md; C2 supplies assistant items 1–4. Original predecessors 8/10/13/16 remain required. |
+| 17 | in_review | Provider, OCR, category and assistant paths are integrated; hosted receipt/category acceptance and reserved evaluation remain open. |
 | 18 | todo | Repair only C1 modules/tests in response to C2's checks; A/B own actual isolation/persistence evidence. |
 | 19 | todo | Own frozen model/prompt manifest, quota schedule and live coordination; A/B independently score, C2 owns runner/report. |
 | 20 | todo | Own final C release/handoff record; original evaluation/cloud/demo gates apply. |
