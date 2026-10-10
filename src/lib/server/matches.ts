@@ -274,7 +274,7 @@ export async function generateMatchProposals(session: RequestSession, workspace:
   }
   const candidates = snapshot.candidates;
   const currentDocument = await readDocument(session, workspace, documentId, request.signal);
-  if (currentDocument.document.reviewVersion !== document.reviewVersion || currentDocument.document.reviewStatus !== 'accepted')
+  if (currentDocument.reviewVersion !== document.reviewVersion || currentDocument.document.reviewStatus !== 'accepted')
     throw new BackendError('CONFLICT', 'The reviewed document changed while candidates were being prepared. Reload and retry.');
   const persistedProvenance = modelMetadata?.model ? { ...provenance, modelVersion: modelMetadata.model.slice(0, 200) } : provenance;
   const newCandidates = candidates.filter(candidate => !pendingIds.has(candidate.record.id));
