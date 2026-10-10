@@ -6,6 +6,7 @@ import { api } from '../../../lib/client/api.ts';
 import { usePrivateRequests } from '../../../lib/client/use-private-requests.ts';
 import { InvoicesDashboard } from './invoices-dashboard.tsx';
 import { InvoiceEditor } from './invoice-editor.tsx';
+import s from '../../ui/theme.module.css';
 
 export function InvoicesScreen({ demo = false, businessName = '', currency = 'PKR' }: { demo?: boolean; businessName?: string; currency?: string }) {
   const run=usePrivateRequests(), locked=useRef(false);
@@ -50,6 +51,7 @@ export function InvoicesScreen({ demo = false, businessName = '', currency = 'PK
   async function handleUpdateStatus(id:string,status:InvoiceStatus) {
     try{await exclusive(async()=>{
       const invoice=invoices.find(item=>item.id===id);if(!invoice)throw new Error('Reload the invoice list.');
+      if(status==='paid'&&invoice.status!=='paid')throw new Error('Payment linking is not available yet. An invoice can only be treated as settled after a bank movement or recorded payment is linked.');
       const saved=await run(signal=>api.updateInvoiceStatus(id,status,invoice.reviewVersion,signal));
       setInvoices(current=>current.map(item=>item.id===id?saved:item));await refreshData();
     });}catch(error){if(!(error instanceof Error && error.name==='AbortError'))setLoadError(error instanceof Error?error.message:'Status could not be updated.');}
@@ -64,6 +66,7 @@ export function InvoicesScreen({ demo = false, businessName = '', currency = 'PK
   if(view==='editor')return <InvoiceEditor initialInvoice={activeInvoice} businessName={businessName} workspaceCurrency={currency} demo={demo} onSave={handleSave} onCancel={()=>{if(!busy){setView('dashboard');setActiveInvoice(null);}}}/>;
   return <>
     {loadError&&<div role="alert" style={{padding:'12px 20px',background:'#fef2f2',color:'#b91c1c',borderRadius:8,margin:'16px 24px'}}>{loadError}<button type="button" disabled={busy} onClick={()=>{void exclusive(refreshData).catch(error=>setLoadError(error instanceof Error?error.message:'Reload failed.'));}}>Reload invoices</button></div>}
+    <div role="note" className={s.noticeWarning}>Invoice workflow status is separate from ledger settlement. Marking an invoice paid is disabled until a payment can link to an imported or explicitly recorded cash movement.</div>
     <InvoicesDashboard invoices={invoices} summary={summary} loading={loading} busy={busy} onCreateNew={()=>{setActiveInvoice(null);setView('editor');}}
       onEditInvoice={invoice=>{setActiveInvoice(invoice);setView('editor');}} onUpdateStatus={handleUpdateStatus} onDeleteInvoice={handleDelete}/>
   </>;

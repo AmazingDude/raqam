@@ -15,6 +15,14 @@ import {
   categoryGenerationRequestSchema, matchGenerationRequestSchema, matchGenerationResultSchema,
   proposalBatchResultSchema, proposalRecordSchema, proposalReviewSchema, proposalReviewResultSchema,
 } from '../contracts/proposals.ts';
+import {
+  ledgerAccountCommandSchema, ledgerAccountSchema, ledgerBalanceSheetSchema, ledgerCashFlowStatementSchema,
+  ledgerHistoryCoverageSchema, ledgerIncomeStatementSchema, ledgerJournalSchema, ledgerTrialBalanceSchema,
+} from '../contracts/ledger.ts';
+import {
+  expenseDraftInputSchema, expenseDraftReviewSchema, expenseDraftSchema,
+  supplierBillDraftInputSchema, supplierBillReviewSchema, supplierBillSchema,
+} from '../contracts/bookkeeping.ts';
 
 export class ClientError extends Error {
   code: string;
@@ -50,6 +58,13 @@ const reviewHistorySchema = z.object({ items: z.array(z.object({
   action: z.literal('correct'), previous: z.unknown(), current: z.unknown(),
   reviewVersion: z.number().int().positive(), createdAt: z.iso.datetime({ offset: true }),
 })), nextCursor: z.string().nullable() });
+const ledgerSnapshotSchema = z.strictObject({ accounts: z.array(ledgerAccountSchema), journals: z.array(ledgerJournalSchema), coverage: ledgerHistoryCoverageSchema });
+const ledgerAccountsSchema = z.strictObject({ items: z.array(ledgerAccountSchema) });
+const ledgerReportSchema = z.union([ledgerTrialBalanceSchema, ledgerBalanceSheetSchema, ledgerIncomeStatementSchema, ledgerCashFlowStatementSchema]);
+const expenseDraftsSchema = z.strictObject({ items: z.array(expenseDraftSchema) });
+const expenseDraftSaveSchema = z.strictObject({ draft: expenseDraftSchema, duplicate: z.boolean() });
+const supplierBillsSchema = z.strictObject({ items: z.array(supplierBillSchema) });
+const supplierBillSaveSchema = z.strictObject({ bill: supplierBillSchema, duplicate: z.boolean(), journal: ledgerJournalSchema.optional() });
 const signedMinor = z.string().regex(/^-?(0|[1-9][0-9]*)$/);
 const positiveMinor = z.string().regex(/^(0|[1-9][0-9]*)$/);
 const bucketSchema = z.object({ inflowMinor: positiveMinor, outflowMinor: positiveMinor, netMovementMinor: signedMinor });
@@ -159,5 +174,28 @@ export const api = {
   }),
   generateInvoiceWithAI: (prompt: string, currentDraft: unknown, signal = new AbortController().signal) => request('/api/invoices/ai-generate', generateInvoiceAIResponseSchema, signal, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(generateInvoiceAIRequestSchema.parse({ prompt, currentDraft })),
+  }),
+  ledger: (signal: AbortSignal) => request('/api/ledger', ledgerSnapshotSchema, signal),
+  saveLedgerHistory: (selectedFrom: string, selectedThrough: string, signal: AbortSignal) => request('/api/ledger', ledgerHistoryCoverageSchema, signal, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selectedFrom, selectedThrough }),
+  }),
+  ledgerReport: (query: string, signal: AbortSignal) => request(`/api/ledger/reports?${query}`, ledgerReportSchema, signal),
+  ledgerAccounts: (signal: AbortSignal) => request('/api/ledger/accounts', ledgerAccountsSchema, signal),
+  saveLedgerAccount: (input: unknown, signal: AbortSignal) => request('/api/ledger/accounts', z.strictObject({ account: ledgerAccountSchema, duplicate: z.boolean() }), signal, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ledgerAccountCommandSchema.parse(input)),
+  }),
+  expenseDrafts: (signal: AbortSignal) => request('/api/expense-drafts', expenseDraftsSchema, signal),
+  saveExpenseDraft: (input: unknown, signal: AbortSignal) => request('/api/expense-drafts', expenseDraftSaveSchema, signal, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(expenseDraftInputSchema.parse(input)),
+  }),
+  reviewExpenseDraft: (id: string, input: unknown, signal: AbortSignal) => request(`/api/expense-drafts/${encodeURIComponent(id)}`, expenseDraftSaveSchema, signal, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(expenseDraftReviewSchema.parse(input)),
+  }),
+  supplierBills: (signal: AbortSignal) => request('/api/supplier-bills', supplierBillsSchema, signal),
+  saveSupplierBill: (input: unknown, signal: AbortSignal) => request('/api/supplier-bills', supplierBillSaveSchema, signal, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(supplierBillDraftInputSchema.parse(input)),
+  }),
+  reviewSupplierBill: (id: string, input: unknown, signal: AbortSignal) => request(`/api/supplier-bills/${encodeURIComponent(id)}`, supplierBillSaveSchema, signal, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(supplierBillReviewSchema.parse(input)),
   }),
 };

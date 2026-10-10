@@ -23,13 +23,21 @@ import { ReviewScreen } from './review-screen.tsx';
 import type { ReviewableCategoryProposal, ReviewableMatchProposal } from './review-screen.tsx';
 import { AssistantScreen } from './assistant-screen.tsx';
 import { InvoicesScreen } from './invoices/invoices-screen.tsx';
+import { LedgerScreen } from './ledger-screen.tsx';
+import { DraftsScreen } from './drafts-screen.tsx';
+import { ProfileScreen, TaxWorkpaperScreen } from './profile-tax-screen.tsx';
 import s from '../ui/theme.module.css';
-type View = 'cashbook' | 'invoices' | 'import' | 'documents' | 'review' | 'assistant';
+type View = 'cashbook' | 'import' | 'documents' | 'expense-bills' | 'invoices' | 'ledger' | 'review' | 'profile' | 'tax' | 'assistant';
 const views: {id:View;label:string;icon:IconName}[] = [
   {id:'cashbook',label:'Cashbook',icon:'book'},
-  {id:'invoices',label:'Invoices',icon:'file'},
+  {id:'import',label:'Import transactions',icon:'upload'},
   {id:'documents',label:'Documents',icon:'file'},
+  {id:'expense-bills',label:'Expenses & bills',icon:'plus'},
+  {id:'invoices',label:'Invoices',icon:'file'},
+  {id:'ledger',label:'Books & reports',icon:'book'},
   {id:'review',label:'Review queue',icon:'review'},
+  {id:'profile',label:'Business profile',icon:'review'},
+  {id:'tax',label:'Tax workpaper',icon:'file'},
   {id:'assistant',label:'Ask Raqam',icon:'spark'}
 ];
 const EMPTY_DOCUMENTS: DocumentRecord[] = [];
@@ -195,7 +203,7 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
     <a href="#workspace-main" className={s.skip}>Skip to cashbook content</a>
     <aside className={s.sidebar}><Link href="/" className={s.brand} aria-label="Raqam home"><Mark/>raqam</Link><div className={s.business}><span className={s.businessIcon}>{workspace.businessName.slice(0,1).toUpperCase()}</span><div><strong>{workspace.businessName}</strong><p className={s.muted}>Business workspace · PKR</p></div></div>{nav}<div className={s.sidebarBottom}><p>Clear books start with<br/>a little context.</p>{demo?<Link href="/workspace" className={s.secondary}>Open your workspace</Link>:<button className={s.secondary} onClick={onReload}>Reload workspace</button>}<Link href="/" className={`${s.small} ${s.muted}`}>Back to Raqam</Link></div></aside>
     <details className={s.mobileMenu} data-mobile-nav><summary><span className={s.brand}><Mark/>raqam</span><span className={s.actions}><span className={s.small}>Menu</span><Icon name="menu"/></span></summary>{nav}<Link href="/" className={s.textButton}>Back to Raqam</Link></details>
-    <main className={s.main} id="workspace-main"><header className={s.topbar}><span>{workspace.businessName} / {view==='cashbook'?'Cashbook':view==='invoices'?'Invoices':views.find(v=>v.id===view)?.label??'Import'}</span><span className={s.identity}><span>{demo?'Example owner':'Your account'}</span>{account??<span className={s.avatar}>SS</span>}</span></header>
+    <main className={s.main} id="workspace-main"><header className={s.topbar}><span>{workspace.businessName} / {views.find(v=>v.id===view)?.label??'Workspace'}</span><span className={s.identity}><span>{demo?'Example owner':'Your account'}</span>{account??<span className={s.avatar}>SS</span>}</span></header>
       {demo && <div className={s.notice}><p><strong>Example workspace.</strong> Synthetic records, simulated suggestions and session-only changes. No live AI or saved books.</p><button className={s.textButton} onClick={resetExample}><Icon name="reset" size={14}/> Reset example</button></div>}
       {notice && <p role="status" className={s.success} style={{marginBottom:24}}>{notice}</p>}{failure&&<p className={s.error} role="alert">{failure}</p>}
       {view !== 'invoices' && <div className={s.actions} style={{justifyContent:'flex-end',marginBottom:16}}>{demo && <button className={s.textButton} onClick={()=>setHistoryOpen(true)}>Review trail ({history.length})</button>}<button className={s.secondary} onClick={()=>setExportOpen(true)}><Icon name="download" size={16}/> Export cashbook</button></div>}
@@ -204,7 +212,11 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
         {view==='invoices'&&<InvoicesScreen demo={demo} businessName={workspace.businessName} currency={workspace.currency}/>}
         {view==='import'&&!demo&&<LiveImportScreen onChanged={onChanged}/>}
         {view==='import'&&demo&&<ImportScreen demo={demo} workspaceId={workspace.id} imported={imported} onConfirm={(next,remaining)=>{if(!demo||imported)return;setDemoRecords(current=>[...current,...next]);setUnresolved(remaining);setImported(true);decision('example-import-csv','accept',null,{validRows:next.length,unresolvedRows:remaining});setNotice(`${next.length} example rows imported; ${remaining} unresolved rows excluded from totals.`);}}/>}
-        {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} liveRecords={liveDocuments} documentError={documentsError} extractingDocumentId={extractingDocumentId} onExtractDocument={demo?undefined:extractDocument} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink}/>}
+        {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} liveRecords={liveDocuments} documentError={documentsError} extractingDocumentId={extractingDocumentId} onExtractDocument={demo?undefined:extractDocument} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink} onStatement={()=>navigate('import')} onBill={()=>navigate('expense-bills')} onInvoice={()=>navigate('invoices')}/>}
+        {view==='expense-bills'&&<DraftsScreen demo={demo}/>}
+        {view==='ledger'&&<LedgerScreen demo={demo}/>}
+        {view==='profile'&&<ProfileScreen workspace={workspace}/>}
+        {view==='tax'&&<TaxWorkpaperScreen/>}
         {view==='review'&&<ReviewScreen demo={demo} records={records} documents={documents} proposals={proposals} matchProposals={demo?[]:liveMatchProposals.filter((item):item is ReviewableMatchProposal=>item.suggestion.kind==='match')} hasMoreMatchProposals={matchProposalsCursor!==null} onLoadMoreMatchProposals={loadMoreMatchProposals?async()=>{if(loadingMatchPage)return;setLoadingMatchPage(true);try{await loadMoreMatchProposals();}catch(error){setMatchesError(error instanceof Error?error.message:'Saved match decisions could not be loaded.');}finally{setLoadingMatchPage(false);}}:undefined} onMatchPageLoading={loadingMatchPage} matchesError={matchesError} generatingMatchDocumentId={generatingMatchDocumentId} onGenerateMatch={generateMatchCandidates} onReviewMatch={reviewMatch} matchedDocumentIds={demo?matches.map(m=>m.documentId):liveMatchProposals.filter(item=>item.status==='accepted'&&item.suggestion.kind==='match').map(item=>item.suggestion.kind==='match'?item.suggestion.documentId:'')} rejectedDocumentIds={rejectedMatches} onCategory={reviewCategory} onGenerateCategories={demo?undefined:generateCategories} generatingCategories={generatingCategories} categoryError={categoryError} proposalsError={proposalsError} onMatch={match} onRejectMatch={id=>{setRejectedMatches(current=>[...current,id]);const affected=matches.find(m=>m.documentId===id);if(affected)setDemoRecords(current=>current.map(r=>r.id===affected.transactionId?{...r,matchStatus:'unmatched'}:r));else if(id==='example-doc-1')setDemoRecords(current=>current.map(r=>r.id==='example-2'?{...r,matchStatus:'unmatched'}:r));decision(id,'reject',null,null);setNotice('Example match suggestion rejected. Unmatched records remain visible.');}} onDocuments={()=>navigate('documents')} onRecord={setRecord}/>}
         {view==='assistant'&&<AssistantScreen key={workspace.id} demo={demo} records={records} workspaceId={workspace.id} onRecord={setRecord}/>}
       </div>
