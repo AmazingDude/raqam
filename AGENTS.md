@@ -29,6 +29,7 @@
 ## Shared repo
 
 - Claim one task and name its files/modules before changing code. Work on an individual branch or worktree once Git is configured.
+- After completing an authorized task and its applicable checks, commit and push the task-owned changes to `origin/main`, unless the user specifies another target. Stage only files owned by that task; preserve unrelated local changes and never commit secrets or private financial records.
 - One integrator owns shared contracts, dependency files, migrations and merges. Coordinate changes to these files first.
 - Do not discard another person's changes or overwrite concurrent edits. Inspect the current state before patching.
 - Review and test completed behavior before merging. A model reporting success is not test evidence.
