@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { z } from 'zod';
 import { readFileSync } from 'node:fs';
 import { documentFieldsSchema, categorySuggestionSchema, assistantToolSchemas } from '../../src/lib/contracts/schemas.ts';
 import { createAIProvider, createGeminiProvider } from '../../src/lib/ai/index.ts';
+import { proposeCategories, type CategoryBatchInput } from '../../src/lib/ai/categories.ts';
 import type { ProviderResult, ToolConversationRequest } from '../../src/lib/ai/index.ts';
 
 const env = { GEMINI_API_KEY: 'synthetic-gemini-key', GEMINI_VISION_MODEL: 'gemini-test-vision', GEMINI_TEXT_MODEL: 'gemini-test-text' };
@@ -49,6 +51,52 @@ test('Gemini text request maps supported schema and rechecks canonical Zod outpu
   assert.equal(sentBody?.responseFormat, undefined);
   const bad = createGeminiProvider({ environment: () => env, fetch: async () => response(completion([{ text: JSON.stringify({ ...proposal, status: 'accepted' }) }])) });
   assert.equal(failureReason(await bad.requestTextProposal({ prompt: 'Propose a category.', versions, schema: categorySuggestionSchema }, context())), 'invalid_model_output');
+});
+
+test('Gemini serializes the real category batch with only documented JSON Schema keywords', async () => {
+  const transactionId = '33333333-3333-4333-8333-333333333333';
+  const workspaceId = '11111111-1111-4111-8111-111111111111';
+  let schema: Record<string, any> | undefined;
+  const provider = createGeminiProvider({ environment: () => env, fetch: async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    schema = body.generationConfig.responseJsonSchema;
+    return response(completion([{ text: JSON.stringify({ suggestions: [{ transactionId, category: 'software_services',
+      rationale: 'The synthetic row explicitly names a software subscription.', status: 'proposed', assessment: 'clear' }] }) }]));
+  } });
+  const input = { workspaceId, records: [{ reviewVersion: 0, transaction: {
+    id: transactionId, workspaceId, source: { sourceId: '22222222-2222-4222-8222-222222222222', rowNumber: 2 },
+    date: '2026-10-09', originalDescription: 'Monthly CloudDesk subscription', description: 'Monthly CloudDesk subscription',
+    direction: 'out', amountMinor: '450000', currency: 'PKR', reference: null, category: null,
+    categoryStatus: 'needs_review', matchStatus: 'unmatched',
+  } }] } as unknown as CategoryBatchInput;
+  const result = await proposeCategories(input, provider, context());
+  assert.equal(result.ok, true);
+  assert.equal(schema?.type, 'object');
+  assert.deepEqual(schema?.required, ['suggestions']);
+  assert.equal(schema?.additionalProperties, false);
+  assert.equal(schema?.properties.suggestions.maxItems, undefined, 'the client validates the category batch bound after decoding');
+  const supported = new Set(['type', 'properties', 'required', 'additionalProperties', 'enum', 'items', 'maxItems']);
+  const visit = (node: unknown) => {
+    assert.equal(typeof node, 'object');
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      assert.ok(supported.has(key), `unsupported schema keyword: ${key}`);
+      if (key === 'properties') for (const child of Object.values(value as Record<string, unknown>)) visit(child);
+      else if (key === 'items') visit(value);
+    }
+  };
+  visit(schema);
+});
+
+test('Gemini rechecks array bounds locally when they are omitted from its provider schema', async () => {
+  const boundedSchema = z.strictObject({ suggestions: z.array(z.string()).max(1) });
+  let sentSchema: Record<string, any> | undefined;
+  const provider = createGeminiProvider({ environment: () => env, fetch: async (_url, init) => {
+    sentSchema = JSON.parse(String(init?.body)).generationConfig.responseJsonSchema;
+    return response(completion([{ text: JSON.stringify({ suggestions: ['first', 'extra'] }) }]));
+  } });
+  const result = await provider.requestTextProposal({ prompt: 'Return one synthetic suggestion.', versions, schema: boundedSchema }, context());
+  assert.equal(failureReason(result), 'invalid_model_output');
+  assert.equal(sentSchema?.properties.suggestions.maxItems, undefined);
 });
 
 test('Gemini tool state round-trips with local tool results and never executes calls', async () => {
