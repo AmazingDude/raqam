@@ -51,3 +51,24 @@ test('scope and malformed cash records cannot leak into totals', () => {
 test('totals beyond JavaScript safe integer range remain exact', () => {
   assert.equal(calculateCashSummary([transaction({ amountMinor: '9007199254740993' })], 'w1', 0).inflowMinor, '9007199254740993');
 });
+
+test('cash summaries filter every reporting bucket and coverage count to an inclusive date range', () => {
+  const summary = calculateCashSummary([
+    transaction({ id: 'before', date: '2026-09-30', amountMinor: '400' }),
+    transaction({ id: 'start', date: '2026-10-01', source: { sourceId: 's1', rowNumber: 3 }, category: 'software_services', categoryStatus: 'accepted', matchStatus: 'accepted', amountMinor: '1250' }),
+    transaction({ id: 'end', date: '2026-10-31', source: { sourceId: 's1', rowNumber: 4 }, direction: 'out', amountMinor: '250' }),
+    transaction({ id: 'after', date: '2026-11-01', source: { sourceId: 's1', rowNumber: 5 }, amountMinor: '800' }),
+  ], 'w1', 3, { dateFrom: '2026-10-01', dateTo: '2026-10-31' });
+  assert.deepEqual(summary.transactionIds, ['start', 'end']);
+  assert.deepEqual([summary.inflowMinor, summary.outflowMinor, summary.netMovementMinor], ['1250', '250', '1000']);
+  assert.deepEqual(summary.categoryCoverage, { acceptedCount: 1, notAcceptedCount: 1 });
+  assert.deepEqual(summary.matchCoverage, { matchedCount: 1, notMatchedCount: 1 });
+  assert.equal(summary.categories.software_services?.inflowMinor, '1250');
+  assert.equal(summary.unreviewed.outflowMinor, '250');
+  assert.equal(summary.unresolvedImportRowCount, 3, 'unresolved rows remain workspace-wide because their source dates may be unknown');
+});
+
+test('cash summary date ranges reject invalid dates and reversed bounds', () => {
+  assert.throws(() => calculateCashSummary([transaction()], 'w1', 0, { dateFrom: '2026-02-30' }), /valid YYYY-MM-DD/);
+  assert.throws(() => calculateCashSummary([transaction()], 'w1', 0, { dateFrom: '2026-10-11', dateTo: '2026-10-10' }), /Date range is reversed/);
+});

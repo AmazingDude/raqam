@@ -18,6 +18,20 @@ test('client summary validates exact cash, category reconciliation and complete 
   ]) assert.equal(cashSummarySchema.safeParse(invalid).success, false);
 });
 
+test('client summary requests use validated optional inclusive date filters', async t => {
+  const calls: { path: string; init: RequestInit }[] = [], signal = new AbortController().signal;
+  t.mock.method(globalThis, 'fetch', async (path: string | URL | Request, init: RequestInit) => {
+    calls.push({ path: String(path), init }); return envelope(summary);
+  });
+  await api.summary(signal, { dateFrom: '2026-10-01', dateTo: '2026-10-31' });
+  assert.equal(calls[0]!.path, '/api/summary?dateFrom=2026-10-01&dateTo=2026-10-31');
+  assert.equal(calls[0]!.init.signal, signal);
+  assert.equal(calls[0]!.init.credentials, 'same-origin');
+  assert.throws(() => api.summary(signal, { dateFrom: '2026-10-31', dateTo: '2026-10-01' }), error => error instanceof ClientError && error.code === 'INVALID_INPUT');
+  assert.equal(calls.length, 1, 'invalid date ranges must not reach the server');
+  t.mock.restoreAll();
+});
+
 test('client reads reject malformed successes and preserve actionable auth/conflict errors', async t => {
   const signal = new AbortController().signal;
   for (const response of [new Response('<html>sign in</html>'), envelope({ ...summary, inflowMinor: 0 })]) {
@@ -126,6 +140,29 @@ test('category pages retain explicit cursors and use same-origin uncached scoped
   await api.categoryProposals(signal,'all',cursor);
   assert.deepEqual(calls.map(call=>call.path),['/api/category-proposals?limit=50&status=all',`/api/category-proposals?limit=50&status=all&cursor=${cursor}`]);
   assert.ok(calls.every(call=>call.init.signal===signal&&call.init.credentials==='same-origin'&&call.init.cache==='no-store'));
+});
+
+test('proposal review history is scoped to its proposal and validates versions and cursors',async t=>{
+  const workspaceId='30000000-0000-4000-8000-000000000002',proposalId='30000000-0000-4000-8000-000000000004';
+  const proposal={id:proposalId,workspaceId,transactionId:'30000000-0000-4000-8000-000000000005',transactionVersion:1,reviewVersion:1,rationale:'The row names a software subscription.',status:'accepted',provenance:{modelVersion:'synthetic-model',promptVersion:'categories-v1',schemaVersion:'categories-schema-v1'},suggestion:{kind:'category',category:'software_services'}};
+  const previous={...proposal,reviewVersion:0,status:'proposed'};
+  const item={id:'30000000-0000-4000-8000-000000000006',workspaceId,targetId:proposalId,actorSubject:'synthetic-owner',decision:{decision:'accept'},previous,current:proposal,reviewVersion:1,createdAt:'2026-10-10T00:00:00Z'};
+  const signal=new AbortController().signal,calls:{path:string;init:RequestInit}[]=[];
+  let response:unknown={items:[item],nextCursor:'1'};
+  t.mock.method(globalThis,'fetch',async(path:string|URL|Request,init:RequestInit)=>{calls.push({path:String(path),init});return envelope(response);});
+  const page=await api.proposalReviews(proposalId,workspaceId,signal);
+  assert.equal(page.items[0]!.current.status,'accepted');
+  response={items:[],nextCursor:null};await api.proposalReviews(proposalId,workspaceId,signal,'1');
+  assert.ok(calls[0]!.path.endsWith(`/api/reviews?proposalId=${proposalId}&limit=20&cursor=0`));
+  assert.ok(calls[1]!.path.endsWith('&cursor=1'));
+  assert.ok(calls.every(call=>call.init.signal===signal&&call.init.credentials==='same-origin'&&call.init.cache==='no-store'));
+  for(const invalid of [
+    {items:[{...item,targetId:workspaceId}],nextCursor:null},
+    {items:[{...item,workspaceId:'30000000-0000-4000-8000-000000000007'}],nextCursor:null},
+    {items:[item,item],nextCursor:null},
+    {items:[item],nextCursor:'2'},
+  ]){response=invalid;await assert.rejects(api.proposalReviews(proposalId,workspaceId,signal),error=>error instanceof ClientError&&error.code==='UNAVAILABLE');}
+  const count=calls.length;await assert.rejects(api.proposalReviews(proposalId,workspaceId,signal,'bad'),error=>error instanceof ClientError&&error.code==='INVALID_INPUT');assert.equal(calls.length,count);
 });
 
 test('document history preserves unknown fields and fences source, owner scope, ordering and cursors',async t=>{
