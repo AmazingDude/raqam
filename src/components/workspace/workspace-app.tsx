@@ -22,15 +22,17 @@ import type { PrivateLink, UploadedSource } from './documents-screen.tsx';
 import { ReviewScreen } from './review-screen.tsx';
 import type { ReviewableCategoryProposal, ReviewableMatchProposal } from './review-screen.tsx';
 import { AssistantScreen } from './assistant-screen.tsx';
+import { AIProviderSettings } from './ai-provider-settings.tsx';
 import { InvoicesScreen } from './invoices/invoices-screen.tsx';
 import s from '../ui/theme.module.css';
-type View = 'cashbook' | 'invoices' | 'import' | 'documents' | 'review' | 'assistant';
+type View = 'cashbook' | 'invoices' | 'import' | 'documents' | 'review' | 'assistant' | 'settings';
 const views: {id:View;label:string;icon:IconName}[] = [
   {id:'cashbook',label:'Cashbook',icon:'book'},
   {id:'invoices',label:'Invoices',icon:'file'},
   {id:'documents',label:'Documents',icon:'file'},
   {id:'review',label:'Review queue',icon:'review'},
-  {id:'assistant',label:'Ask Raqam',icon:'spark'}
+  {id:'assistant',label:'Ask Raqam',icon:'spark'},
+  {id:'settings',label:'AI provider',icon:'settings'}
 ];
 const EMPTY_DOCUMENTS: DocumentRecord[] = [];
 const EMPTY_PROPOSALS: ProposalRecord[] = [];
@@ -207,6 +209,7 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
         {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} liveRecords={liveDocuments} documentError={documentsError} extractingDocumentId={extractingDocumentId} onExtractDocument={demo?undefined:extractDocument} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink}/>}
         {view==='review'&&<ReviewScreen demo={demo} records={records} documents={documents} proposals={proposals} matchProposals={demo?[]:liveMatchProposals.filter((item):item is ReviewableMatchProposal=>item.suggestion.kind==='match')} hasMoreMatchProposals={matchProposalsCursor!==null} onLoadMoreMatchProposals={loadMoreMatchProposals?async()=>{if(loadingMatchPage)return;setLoadingMatchPage(true);try{await loadMoreMatchProposals();}catch(error){setMatchesError(error instanceof Error?error.message:'Saved match decisions could not be loaded.');}finally{setLoadingMatchPage(false);}}:undefined} onMatchPageLoading={loadingMatchPage} matchesError={matchesError} generatingMatchDocumentId={generatingMatchDocumentId} onGenerateMatch={generateMatchCandidates} onReviewMatch={reviewMatch} matchedDocumentIds={demo?matches.map(m=>m.documentId):liveMatchProposals.filter(item=>item.status==='accepted'&&item.suggestion.kind==='match').map(item=>item.suggestion.kind==='match'?item.suggestion.documentId:'')} rejectedDocumentIds={rejectedMatches} onCategory={reviewCategory} onGenerateCategories={demo?undefined:generateCategories} generatingCategories={generatingCategories} categoryError={categoryError} proposalsError={proposalsError} onMatch={match} onRejectMatch={id=>{setRejectedMatches(current=>[...current,id]);const affected=matches.find(m=>m.documentId===id);if(affected)setDemoRecords(current=>current.map(r=>r.id===affected.transactionId?{...r,matchStatus:'unmatched'}:r));else if(id==='example-doc-1')setDemoRecords(current=>current.map(r=>r.id==='example-2'?{...r,matchStatus:'unmatched'}:r));decision(id,'reject',null,null);setNotice('Example match suggestion rejected. Unmatched records remain visible.');}} onDocuments={()=>navigate('documents')} onRecord={setRecord}/>}
         {view==='assistant'&&<AssistantScreen key={workspace.id} demo={demo} records={records} workspaceId={workspace.id} onRecord={setRecord}/>}
+        {view==='settings'&&<AIProviderSettings demo={demo}/>}
       </div>
       {record&&!demo&&<LiveRecordDetail key={record.id} record={record} onClose={()=>setRecord(null)} onChanged={onChanged}/>}
       {record&&demo&&<RecordDetail key={record.id} record={record} demo={demo} onClose={()=>setRecord(null)} onSave={(description,category)=>{if(!demo)return;setDemoRecords(current=>current.map(r=>r.id===record.id?{...r,description,category,categoryStatus:category?'accepted':category!==record.category?'needs_review':record.categoryStatus}:r));if(category!==record.category)setDemoProposals(current=>current.map(p=>p.transactionId===record.id?{...p,status:category?'accepted':'needs_review'}:p));decision(record.id,'correct',{description:record.description,category:record.category},{description,category});setRecord(null);setNotice('Example record reviewed. Original source text is preserved.');}}/>}

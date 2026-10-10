@@ -43,6 +43,10 @@ Embedded PostgreSQL tests validate SQL privileges/RLS with simulated JWT claims 
 
 Local ignored `.env.local` has the application backend settings; the AI provider credentials are currently empty. Earlier read-only checks passed: Clerk credential and Supabase publishable key returned HTTP 200, and the five core relations deny anonymous reads. The user reports migration 008 applied and its supplied privilege check passes. The user's latest read-only check confirms the expected 009/010 function safeguards and grants; it does not audit migration history or prove an end-to-end import. Do not reapply 008–010. The fresh signed-out HTTP smoke passed on port 3187: 3 public/UI routes, 9 frontend private GET denials, and 27 platform private-request denials. This does not establish current signed-in persistence, live inference or two-user browser behavior.
 
+## Bring your own AI provider keys
+
+Migration `202610100013_byok_provider_credentials.sql` adds owner-scoped credentials for Gemini, OpenAI, Groq and Claude. Review and apply it only after checking hosted migration history. Set `BYOK_ENCRYPTION_KEY` on every app server to a stable, private 32-byte base64 value (`openssl rand -base64 32` generates one). Back it up in the deployment secret manager; changing or losing it makes saved keys unreadable. Do not commit it or reuse a provider API key as the encryption key. The workspace settings page never returns or stores provider keys in browser storage. Connection checks call each provider's model-list endpoint without running inference. OpenAI and Claude support text proposals and the read-only assistant; receipt extraction supports Groq and Gemini only.
+
 After rebuilding with configured public keys, start `npm run start -- --hostname localhost --port 3187` and run `npm run smoke:platform -- --configured` to check signed-out failure behavior. Use the same hostname for server and client; binding only to 127.0.0.1 caused a local internal-proxy socket failure on this Windows host. This is separate from the signed-in persistence gate. The default smoke mode targets missing configuration.
 
 ## Native session and synthetic persistence check

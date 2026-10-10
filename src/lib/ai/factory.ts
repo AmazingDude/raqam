@@ -3,6 +3,7 @@ import type { GroqProvider, ProviderContext, ProviderDependencies, ProviderResul
 import { createGroqProvider } from './provider.ts';
 import { createGeminiProvider } from './gemini.ts';
 import { createEveAssistant } from './eve.ts';
+import { createClaudeProvider } from './claude.ts';
 
 export type AIProvider = GroqProvider;
 
@@ -14,6 +15,8 @@ export function createAIProvider(dependencies: ProviderDependencies = {}): AIPro
     try { settings = environment(); } catch { settings = {}; }
     if (settings.AI_PROVIDER === undefined || settings.AI_PROVIDER === 'groq') return createGroqProvider({ ...dependencies, environment: () => settings });
     if (settings.AI_PROVIDER === 'gemini') return createGeminiProvider({ ...dependencies, environment: () => settings });
+    if (settings.AI_PROVIDER === 'openai') return createGroqProvider({ ...dependencies, environment: () => settings });
+    if (settings.AI_PROVIDER === 'claude') return createClaudeProvider({ ...dependencies, environment: () => settings });
     return createGroqProvider({ ...dependencies, environment: () => ({}) });
   }
   return {

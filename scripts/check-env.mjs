@@ -2,6 +2,10 @@ const required = ['APP_URL', 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', 'CLERK_SECRET_
 if (process.argv.includes('--ai')) required.push('GROQ_API_KEY', 'GROQ_VISION_MODEL', 'GROQ_TEXT_MODEL');
 const missing = required.filter(name => !process.env[name]?.trim());
 const invalid = [];
+if (process.env.BYOK_ENCRYPTION_KEY?.trim()) {
+  const encoded=process.env.BYOK_ENCRYPTION_KEY.trim(),key=Buffer.from(encoded,'base64');
+  if(key.length!==32||key.toString('base64').replace(/=+$/,'')!==encoded.replace(/=+$/,''))invalid.push('BYOK_ENCRYPTION_KEY');
+}
 for (const name of ['APP_URL', 'NEXT_PUBLIC_SUPABASE_URL']) {
   if (!process.env[name]) continue;
   try {
