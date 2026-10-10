@@ -6,6 +6,7 @@ import { api } from '../../../lib/client/api.ts';
 import { usePrivateRequests } from '../../../lib/client/use-private-requests.ts';
 import { InvoicesDashboard } from './invoices-dashboard.tsx';
 import { InvoiceEditor } from './invoice-editor.tsx';
+import { InvoicePreview } from './invoice-preview.tsx';
 
 export function InvoicesScreen({ demo = false, businessName = '', currency = 'PKR' }: { demo?: boolean; businessName?: string; currency?: string }) {
   const run=usePrivateRequests(), locked=useRef(false);
@@ -15,6 +16,7 @@ export function InvoicesScreen({ demo = false, businessName = '', currency = 'PK
     overdueMinor:'0',overdueDueNowMinor:'0',overdueDueNowCount:0,overdueNextWeekMinor:'0',overdueNextWeekCount:0,overdueFutureMinor:'0',overdueFutureCount:0,
     cashflow:Array.from({length:31},(_,i)=>({day:i+1,amountMinor:'0'})) });
   const [activeInvoice,setActiveInvoice]=useState<Invoice|null>(null);
+  const [previewInvoice,setPreviewInvoice]=useState<Invoice|null>(null);
   const [loading,setLoading]=useState(!demo),[busy,setBusy]=useState(false),[loadError,setLoadError]=useState('');
   useEffect(()=>{
     if (demo) return;
@@ -65,6 +67,7 @@ export function InvoicesScreen({ demo = false, businessName = '', currency = 'PK
   return <>
     {loadError&&<div role="alert" style={{padding:'12px 20px',background:'#fef2f2',color:'#b91c1c',borderRadius:8,margin:'16px 24px'}}>{loadError}<button type="button" disabled={busy} onClick={()=>{void exclusive(refreshData).catch(error=>setLoadError(error instanceof Error?error.message:'Reload failed.'));}}>Reload invoices</button></div>}
     <InvoicesDashboard invoices={invoices} summary={summary} loading={loading} busy={busy} onCreateNew={()=>{setActiveInvoice(null);setView('editor');}}
-      onEditInvoice={invoice=>{setActiveInvoice(invoice);setView('editor');}} onUpdateStatus={handleUpdateStatus} onDeleteInvoice={handleDelete}/>
+      onEditInvoice={invoice=>{setActiveInvoice(invoice);setView('editor');}} onPreviewInvoice={invoice=>setPreviewInvoice(invoice)} onUpdateStatus={handleUpdateStatus} onDeleteInvoice={handleDelete}/>
+    {previewInvoice&&<InvoicePreview invoice={previewInvoice} onClose={()=>setPreviewInvoice(null)}/>}
   </>;
 }
