@@ -11,7 +11,7 @@ const recordSchema = z.object({ transaction: rowSchema, reviewVersion: z.number(
 const snapshotSchema = z.strictObject({ records: z.array(rowSchema).max(50), unresolvedImportRowCount: z.number().int().min(0) });
 function databaseError(error: { code?: string }): BackendError {
   if (error.code === 'P0002') return new BackendError('NOT_FOUND', 'Transaction not found.');
-  if (error.code === '40001') return new BackendError('CONFLICT', 'This transaction changed. Reload it before saving your review.');
+  if (error.code === 'PT409' || error.code === '40001') return new BackendError('CONFLICT', 'This transaction changed. Reload it before saving your review.');
   if (['22023', '23514', '22001'].includes(error.code ?? '')) return new BackendError('INVALID_INPUT', 'Provide a valid reviewed description or category.');
   return new BackendError('UNAVAILABLE', 'Cashbook operation could not complete. Please retry.');
 }

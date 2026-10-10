@@ -26,6 +26,10 @@ coverage/
 Thumbs.db
 *.log
 
+# Local vision proof inputs and private extracted results
+/tests/ai/live/inputs/
+/artifacts/ai-live/
+
 # Previous candidate: keep locally, outside the Raqam repository
 /SHIFT_PROOF_BUILD_PLAN.md
 /HACKATHON_IDEA_DECISION_BRIEF.md

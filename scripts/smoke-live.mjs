@@ -5,6 +5,7 @@ const env = process.env;
 const base = new URL(env.APP_URL ?? 'http://localhost:3000');
 const businessName = 'Raqam synthetic validation';
 let passed = 0;
+let phase = 'native readiness';
 class ValidationError extends Error {}
 function ok(name) { passed++; console.log(`PASS ${name}`); }
 function requireCondition(condition, message) { if (!condition) throw new ValidationError(message); }
@@ -60,9 +61,11 @@ try {
     process.exit(0);
   }
   async function request(path, { method = 'GET', body, form, expected = 200, origin = base.origin } = {}) {
+    phase = `${method} ${path.split('?')[0].replace(/[0-9a-f]{8}-[0-9a-f-]{27}/gi, '{id}')} (expected ${expected})`;
+    const bearer = await token();
     const response = await fetch(new URL(path, base), {
       method, redirect: 'manual', signal: AbortSignal.timeout(20000),
-      headers: { Authorization: `Bearer ${await token()}`, Origin: origin, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      headers: { Authorization: `Bearer ${bearer}`, Origin: origin, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
       body: form ?? (body === undefined ? undefined : JSON.stringify(body)),
     });
     requireCondition(response.status === expected, `${method} ${path.split('?')[0]} failed (HTTP ${response.status}; expected ${expected}).`);
@@ -74,6 +77,7 @@ try {
     requireCondition(payload.error === null, 'Backend returned a safe error instead of data.');
     return payload.data;
   }
+  phase = 'workspace persistence';
   let workspace = await json('/api/workspace');
   if (!workspace) workspace = await json('/api/workspace', { method: 'POST', expected: 201, body: { businessName } });
   requireCondition(workspace.businessName === businessName, 'Existing workspace is not the synthetic validation workspace; refusing to mix test records.');
@@ -84,6 +88,7 @@ try {
     const form = new FormData(); form.set('file', new File([csv], 'synthetic-validation.csv', { type: 'text/csv' }));
     return json('/api/imports', { method: 'POST', expected: 201, form });
   };
+  phase = 'CSV registration and confirmation';
   const batch = await uploadCsv();
   assert.equal(batch.preview.validCount, 2); assert.equal(batch.preview.invalidCount, 1);
   assert.equal((await json(`/api/imports/${batch.importId}`)).importId, batch.importId);
@@ -102,6 +107,7 @@ try {
   assert.deepEqual(rows.map(row => row.amountMinor).sort(), ['1005', '2015']);
   ok('atomic CSV confirmation, exact money, unresolved preservation and duplicate retries');
   if (process.argv.includes('--reviews')) {
+    phase = 'cashbook review, summary and export';
     // Exercise only this script's own fixture row, even in a previously used test workspace.
     const expense = rows.find(row => row.amountMinor === '1005');
     const detail = await json(`/api/transactions/${expense.id}`);
@@ -127,11 +133,51 @@ try {
     assert.match(await exported.text(), /Synthetic validation expense,Live reviewed expense,out,10\.05,PKR,LIVE-2,travel,accepted,unmatched/);
     ok('audited review persistence, stale-write denial, exact summary and reviewed CSV export');
   }
+  if (process.argv.includes('--resolutions')) {
+    const resolutionCsv = 'date,description,direction,amount,reference\n2026-10-10,Synthetic later correction,out,?,RESOLVE-1\n2026-10-10,Synthetic later rejection,out,?,RESOLVE-2\n';
+    const form = new FormData(); form.set('file', new File([resolutionCsv], 'synthetic-resolution.csv', { type: 'text/csv' }));
+    const outstanding = await json('/api/imports', { method: 'POST', expected: 201, form });
+    assert.equal(outstanding.preview.invalidCount, 2);
+    const initial = await json(`/api/imports/${outstanding.importId}/confirmation`, { method: 'POST', body: {} });
+    assert.equal(initial.importedCount, 0); assert.equal(initial.unresolvedCount, 2);
+    const path = `/api/imports/${outstanding.importId}/resolutions`;
+    const before = await json(path);
+    const beforeSummary = await json('/api/summary');
+    assert.ok([0, 2].includes(before.unresolvedCount), 'fixture must be outstanding or fully resolved by an earlier run');
+    const command = { requestId: '30000000-0000-4000-8000-000000000001', rows: [
+      { rowNumber: 2, action: 'correct', transaction: { date: '2026-10-10', description: 'Live resolved expense', direction: 'out', amountMinor: '1005', currency: 'PKR', reference: 'RESOLVE-1' } },
+      { rowNumber: 3, action: 'reject' },
+    ] };
+    const resolved = await json(path, { method: 'POST', body: command });
+    assert.equal(resolved.correctedCount, 1); assert.equal(resolved.rejectedCount, 1); assert.equal(resolved.remainingUnresolvedCount, 0);
+    assert.equal(resolved.transactionIds.length, 1);
+    assert.deepEqual(await json(path, { method: 'POST', body: command }), { ...resolved, duplicate: true });
+    const current = await json(path);
+    assert.equal(current.importedCount, 1); assert.equal(current.rejectedCount, 1); assert.equal(current.unresolvedCount, 0);
+    const conflict = await request(path, { method: 'POST', expected: 409,
+      body: { ...command, rows: [{ rowNumber: 2, action: 'reject' }] } });
+    assert.equal((await conflict.json()).error.code, 'CONFLICT');
+    const alreadyReviewed = await request(path, { method: 'POST', expected: 409,
+      body: { requestId: '30000000-0000-4000-8000-000000000002', rows: [{ rowNumber: 3, action: 'reject' }] } });
+    assert.equal((await alreadyReviewed.json()).error.code, 'CONFLICT');
+    const saved = await json(`/api/imports/${outstanding.importId}`);
+    assert.deepEqual(saved.preview, outstanding.preview);
+    assert.equal(saved.confirmation.importedCount, 0); assert.equal(saved.confirmation.unresolvedCount, 2);
+    const resolvedCash = (await json('/api/transactions?limit=50')).items.filter(row => row.source.sourceId === outstanding.importId);
+    assert.equal(resolvedCash.length, 1); assert.equal(resolvedCash[0].amountMinor, '1005');
+    assert.equal(resolvedCash[0].originalDescription, 'Synthetic later correction');
+    const afterSummary = await json('/api/summary');
+    assert.equal(afterSummary.unresolvedImportRowCount, beforeSummary.unresolvedImportRowCount - before.unresolvedCount);
+    assert.equal(afterSummary.outflowMinor, (BigInt(beforeSummary.outflowMinor) + (before.unresolvedCount === 2 ? 1005n : 0n)).toString());
+    ok('confirmed-row correction/rejection, immutable originals, conflict denial, retry receipts and exact current totals');
+  }
+  const beforeImageCount = (await json('/api/transactions?limit=50')).items.length;
   const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWQAAAABJRU5ErkJggg==', 'base64');
   const uploadImage = async () => {
     const form = new FormData(); form.set('file', new File([image], 'synthetic-pixel.png', { type: 'image/png' }));
     return json('/api/sources', { method: 'POST', expected: 201, form });
   };
+  phase = 'private source storage';
   const source = await uploadImage();
   assert.equal((await uploadImage()).duplicate, true);
   const signed = await json(`/api/sources/${source.sourceId}`);
@@ -141,7 +187,7 @@ try {
   assert.equal(original.status, 200); assert.deepEqual(Buffer.from(await original.arrayBuffer()), image);
   const publicUrl = new URL(signedUrl.pathname.replace('/object/sign/', '/object/public/'), signedUrl.origin);
   assert.notEqual((await fetch(publicUrl, { signal: AbortSignal.timeout(15000) })).status, 200);
-  assert.equal((await json('/api/transactions?limit=50')).items.length, book.items.length);
+  assert.equal((await json('/api/transactions?limit=50')).items.length, beforeImageCount);
   ok('private source upload/retry, signed retrieval and no cash created from images');
   const foreign = await request('/api/workspace', { method: 'POST', expected: 422, origin: 'https://invalid.example', body: { businessName } });
   assert.equal((await foreign.json()).error.code, 'INVALID_INPUT');
@@ -152,6 +198,6 @@ try {
 } catch (error) {
   // Assert failures intentionally omit actual payloads; vendor exceptions/tokens never reach logs.
   console.error(error instanceof ValidationError ? `FAIL ${error.message}` :
-    error?.code === 'ERR_ASSERTION' ? 'FAIL Live behavior differed from the synthetic expected result.' : 'FAIL Live validation could not complete.');
+    error?.code === 'ERR_ASSERTION' ? `FAIL Synthetic behavior differed during ${phase}.` : `FAIL Live validation could not complete during ${phase}${error?.name === 'TimeoutError' ? ' (request timed out)' : ''}.`);
   process.exitCode = 1;
 }
