@@ -140,7 +140,7 @@ export const api = {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(transactionReviewSchema.parse(input)),
   }),
   transactionReviews: (id: string, signal: AbortSignal, cursor: string | null = null) => request(`/api/transactions/${encodeURIComponent(id)}/reviews?limit=20&cursor=${encodeURIComponent(cursor ?? '0')}`, reviewHistorySchema, signal),
-  documents: (signal: AbortSignal) => request('/api/documents?limit=50', documentPageSchema, signal),
+  documents: (signal: AbortSignal, cursor: string | null = null) => request(`/api/documents?limit=50${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, documentPageSchema, signal),
   documentHistory: async (id: string, workspaceId: string, signal: AbortSignal, cursor: string | null = null) => {
     let previous=Number(cursor??'0');
     if(!Number.isSafeInteger(previous)||previous<0||previous>2147483647)throw new ClientError('INVALID_INPUT','Invalid document history cursor.');

@@ -300,7 +300,8 @@ export function InvoicesDashboard({
                           {(['draft', 'sent', 'overdue', 'paid'] as InvoiceStatus[]).map((st) => (
                             <button
                               key={st}
-                              disabled={busy}
+                              disabled={busy || (st === 'paid' && inv.status !== 'paid')}
+                              title={st === 'paid' && inv.status !== 'paid' ? 'Link a verified payment before marking this invoice settled.' : undefined}
                               className={s.dropdownItem}
                               type="button"
                               onClick={async () => {
