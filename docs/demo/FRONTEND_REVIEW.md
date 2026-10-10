@@ -44,3 +44,9 @@ The tab buttons render at roughly 27px high, while the filter and evidence butto
 [`landing.tsx:212`](../../src/components/marketing/landing.tsx#L212) and [`landing.tsx:287`](../../src/components/marketing/landing.tsx#L287)
 
 “Zero hallucinated math” is an absolute guarantee, and the FAQ also claims support for exports from all commercial banks and named wallets. The repository does not establish those blanket claims with matching evaluation or provider-specific import evidence; describe the code-enforced behavior and verified import coverage instead.
+
+## UI refresh disposition — 10 October 2026
+
+The landing preview now recalculates cash totals from the filtered rows with integer-paisa arithmetic, labels cash activity separately from review status, and presents different source values for original extraction and reviewed details. Its tabs have tab/panel relationships, roving focus and arrow/Home/End keys. Navigation is keyboard-operable, touch controls meet the 44px design target, focus indicators and reduced-motion behavior are explicit, and the unverified capability claims were removed or qualified. The workspace/auth shell also received a responsive layout and shared component polish.
+
+The production build and browser interaction were checked after implementation. Regression checks passed: 154/154 repository tests, strict typecheck, production build, 6/6 client API tests, 3 public/UI route checks, 9 signed-out private GET denials and 27 signed-out platform request denials. This disposition addresses the findings above; it does not establish live provider or signed-in financial workflow coverage.
