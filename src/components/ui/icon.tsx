@@ -14,6 +14,13 @@ const paths: Record<IconName, string> = {
 export function Icon({ name, size = 20, style }: { name: IconName; size?: number; style?: CSSProperties }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={style}><path d={paths[name]} /></svg>;
 }
-export function Mark() {
-  return <svg width="29" height="29" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="2" y="3" width="8" height="26" rx="4" fill="currentColor"/><path d="M15 3h4a11 11 0 0 1 0 22h-4V3Z" stroke="currentColor" strokeWidth="7"/><path d="m19 20 9 9" stroke="currentColor" strokeWidth="7" strokeLinecap="round"/></svg>;
+export function Mark({ size = 28, style }: { size?: number; style?: CSSProperties } = {}) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true" style={style}>
+      <rect x="4" y="4" width="5.5" height="24" rx="2.75" fill="currentColor" />
+      <path d="M9.5 4H19C23.4183 4 27 7.58172 27 12C27 16.4183 23.4183 20 19 20H9.5V14.5H18.5C19.8807 14.5 21 13.3807 21 12C21 10.6193 19.8807 9.5 18.5 9.5H9.5V4Z" fill="currentColor" />
+      <path d="M15.5 16L26.5 28H20.5L11.5 18.5L15.5 16Z" fill="var(--good, #176444)" />
+    </svg>
+  );
 }
+
