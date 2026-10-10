@@ -1,6 +1,6 @@
 # Person C step 2 — proposed shared AI contracts
 
-**Status:** documented proposal based on the accepted PRD; A/B have not adopted the detailed shapes.  
+**Status:** A's canonical shared contract v0.1 is verified and now present in C's pending baseline merge; this document's earlier detailed AI envelopes remain proposals where they exceed that contract. See section 10 for actual exports and remaining integration decisions.
 **Executable shared-schema owner:** Person A (integrator).  
 **Purpose:** align A, B and C before app code is wired. This document is not an executable schema or competing product specification. A's accepted types and helpers become canonical.
 
@@ -137,12 +137,39 @@ Before C's provider code starts, A should return a recorded baseline/contract ve
 | --- | --- |
 | PRD entity meanings, invariants, domain states and four tool names | Accepted in existing PRD sections 6–7 |
 | A/B/C work lanes | Accepted in TEAM_TASKS/TEAM_WORKFLOW; paths await scaffold |
-| Concrete TypeScript fields/amountMinor candidate | C proposal; no shared schema exists |
+| Concrete TypeScript fields/amountMinor candidate | A selected integer paisa strings and published shared contract v0.1; exports are now present in the pending C baseline merge and C acknowledges them below. |
 | Document required fields/date/currency policy | Open; needs A/B agreement consistent with F03 |
-| Tool arguments/results/pagination | Names accepted in PRD; wire shapes pending |
+| Tool arguments/results/pagination | A's assistantToolSchemas argument shapes are published; execution, completeness/result contracts remain BA-00/BA-05 work |
 | Fact registry/answer blocks | C proposal, not existing shared requirement |
 | Operation/cache/snapshot interface | PRD behavior required; implementation interface pending A |
-| Package pins, server environment, request deadline and reservation placement | Requirements proposed in section 8; A's accepted choices/evidence pending |
+| Package pins, server environment, request deadline and reservation placement | SDK 1.6.0/Zod 4.6.5/TS 5.9.3 and native Node baseline verified on A's branch; host deadline/cache reservation interfaces remain pending |
 | Public test seams | C proposal, not accepted by A/B |
 
-Do not mark C-00 contract agreement done until A's canonical schema/version/imports and decisions are recorded and B confirms the renderable states. This repository contains no app scaffold or evidence of A/B adopting the concrete proposals. No message was sent to teammates.
+Do not mark C-00 fully agreed until remaining AI result/deadline/reservation decisions and B's renderable-state acknowledgement are recorded. The app scaffold and shared schemas are present in this C checkout's pending merge. No message was sent to teammates.
+
+## 10. Verified backend baseline and C consumption map
+
+Fetched `origin/codex/raqam-backend`, revision **4b1782cdc5bb1e236accc04512edbadeee5e4e47**, on 10 October 2026. Inspected Git files without checking out, merging or altering A's code. A's `docs/raqam/CONTRACTS.md` explicitly selects shared contract v0.1 and reserves C engine ownership. `BACKEND_TASKS.md` states A supplies dependency/native-runtime setup and C1 owns the feasibility runner. A's latest baseline pins groq-sdk **1.6.0**, zod **4.6.5**, typescript **5.9.3**, server-only **0.0.1**, npm **11.12.1**, Node **>=22.18.0**; no tsx is needed. Lockfile and native SDK/Zod runtime test exist. That test's 38/38 suite/typecheck evidence is A's recorded evidence, not a new C test run.
+
+| C requirement | Actual canonical A export / file | Mapping and remaining boundary |
+| --- | --- | --- |
+| Exact money | `MinorUnits`, `CashSummary` in `src/lib/contracts/index.ts`; `parseAmount`, `assertMinorUnits`, `formatAmount` in `src/lib/server/money.ts` | Decimal rupees to integer paisa strings; PKR 4500.00 becomes `450000`. Use the existing helpers after integration; no competing production money parser. |
+| Raw extracted document | `DocumentFields`, `SupportingDocument` in `index.ts`; `documentFieldsSchema` in `schemas.ts` | Probe merchant -> `counterparty`; decimal total -> `totalMinor` through exact helper. Date/currency/reference preserve null. Production raw-text/uncertainty/evidence metadata envelope is still a proposal, not additional accepted schema fields. |
+| Transaction/source | `Transaction`, `SourceReference` in `index.ts`; `transactionSchema`, `sourceReferenceSchema` in `schemas.ts` | Source is `{sourceId,rowNumber}`; image rowNumber is null. Transaction review versions are returned separately by the reviewed-record endpoint; a versioned AI snapshot contract remains BA-00 work. |
+| Category/match output | `categorySuggestionSchema`, `matchSuggestionSchema` in `schemas.ts`; `CATEGORIES` in `index.ts` | Suggestions use record IDs, category/rationale and proposed/needs_review status. Model cannot supply owner/workspace/proposal IDs or accepted states. Do not copy the probe's small text schema into production. |
+| Read-only tool arguments | `assistantToolSchemas` in `schemas.ts` | Four PRD names, no trusted owner arguments. List/queue default20/max50; evidence1–20 IDs total. Executors, result completeness/fact registry and snapshot rules remain BA-00/BA-05. |
+| Safe API envelope | `ApiResult`, `ApiErrorCode` in `index.ts` | Existing errors UNAUTHENTICATED/NOT_FOUND/INVALID_INPUT/CONFLICT/UNAVAILABLE. Provider-specific failures need the agreed C-to-A translation seam. |
+
+After backend integration, C-owned modules can use relative paths `../contracts/index.ts`, `../contracts/schemas.ts`, and the agreed exact helpers. A's tsconfig enables `.ts` imports; no `@/` alias is assumed. B/C cannot redefine the canonical types. C acknowledges these existing shapes as A's baseline; B's acknowledgement and the remaining decisions are not fabricated.
+
+**Current integration:** baseline4b1782c is present in the shared C checkout through a pending, uncommitted merge. Steps4–5 now add only the C provider module against that combined tree; inspect PROVIDER_CONTRACT.md for the implementation seam. The provider setup note is preserved as `PROVIDER_BASELINE.md` to avoid conflicting with C's lowercase evidence filename on case-insensitive systems.
+
+**What remains before integrated provider use:** acknowledge the C-owned provider interface; settle the provider/result envelope with A's BA-00 so unknown-field issues/source/version metadata have one accepted home; agree runtime environment/deadline and retry ownership for the production adapter. Durable cache/snapshot interfaces, document/proposal routes and scoped tool executors are later integration dependencies; they need not all be built before the provider adapter. The earlier claim that A still needs to install Groq is obsolete. Full backend completion is not required for the now-passed step3 proof.
+
+## 11. C provider implementation — explicit steps 4–5 request
+
+The user authorized the C-owned transport module on A's existing runtime. [PROVIDER_CONTRACT.md](PROVIDER_CONTRACT.md) records the actual interface, tests and limitations. A canonical ApiErrorCode, SourceReference, upload guard and tool argument schemas are reused; no replacement financial schema or A configuration was introduced. This is not evidence of A/B/C2 agreement. A supplies trusted ownership/context, a host-compatible absolute deadline and route/lifecycle mapping; cache/reservation and feature outcome/evidence contracts remain integration decisions. C2 must acknowledge the exported seam before dependent wiring.
+
+## 12. New main foundation consumed at publication
+
+Main cd092e4 publishes src/lib/contracts/documents.ts and migration006/007. D13 is now confirmed: document acceptance requires valid date, exact total and explicit PKR; merchant/reference may be null. reserve_document_extraction/save_document_extraction/review_supporting_document and canonical reservation/outcome/review schemas exist, with90s lease and at most60s full extraction operation. C acknowledges this actual A foundation. Detailed raw field observations/issues, expanded provider/preprocessing cache identity and the callable A2 service wrapper remain unadopted. Do not discard C raw evidence or assume an existing SQL function alone completes C step7/8. See A_RECEIPT_INTEGRATION_HANDOFF.md.
