@@ -34,6 +34,7 @@ const privateRequests = [
   ['/api/documents/10000000-0000-4000-8000-000000000001/history', 'GET'],
   ['/api/documents/10000000-0000-4000-8000-000000000001/extraction', 'POST'],
   ['/api/category-proposals', 'GET'], ['/api/category-proposals', 'POST'],
+  ['/api/tax-readiness', 'GET'], ['/api/tax-readiness', 'POST'],
   ['/api/summary', 'GET'], ['/api/export', 'GET'],
 ];
 for (const [path, method] of privateRequests) {

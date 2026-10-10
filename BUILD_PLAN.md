@@ -226,3 +226,7 @@ No hosted write, migration application or deployment was made. The latest `origi
 ## User-authorized invoice repair - 10 October
 
 Status: `in_review`. The user explicitly requested repair of the existing invoice pipeline and then a text-only assistant with no cashbook export on the Invoices tab. Invoice list decoding, atomic audited persistence/version checks, exact money and structured AI generation are implemented. See [invoice repair evidence](docs/raqam/INVOICE_PIPELINE_REVIEW.md). Hosted user-confirmed create/edit/status/delete/reload and isolation remain open. This narrow repair does not accept the proposed broader bookkeeping/payment/tax expansion.
+
+### User-authorized tax-readiness slice — 10 October 2026
+
+**Local implementation and checks complete; hosted acceptance pending.** PRD D21 adds a guided Pakistan profile for the current normal tax year, memory-only drafts, records checklist and explicitly confirmed private versioned saves. Additive migration **015** follows upstream ledger **014**; no tax calculation, full workpaper, filing/payment or AI exposure of tax answers. Local evidence and exact files/setup are recorded in [the tax-readiness plan](docs/plans/tax-readiness-interview.md) and the appended handoff entry. The user reports the table already exists and declined a schema checker, so full hosted setup/save/reload/isolation is unknown; this does not open the wider tax workpaper/release gates.

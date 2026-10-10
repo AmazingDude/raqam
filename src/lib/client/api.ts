@@ -7,6 +7,7 @@ import { cashSummaryRangeSchema, transactionReviewSchema } from '../contracts/ca
 import type { ImportConfirmation } from '../contracts/imports.ts';
 import type { CashSummaryRange, TransactionReview } from '../contracts/cashbook.ts';
 import { assistantRequestSchema, assistantResponseSchema } from '../contracts/assistant.ts';
+import { taxReadinessSaveSchema, taxReadinessStateSchema } from '../contracts/tax-readiness.ts';
 import {
   documentExtractionRequestSchema, documentMutationResultSchema, documentRecordSchema, documentRegistrationResultSchema,
   receiptExtractionResponseSchema, documentReviewSchema, documentHistoryItemSchema,
@@ -101,6 +102,21 @@ export async function request<T>(path: string, schema: z.ZodType<T>, signal: Abo
   return data.data;
 }
 export const api = {
+  taxReadiness: async (workspaceId: string, signal: AbortSignal) => {
+    const state = await request('/api/tax-readiness', taxReadinessStateSchema, signal);
+    if (state.profile && state.profile.workspaceId !== workspaceId) throw new ClientError('UNAVAILABLE', 'The saved profile could not be verified. Reload your workspace.');
+    return state;
+  },
+  saveTaxReadiness: async (workspaceId: string, input: z.infer<typeof taxReadinessSaveSchema>, signal: AbortSignal) => {
+    const command = taxReadinessSaveSchema.parse(input);
+    const state = await request('/api/tax-readiness', taxReadinessStateSchema, signal, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(command),
+    });
+    if (!state.profile || state.profile.workspaceId !== workspaceId || state.taxYear !== command.taxYear ||
+        state.profile.version !== command.expectedVersion + 1 || JSON.stringify(state.profile.answers) !== JSON.stringify(command.answers))
+      throw new ClientError('UNAVAILABLE', 'The saved profile could not be verified. Reload your workspace.');
+    return state;
+  },
   assistant: (question: string, signal: AbortSignal) => request('/api/assistant', assistantResponseSchema, signal, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(assistantRequestSchema.parse({ question })),
   }),
