@@ -40,14 +40,14 @@ const REPAIR = 'Return the same response in the required format. Do not guess mi
 
 function isToolName(value: string): value is ToolName { return Object.hasOwn(assistantToolSchemas, value); }
 function record(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
-function geminiJsonSchema(value: unknown): Record<string, unknown> {
+function geminiJsonSchema(value: unknown, options: { omitMaxItems?: boolean } = {}): Record<string, unknown> {
   if (!record(value)) throw new Error('unsupported_schema');
   if (Array.isArray(value.anyOf)) {
     if (value.anyOf.length !== 2) throw new Error('unsupported_schema');
     const nullable = value.anyOf.find(item => record(item) && item.type === 'null');
     const concrete = value.anyOf.find(item => !(record(item) && item.type === 'null'));
     if (!nullable || !concrete) throw new Error('unsupported_schema');
-    const converted = geminiJsonSchema(concrete);
+    const converted = geminiJsonSchema(concrete, options);
     const type = converted.type;
     if (typeof type !== 'string') throw new Error('unsupported_schema');
     return { ...converted, type: [type, 'null'] };
@@ -57,15 +57,17 @@ function geminiJsonSchema(value: unknown): Record<string, unknown> {
     if (key === '$schema' || key === 'default' || key === 'minLength' || key === 'maxLength') continue;
     if (key === 'const') { result.enum = [item]; continue; }
     if (key === 'properties' && record(item)) {
-      result.properties = Object.fromEntries(Object.entries(item).map(([name, schema]) => [name, geminiJsonSchema(schema)]));
+      result.properties = Object.fromEntries(Object.entries(item).map(([name, schema]) => [name, geminiJsonSchema(schema, options)]));
       continue;
     }
-    if (key === 'items') { result.items = geminiJsonSchema(item); continue; }
+    if (key === 'items') { result.items = geminiJsonSchema(item, options); continue; }
+    // Keep the provider schema compact; Zod still enforces the original bound after decoding.
+    if (key === 'maxItems' && options.omitMaxItems) continue;
     if (key === 'anyOf' || key === 'oneOf' || key === 'allOf' || key === '$ref' || key === '$defs') throw new Error('unsupported_schema');
     if (!['type', 'required', 'additionalProperties', 'enum', 'format', 'minimum', 'maximum', 'minItems', 'maxItems', 'prefixItems', 'title', 'description'].includes(key)) throw new Error('unsupported_schema');
     result[key] = item;
   }
-  if (Array.isArray(result.prefixItems)) result.prefixItems = result.prefixItems.map(geminiJsonSchema);
+  if (Array.isArray(result.prefixItems)) result.prefixItems = result.prefixItems.map(item => geminiJsonSchema(item, options));
   return result;
 }
 function bounded<T>(pending: Promise<T>, signal: AbortSignal, reason: () => ProviderFailureReason | null): Promise<T> {
@@ -277,7 +279,7 @@ export function createGeminiProvider(dependencies: ProviderDependencies = {}): G
     }),
     requestTextProposal: (input: TextProposalRequest, context: ProviderContext) => execute('text', input?.versions, context, model => {
       if (!input.prompt.trim() || input.prompt.length > LIMITS.inputCharacters) throw new Error('invalid_request');
-      const schema = geminiJsonSchema(z.toJSONSchema(input.schema, { io: 'input' }));
+      const schema = geminiJsonSchema(z.toJSONSchema(input.schema, { io: 'input' }), { omitMaxItems: true });
       if (schema.type !== 'object' || schema.additionalProperties !== false || !record(schema.properties) || !Array.isArray(schema.required) || Object.keys(schema.properties).sort().join(',') !== [...schema.required].sort().join(',') || JSON.stringify(schema).length + input.prompt.length + REPAIR.length > LIMITS.inputCharacters) throw new Error('invalid_request');
       return { body: { model, contents: [{ role: 'user', parts: [{ text: input.prompt }] }], generationConfig: { responseMimeType: 'application/json', responseJsonSchema: schema, maxOutputTokens: LIMITS.outputTokens, temperature: 0 } }, schema: input.schema };
     }),
