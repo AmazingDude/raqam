@@ -1,12 +1,15 @@
 import { z } from 'zod';
-import { request, ClientError } from './api.ts';
+import { request, ClientError, api } from './api.ts';
 import { invoiceLineAmount } from '../invoice-money.ts';
 import { expenseDraftInputSchema, expenseDraftSchema, expenseDraftReviewSchema, supplierBillDraftInputSchema, supplierBillSchema, supplierBillReviewSchema } from '../contracts/bookkeeping.ts';
-import { ledgerAccountSchema, ledgerAccountCommandSchema, ledgerJournalSchema, ledgerHistoryCoverageSchema, ledgerHistoryRangeInputSchema,
+import { ledgerAccountSchema, ledgerAccountCommandSchema, ledgerJournalSchema, ledgerJournalDraftSchema, ledgerHistoryCoverageSchema, ledgerHistoryRangeInputSchema,
   ledgerReportRequestSchema, ledgerTrialBalanceSchema, ledgerIncomeStatementSchema, ledgerBalanceSheetSchema, ledgerCashFlowStatementSchema,
   type LedgerReportRequest } from '../contracts/ledger.ts';
+import { expensePostingInputSchema, expensePostingResultSchema, invoiceRecognitionInputSchema, invoiceRecognitionResultSchema, paymentLinkInputSchema, paymentListSchema, paymentOperationResultSchema } from '../contracts/payments.ts';
+import { invoicesListSchema } from '../contracts/invoices.ts';
 
 export const ledgerSnapshotSchema = z.strictObject({accounts:z.array(ledgerAccountSchema).max(1000),journals:z.array(ledgerJournalSchema).max(10000),coverage:ledgerHistoryCoverageSchema});
+const ledgerPostResultSchema=z.strictObject({journal:ledgerJournalSchema,duplicate:z.boolean()});
 export type LedgerSnapshot=z.infer<typeof ledgerSnapshotSchema>;
 export type LedgerReport=z.infer<typeof ledgerTrialBalanceSchema>|z.infer<typeof ledgerIncomeStatementSchema>|z.infer<typeof ledgerBalanceSheetSchema>|z.infer<typeof ledgerCashFlowStatementSchema>;
 function owner(workspaceId:string,records:{workspaceId:string}[]) {
@@ -61,6 +64,10 @@ export const bookkeepingApi={
   const command=ledgerHistoryRangeInputSchema.parse(input);const result=await request('/api/ledger',ledgerHistoryCoverageSchema,signal,mutation(command,'PUT'));
   owner(workspaceId,[result]);if(result.selectedFrom!==command.selectedFrom||result.selectedThrough!==command.selectedThrough)throw new ClientError('UNAVAILABLE','History range could not be verified. Reload.');return result;
  },
+ async postJournal(workspaceId:string,input:z.infer<typeof ledgerJournalDraftSchema>,signal:AbortSignal){
+  const command=ledgerJournalDraftSchema.parse(input);const result=await request('/api/ledger',ledgerPostResultSchema,signal,mutation(command));
+  owner(workspaceId,[result.journal]);if(result.journal.id!==command.id||result.journal.status!=='posted'||result.journal.workspaceId!==workspaceId)throw new ClientError('UNAVAILABLE','The ledger posting could not be verified. Reload the books.');return result;
+ },
  async report(workspaceId:string,input:LedgerReportRequest,signal:AbortSignal):Promise<LedgerReport>{
   const command=ledgerReportRequestSchema.parse(input);const params=new URLSearchParams(command);
   const schemas={trial_balance:ledgerTrialBalanceSchema,income_statement:ledgerIncomeStatementSchema,balance_sheet:ledgerBalanceSheetSchema,cash_flow:ledgerCashFlowStatementSchema};
@@ -68,5 +75,32 @@ export const bookkeepingApi={
   owner(workspaceId,[result,result.coverage]);
   if('asOf'in command?(!('asOf'in result)||result.asOf!==command.asOf):(!('from'in result)||result.from!==command.from||result.to!==command.to))
    throw new ClientError('UNAVAILABLE','The report period does not match your request. Retry.');return result;
+ },
+ async invoices(workspaceId:string,signal:AbortSignal){
+  const result=await request('/api/invoices',invoicesListSchema,signal);owner(workspaceId,result.items);unique(result.items);return result.items;
+ },
+ async recognizeInvoice(workspaceId:string,invoiceId:string,input:z.infer<typeof invoiceRecognitionInputSchema>,signal:AbortSignal){
+  z.uuid().parse(invoiceId);const command=invoiceRecognitionInputSchema.parse(input);
+  const result=await request(`/api/invoices/${encodeURIComponent(invoiceId)}/recognition`,invoiceRecognitionResultSchema,signal,mutation(command));
+  owner(workspaceId,[result.journal,result.posting]);if(result.posting.invoiceId!==invoiceId||!result.journal.sources.some(source=>source.kind==='invoice'&&source.invoiceId===invoiceId)||result.journal.recognitionEvidence?.date!==command.serviceDate)throw new ClientError('UNAVAILABLE','Invoice recognition could not be verified. Reload the invoice and ledger.');return result;
+ },
+ async postExpense(workspaceId:string,expenseId:string,input:z.infer<typeof expensePostingInputSchema>,signal:AbortSignal){
+  z.uuid().parse(expenseId);const command=expensePostingInputSchema.parse(input);
+  const result=await request(`/api/expense-drafts/${encodeURIComponent(expenseId)}/posting`,expensePostingResultSchema,signal,mutation(command));
+  owner(workspaceId,[result.journal,result.posting]);if(result.posting.expenseId!==expenseId||!result.journal.sources.some(source=>source.kind==='manual_note'&&source.noteId===expenseId)||result.journal.recognitionEvidence?.basis!=='expense_incurred')throw new ClientError('UNAVAILABLE','Expense accrual could not be verified. Reload expense drafts and books.');return result;
+ },
+ async payments(workspaceId:string,signal:AbortSignal){
+  const result=await request('/api/payments',paymentListSchema,signal);owner(workspaceId,result.items);unique(result.items);return result.items;
+ },
+ async cashTransaction(workspaceId:string,transactionId:string,signal:AbortSignal){
+  z.uuid().parse(transactionId);const result=await api.transaction(transactionId,signal);owner(workspaceId,[result.transaction]);
+  return result;
+ },
+ async linkPayment(workspaceId:string,input:z.infer<typeof paymentLinkInputSchema>,signal:AbortSignal){
+  const command=paymentLinkInputSchema.parse(input);const result=await request('/api/payments',paymentOperationResultSchema,signal,mutation(command));
+  owner(workspaceId,[result.payment,result.journal]);if(result.payment.targetId!==command.targetId||result.payment.transactionId!==command.transactionId||
+    result.payment.amountMinor!==result.journal.lines.reduce((sum,line)=>sum+BigInt(line.debitMinor),0n).toString()||
+    !result.journal.sources.some(source=>source.kind==='bank_transaction'&&source.transactionId===command.transactionId))
+    throw new ClientError('UNAVAILABLE','The payment link could not be verified. Reload the books and cashbook.');return result;
  }
 };

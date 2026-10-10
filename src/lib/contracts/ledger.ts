@@ -25,9 +25,9 @@ export const ledgerReviewDecisionSchema = z.strictObject({
 });
 export const ledgerEvidenceLocatorSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('statement_row'), rowNumber: z.number().int().min(2) }),
-  z.strictObject({ kind: z.literal('document_field'), field: z.enum(['document_date', 'service_date', 'goods_received_date', 'total', 'currency', 'reference']),
+  z.strictObject({ kind: z.literal('document_field'), field: z.enum(['document_date', 'service_date', 'goods_received_date', 'expense_date', 'total', 'currency', 'reference']),
     pageNumber: z.number().int().min(1).nullable(), occurrence: z.number().int().min(0).max(100).default(0) }),
-  z.strictObject({ kind: z.literal('owner_decision'), decisionId: z.uuid(), field: z.enum(['service_date', 'goods_received_date', 'opening_balance']) }),
+  z.strictObject({ kind: z.literal('owner_decision'), decisionId: z.uuid(), field: z.enum(['service_date', 'goods_received_date', 'expense_date', 'opening_balance']) }),
 ]);
 const sourceLocatorField = { locator: ledgerEvidenceLocatorSchema.nullable().optional() };
 export const ledgerSourceSchema = z.discriminatedUnion('kind', [
@@ -40,7 +40,7 @@ export const ledgerSourceSchema = z.discriminatedUnion('kind', [
   z.strictObject({ ...sourceLocatorField, kind: z.literal('opening_balance'), cutoverDate: dateSchema, evidenceId: z.uuid() }),
 ]);
 export const ledgerRecognitionEvidenceSchema = z.strictObject({
-  basis: z.enum(['service_delivery', 'goods_received', 'opening_balance', 'correction']),
+  basis: z.enum(['service_delivery', 'goods_received', 'expense_incurred', 'opening_balance', 'correction']),
   date: dateSchema, source: ledgerSourceSchema, reviewDecisionId: z.uuid(),
 }).superRefine((evidence, ctx) => {
   if (!evidence.source.locator) ctx.addIssue({ code: 'custom', path: ['source', 'locator'], message: 'Recognition date evidence requires a source locator' });
@@ -49,6 +49,15 @@ export const ledgerRecognitionEvidenceSchema = z.strictObject({
   }
   if (evidence.basis === 'goods_received' && evidence.source.kind !== 'supplier_bill' && evidence.source.kind !== 'document' && evidence.source.kind !== 'manual_note') {
     ctx.addIssue({ code: 'custom', path: ['source'], message: 'Goods receipt needs bill, document, or written-note evidence' });
+  }
+  if (evidence.basis === 'expense_incurred') {
+    if (evidence.source.kind !== 'manual_note' && evidence.source.kind !== 'document')
+      ctx.addIssue({ code: 'custom', path: ['source'], message: 'Expense date needs a reviewed note or document' });
+    const locator = evidence.source.locator;
+    if (locator?.kind === 'owner_decision' && locator.field !== 'expense_date')
+      ctx.addIssue({ code: 'custom', path: ['source','locator'], message: 'Expense date must be an owner-confirmed expense date' });
+    if (locator?.kind === 'document_field' && locator.field !== 'expense_date')
+      ctx.addIssue({ code: 'custom', path: ['source','locator'], message: 'Expense date must cite the expense-date document field' });
   }
   if (evidence.basis === 'opening_balance' && (evidence.source.kind !== 'opening_balance' || evidence.date !== evidence.source.cutoverDate))
     ctx.addIssue({ code: 'custom', path: ['source'], message: 'Opening balance evidence must match its cutover source and date' });

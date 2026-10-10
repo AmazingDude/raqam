@@ -258,14 +258,14 @@ export function InvoicesDashboard({
                     <td style={{ position: 'relative' }}>
                       <button
                         type="button"
-                        disabled={busy}
+                        disabled={busy || isPaid}
                         aria-label={`Change status for ${inv.invoiceNumber}`}
                         aria-expanded={activeDropdownId === inv.id}
                         className={`${s.statusPill} ${
                           isDraft ? s.statusDraft : isPaid ? s.statusPaid : isSent ? s.statusSent : s.statusOverdue
                         }`}
                         onClick={() =>
-                          !busy && setActiveDropdownId((prev) => (prev === inv.id ? null : inv.id))
+                          !busy && !isPaid && setActiveDropdownId((prev) => (prev === inv.id ? null : inv.id))
                         }
                       >
                         {isDraft && (
@@ -297,7 +297,7 @@ export function InvoicesDashboard({
                       {/* Dropdown Menu */}
                       {activeDropdownId === inv.id && (
                         <div className={s.dropdownMenu}>
-                          {(['draft', 'sent', 'overdue', 'paid'] as InvoiceStatus[]).map((st) => (
+                          {(['draft', 'sent', 'overdue'] as InvoiceStatus[]).map((st) => (
                             <button
                               key={st}
                               disabled={busy || (st === 'paid' && inv.status !== 'paid')}

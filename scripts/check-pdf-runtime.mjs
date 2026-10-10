@@ -48,7 +48,7 @@ try {
   `);
   console.log('Building an isolated Next route for the synthetic PDF check...');
   await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [require.resolve('next/dist/bin/next'), 'build', fixtureRoot], {
+    const child = spawn(process.execPath, [require.resolve('next/dist/bin/next'), 'build', fixtureRoot, '--webpack'], {
       cwd: fixtureRoot, windowsHide: true, timeout: 180_000,
       env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' }, stdio: ['ignore', 'pipe', 'pipe'],
     });
