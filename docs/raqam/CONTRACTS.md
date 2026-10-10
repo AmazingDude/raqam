@@ -41,7 +41,7 @@ Local scope checks do not authenticate callers. Server handlers must derive work
 
 Implemented now: `GET/POST /api/workspace`, paginated `GET /api/transactions`, `POST /api/sources` (one private JPEG/PNG source file) and `GET /api/sources/{id}` (60-second signed link). Source upload returns `{ sourceId, duplicate }`; it does not create a document extraction or cash transaction. Signature/MIME checks do not establish image readability; C's OCR/review slice must handle unreadable sources. An upload saved before a metadata failure can be recovered on retry using its workspace/hash path. Real cloud behavior is pending provisioning.
 
-CSV, transaction review/history, whole-workspace summary/export and assistant routes below are also implemented locally. Document/proposal/match route wrappers remain planned. JSON responses use `{ data, error: null }` or `{ data: null, error: { code, message } }`. Collections use `{ items, nextCursor }`. Missing/inaccessible records share `NOT_FOUND`; no raw provider/SQL exception or secret reaches clients.
+CSV, transaction review/history, whole-workspace summary/export and assistant routes below are also implemented locally. Current main also contains document registration/list/detail/review scaffolding; extraction and proposal generation wrappers remain pending. JSON responses use `{ data, error: null }` or `{ data: null, error: { code, message } }`. Collections use `{ items, nextCursor }`. Missing/inaccessible records share `NOT_FOUND`; no raw provider/SQL exception or secret reaches clients.
 
 | Route | Responsibility |
 | --- | --- |
