@@ -13,7 +13,7 @@ export async function GET(request: Request): Promise<Response> {
     const workspace = await requireWorkspace(session);
     const params = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
     if (!params.success) throw new BackendError('INVALID_INPUT', 'Use a limit of 1–50 and optional record cursor.');
-    let query = session.database.from('cashbook_records').select('id,workspace_id,source_id,source_row,date,original_description,description,direction,amount_minor,currency,reference,category,category_status').eq('workspace_id', workspace.id).order('id').limit(params.data.limit + 1);
+    let query = session.database.from('cashbook_records').select('id,workspace_id,source_id,source_row,date,original_description,description,direction,amount_minor,currency,reference,category,category_status,match_status').eq('workspace_id', workspace.id).order('id').limit(params.data.limit + 1);
     if (params.data.cursor) query = query.gt('id', params.data.cursor);
     const result = await query;
     if (result.error) throw new BackendError('UNAVAILABLE', 'Cashbook could not be loaded. Please retry.');

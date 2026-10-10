@@ -13,6 +13,8 @@ coverage/
 .env
 .env.*
 !.env.example
+.env.local
+env.local
 *.pem
 *.key
 .codex/
@@ -25,6 +27,10 @@ coverage/
 .DS_Store
 Thumbs.db
 *.log
+
+# Local vision proof inputs and private extracted results
+/tests/ai/live/inputs/
+/artifacts/ai-live/
 
 # Previous candidate: keep locally, outside the Raqam repository
 /SHIFT_PROOF_BUILD_PLAN.md

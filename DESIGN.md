@@ -83,7 +83,7 @@ Landing copy: “A little clarity. For every transaction.” Supporting copy exp
 
 ## Financial and interaction rules
 
-- Exact integer-paisa strings → BigInt formatting/calculations; no floating-point money. Live summary must identify its loaded-record scope until A's summary endpoint is available. Loading/error totals are unknown, never zero.
+- Exact integer-paisa strings → BigInt formatting/calculations; no floating-point money. Live cash/category totals use A's full-workspace snapshot summary and explicitly keep their scope separate from the table filters. Loading/error totals are unknown, never zero. The example summary follows its filtered synthetic records.
 - Cash totals include validated imported records once. Categories, document review and matching remain distinct. Net cash movement is not profit; no opening balance is invented.
 - Uncertain required receipt fields block marking reviewed. Original extraction stays visible after correction. Receipt review never adds a cash transaction.
 - Every acceptance is explicit. No bulk acceptance hidden behind another action; ambiguous candidates remain unconfirmed. No fabricated saving/AI/persistence success.
@@ -95,7 +95,7 @@ Landing copy: “A little clarity. For every transaction.” Supporting copy exp
 
 Branch: `codex/raqam-frontend`, based on backend foundation `796ce4f`. B changes `src/components/**`, `src/lib/client/**`, `src/app/(workspace)/**`, `tests/e2e/**`, `docs/demo/**`, this document and an append-only handoff/task claim. Minimal `src/app/page.tsx` wiring is included under the user's approved landing implementation. Root Clerk layout, sign-in, middleware, dependencies, contracts, API routes and migrations remain A's integration boundary. Styles are held in B-owned CSS modules.
 
-Available APIs: workspace GET/POST, paginated transactions GET, sources POST and signed source GET. Planned import/review/summary/assistant/export APIs require A/C integration and reviewed payload contracts. Document those gaps in `docs/demo/FRONTEND_HANDOFF.md`; do not mark the core features complete from example interactions.
+Connected APIs: workspace GET/POST, paginated transactions GET, sources POST/signed GET, stored import registration/preview/confirmation/current outcomes/resolution, versioned transaction reviews/history, full-workspace summary and CSV export. Consumes published backend `87aeb1a` without editing its contracts or behavior. Document/OCR/proposal/match/assistant APIs still require A/C integration; see `docs/demo/FRONTEND_HANDOFF.md`. Browser fixtures do not close live product gates.
 
 ## Acceptance and evidence
 

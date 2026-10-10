@@ -16,11 +16,14 @@ else {
   assert.equal(new URL(signIn.headers.get('location'), base).pathname, '/');
 }
 const privateRequests = [
+  ['/api/reviews', 'POST'], ['/api/reviews?proposalId=10000000-0000-4000-8000-000000000001', 'GET'],
   ['/api/workspace', 'GET'], ['/api/workspace', 'POST'], ['/api/transactions', 'GET'],
   ['/api/sources', 'POST'], ['/api/sources/10000000-0000-4000-8000-000000000001', 'GET'],
   ['/api/imports', 'POST'], ['/api/imports/template', 'GET'],
   ['/api/imports/10000000-0000-4000-8000-000000000001', 'GET'],
   ['/api/imports/10000000-0000-4000-8000-000000000001/confirmation', 'POST'],
+  ['/api/imports/10000000-0000-4000-8000-000000000001/resolutions', 'GET'],
+  ['/api/imports/10000000-0000-4000-8000-000000000001/resolutions', 'POST'],
   ['/api/transactions/10000000-0000-4000-8000-000000000001', 'GET'],
   ['/api/transactions/10000000-0000-4000-8000-000000000001', 'PATCH'],
   ['/api/transactions/10000000-0000-4000-8000-000000000001/reviews', 'GET'],

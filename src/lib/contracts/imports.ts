@@ -44,3 +44,30 @@ export const importConfirmationResultSchema = z.strictObject({
 });
 export type ImportConfirmation = z.infer<typeof importConfirmationSchema>;
 export type ImportPlanRow = z.infer<typeof importPlanRowSchema>;
+
+// Subsequent corrections only resolve rows left unresolved by confirmation.
+// A request ID is stable for retries; a different decision needs a new request ID.
+export const importResolutionSchema = z.strictObject({
+  requestId: z.uuid(),
+  rows: importConfirmationSchema.shape.rows.unwrap().min(1),
+}).refine(input => new Set(input.rows.map(row => row.rowNumber)).size === input.rows.length,
+  'A row can have only one resolution');
+export const importResolutionResultSchema = z.strictObject({
+  importId: z.uuid(), requestId: z.uuid(), correctedCount: z.number().int().min(0),
+  rejectedCount: z.number().int().min(0), remainingUnresolvedCount: z.number().int().min(0),
+  transactionIds: z.array(z.uuid()).max(MAX_IMPORT_ROWS), duplicate: z.boolean(),
+}).refine(result => result.transactionIds.length === result.correctedCount, 'Corrected count must match created cash records');
+export const importResolutionStateSchema = z.strictObject({
+  importId: z.uuid(),
+  rows: z.array(z.strictObject({
+    rowNumber: z.number().int().min(2), outcome: z.enum(['imported', 'rejected', 'unresolved']),
+    transactionId: z.uuid().nullable(),
+  })).min(1).max(MAX_IMPORT_ROWS),
+  importedCount: z.number().int().min(0), rejectedCount: z.number().int().min(0), unresolvedCount: z.number().int().min(0),
+}).refine(state => new Set(state.rows.map(row => row.rowNumber)).size === state.rows.length &&
+  state.rows.every(row => (row.outcome === 'imported') === (row.transactionId !== null)) &&
+  state.importedCount === state.rows.filter(row => row.outcome === 'imported').length &&
+  state.rejectedCount === state.rows.filter(row => row.outcome === 'rejected').length &&
+  state.unresolvedCount === state.rows.filter(row => row.outcome === 'unresolved').length,
+  'Resolution rows, counts and cash references must agree');
+export type ImportResolution = z.infer<typeof importResolutionSchema>;
