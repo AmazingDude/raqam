@@ -1,7 +1,7 @@
 import { MAX_WORKSPACE_TRANSACTIONS } from '../contracts/limits.ts';
 import { z } from 'zod';
 import { categorySchema, transactionSchema } from '../contracts/schemas.ts';
-import { csvPreviewSchema, importConfirmationSchema, importConfirmationResultSchema, importResolutionSchema, importResolutionResultSchema, importResolutionStateSchema } from '../contracts/imports.ts';
+import { csvPreviewSchema, importRecoverySchema, importConfirmationSchema, importConfirmationResultSchema, importResolutionSchema, importResolutionResultSchema, importResolutionStateSchema } from '../contracts/imports.ts';
 import { transactionReviewSchema } from '../contracts/cashbook.ts';
 import type { ImportConfirmation } from '../contracts/imports.ts';
 import type { TransactionReview } from '../contracts/cashbook.ts';
@@ -25,8 +25,20 @@ const sourceLinkSchema = z.object({ sourceId: z.string(), signedUrl: z.url(), ex
 export const importBatchSchema = z.object({
   importId: z.uuid(), preview: csvPreviewSchema, status: z.enum(['pending', 'confirmed']),
   confirmation: importConfirmationResultSchema.omit({ duplicate: true }).nullable(),
-}).refine(batch => (batch.status === 'confirmed') === (batch.confirmation !== null) &&
-  (!batch.confirmation || batch.confirmation.importId === batch.importId), 'Import receipt does not match the batch');
+  recovery: importRecoverySchema.optional(),
+}).refine(batch => {
+  if ((batch.status === 'confirmed') !== (batch.confirmation !== null) ||
+    (batch.confirmation && batch.confirmation.importId !== batch.importId)) return false;
+  if (!batch.recovery) return true;
+  const original = new Map(batch.preview.rows.map(row => [row.rowNumber, row]));
+  const recovered = new Map(batch.recovery.preview.rows.map(row => [row.rowNumber, row]));
+  return batch.recovery.preview.contentHash === batch.preview.contentHash &&
+    batch.recovery.preview.rows.every(row => original.has(row.rowNumber)) && batch.recovery.decisions.every(decision => {
+      const prior = original.get(decision.rowNumber);
+      return !!prior && (decision.action === 'reject' ? prior.transaction === null :
+        JSON.stringify(decision.transaction) === JSON.stringify(recovered.get(decision.rowNumber)?.transaction));
+    });
+}, 'Import receipt or recovery does not match the batch');
 export type ImportBatch = z.infer<typeof importBatchSchema>;
 const transactionDetailSchema = z.object({ transaction: transactionSchema, reviewVersion: z.number().int().nonnegative() });
 const documentPageSchema = z.strictObject({ items: z.array(documentRecordSchema).max(50), nextCursor: z.uuid().nullable() });

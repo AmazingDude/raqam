@@ -22,11 +22,13 @@
 
 Apply `202610100010_long_statement_imports.sql` manually after migrations 001-009. Restart Next after dependencies/configuration change. The host must support the upload size and processing time; the import route requests a 300-second duration. These bounds are not a measured hosting capacity guarantee.
 
-Password-locked PDFs need an unlocked copy. Image-only/empty pages require OCR or another bank export; mixed selectable/scanned files fail rather than return silently incomplete totals. Account tables with changing column meanings must be imported separately. A private UBL sample was inspected locally: cash fields agree with an independent extraction and running balances reconcile, but wrapped narration and page text produce false review rows. Logical row reconstruction, balance checks and saved-preview recovery are planned in [STATEMENT_IMPORT_PLAN.md](STATEMENT_IMPORT_PLAN.md); those repairs are not implemented yet. Other real bank layouts and universal bank-format accuracy remain unmeasured.
+Password-locked PDFs need an unlocked copy. Image-only/empty pages require OCR or another bank export; mixed selectable/scanned files fail rather than return silently incomplete totals. Account tables with changing column meanings must be imported separately. Logical row reconstruction now joins wrapped narration/references, retains recognized balance/footer metadata and checks running balances. The private UBL sample passes these checks without false exceptions from wrapping. Legacy previews offer explicit recovery decisions through the existing review APIs, preserving original previews and confirmed cash records; see [STATEMENT_IMPORT_PLAN.md](STATEMENT_IMPORT_PLAN.md). Signed-in recovery confirmation, other real bank layouts and universal bank-format accuracy remain unmeasured.
 
 ## Eve
 
 RunAnywhere's documented model ID is `eve`, served at `https://inference.runanywhere.ai/v1/decisions`. It answers choices/yes-no/scores and does not generate text or accept chat completion requests. This integration uses a single choice to route a user question to the existing scoped tools; code supplies validated date arguments, executes the lookup and renders verified observations. Uncertain routing and unsupported periods ask for clarification. Specific record evidence requests currently require the existing conversational provider; Eve's bounded router asks for clarification.
+
+PDF imports can also use one bounded Eve choice to identify an unfamiliar narration heading. Only table labels are sent; rows, identifiers and amounts are excluded. Recognized layouts use local mapping with zero provider calls. The fallback shares the assistant's per-process daily budget, caches decisions, times out after ten seconds and never retries automatically. Weak/invalid decisions stay unsupported rather than changing financial fields. Eve cannot read a PDF binary or perform the application's balance checks.
 
 Set `ASSISTANT_PROVIDER=eve` and server-only `RUNA_CLOUD_KEY` in ignored `.env.local`. The default assistant provider remains the configured Groq/Gemini provider until this explicit setting is supplied. A Cloud key is required; model entitlement and available credit are account-specific. No live call or account-balance verification was performed. The published RunAnywhere terms confirm a $5 welcome grant and prepaid credits, with requests refused after the balance is exhausted. Eve does not replace PDF reading, OCR, financial arithmetic or human confirmation.
 
@@ -40,6 +42,8 @@ Set `ASSISTANT_PROVIDER=eve` and server-only `RUNA_CLOUD_KEY` in ignored `.env.l
 Final combined revision: 121/121 backend/security tests, 67/67 provider/Gemini/category/client checks and production build with strict TypeScript pass. Production tracing includes worker/fonts. Eve configuration presence is confirmed without exposing the key; account entitlement/balance and a live model response remain unverified.
 
 Hosted migration, signed-in upload/persistence, real bank layouts, scanned-statement OCR and live Eve access remain to be verified.
+
+Logical-row/recovery repair: 128/128 backend/security tests and 6/6 client checks passed; the final footer safety adjustment passed 13/13 focused checks. Strict TypeScript passed before concurrent unrelated invoice edits; the final full-workspace check reports errors in those invoice modules. Private sample checks passed without publishing source data. No live Eve requests, hosted financial writes or production build were run for this repair. Automated browser upload was blocked by disabled extension file URL access; manual recovery confirmation remains open.
 
 ## Primary references
 

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { Direction } from '../contracts/index.ts';
 import { isISODate } from '../contracts/schemas.ts';
 import { formatAmount, parseAmount } from './money.ts';
+import type { PdfSourceLine, StatementPreview } from '../contracts/imports.ts';
 
 export const CSV_TEMPLATE = 'date,description,direction,amount,reference\r\n';
 export const MAX_CSV_BYTES = 1024 * 1024; // initial app guard, pending host validation
@@ -14,11 +15,13 @@ export type DraftFields = { date: string; description: string; direction: string
 export type PreviewRow = {
   rowNumber: number; lineNumber: number; original: string[];
   pageNumber?: number | undefined;
+  sourceLines?: PdfSourceLine[] | undefined;
   transaction: ParsedCashRow | null; errors: { field: string; message: string }[]; draftFields?: DraftFields | undefined;
 };
 export type CsvPreview = {
   currency: 'PKR'; contentHash: string; header: string[]; fieldMap?: ImportFieldMap | undefined;
   rows: PreviewRow[]; validCount: number; invalidCount: number;
+  statement?: StatementPreview | undefined;
 };
 type SourceRow = { values: string[]; rowNumber: number; lineNumber: number; dateOverride?: string };
 type HeaderMatch = { headerIndex: number; header: string[]; fieldMap: ImportFieldMap };
@@ -85,7 +88,7 @@ const headerAliases: Record<Exclude<keyof ImportFieldMap, 'date' | 'description'
   amount: new Set(['amount', 'transaction amount', 'amount pkr', 'amount rs', 'value', 'transaction value', 'net amount', 'withdrawal deposit']),
   debit: new Set(['debit', 'debit amount', 'debit amt', 'debit pkr', 'debit rs', 'dr amount', 'debits', 'withdrawal', 'withdrawals', 'withdrawal amount', 'withdrawal rs', 'amount debited', 'money out', 'paid out', 'payment']),
   credit: new Set(['credit', 'credit amount', 'credit amt', 'credit pkr', 'credit rs', 'cr amount', 'credits', 'deposit', 'deposits', 'deposit amount', 'deposit rs', 'amount credited', 'money in', 'paid in', 'receipt']),
-  reference: new Set(['reference', 'ref', 'ref no', 'ref cheque no', 'reference no', 'reference number', 'transaction reference', 'transaction id', 'transaction number', 'cheque no', 'check no', 'cheque number', 'check number', 'instrument number', 'id']),
+  reference: new Set(['reference', 'ref', 'ref no', 'ref cheque no', 'reference no', 'reference number', 'transaction reference', 'transaction id', 'transaction number', 'cheque no', 'check no', 'cheque number', 'check number', 'instrument number', 'inst no', 'id']),
   currency: new Set(['currency', 'ccy', 'currency code']),
 };
 const dateHeaders = new Set(['date', 'transaction date', 'posting date', 'posted date', 'value date', 'booking date', 'txn date', 'trans date']);
@@ -125,7 +128,7 @@ function validDate(year: number, month: number, day: number): string | null {
   return isISODate(value) ? value : null;
 }
 
-function parseSourceDate(input: string): string | null {
+export function parseSourceDate(input: string): string | null {
   const value = input.trim();
   if (isISODate(value)) return value;
   let match = /^(\d{4})[/.](\d{1,2})[/.](\d{1,2})$/.exec(value);
@@ -147,7 +150,7 @@ function parseSourceDate(input: string): string | null {
   return null;
 }
 
-function parseSourceAmount(input: string): { amountMinor: string | null; sign: -1 | 1 } {
+export function parseSourceAmount(input: string): { amountMinor: string | null; sign: -1 | 1 } {
   let value = input.trim().replace(/[\u00a0\u202f\s']/g, '');
   if (!value) return { amountMinor: null, sign: 1 };
   value = value.replace(/^(?:PKR|Rs\.?|₨)/i, '').replace(/(?:PKR|Rs\.?|₨)$/i, '');
@@ -199,12 +202,12 @@ function trimValue(row: string[], index: number | null): string {
   return index === null ? '' : (row[index] ?? '').trim();
 }
 
-function mapSourceRows(sourceRows: SourceRow[], contentHash: string, maxRows = 50): CsvPreview {
-  let match: HeaderMatch | undefined;
+function mapSourceRows(sourceRows: SourceRow[], contentHash: string, maxRows = 50, mappedHeader?: ImportFieldMap): CsvPreview {
+  let match: HeaderMatch | undefined = mappedHeader ? { headerIndex: 0, header: sourceRows[0]!.values, fieldMap: mappedHeader } : undefined;
   for (let index = 0; index < Math.min(sourceRows.length, 20); index++) {
     const header = sourceRows[index]!.values;
     const fieldMap = mapHeader(header);
-    if (fieldMap) { match = { headerIndex: index, header, fieldMap }; break; }
+    if (fieldMap && !match) { match = { headerIndex: index, header, fieldMap }; break; }
   }
   if (!match) throw new Error(`Could not find transaction columns in the first 20 rows. Include Date, Description, and either Amount plus Direction or separate Debit and Credit columns. Download the Raqam template for an example.`);
 
@@ -317,5 +320,12 @@ export function previewPdfRows(rows: string[][], bytes: Uint8Array, maxRows: num
   const preview = mapSourceRows(rows.map((values, index) => ({ values, rowNumber: index + 1, lineNumber: index + 1 })),
     createHash('sha256').update(bytes).digest('hex'), maxRows);
   preview.rows.forEach((row, index) => { row.pageNumber = pages[index]!; });
+  return preview;
+}
+
+export function previewPdfSourceRows(header: string[], rows: PdfSourceLine[], contentHash: string, maxRows: number, fieldMap?: ImportFieldMap): CsvPreview {
+  const preview = mapSourceRows([{ values: header, rowNumber: 1, lineNumber: 1 },
+    ...rows.map(row => ({ values: row.original, rowNumber: row.rowNumber, lineNumber: row.lineNumber }))], contentHash, maxRows, fieldMap);
+  preview.rows.forEach((row, index) => { row.pageNumber = rows[index]?.pageNumber; });
   return preview;
 }

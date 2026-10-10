@@ -1,11 +1,10 @@
 // Synthetic, selectable-text statements only; no private financial records.
-export function statementPdf(pages: string[][][], ruled = false): Buffer {
+export function statementPdf(pages: string[][][], ruled = false, columnX = [30, 120, 330, 430, 530]): Buffer {
   const fontId = 3 + pages.length * 2;
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     `<< /Type /Pages /Kids [${pages.map((_, index) => `${3 + index * 2} 0 R`).join(' ')}] /Count ${pages.length} >>`,
   ];
-  const columnX = [30, 120, 330, 430, 530];
   const escapeText = (value: string) => value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
   pages.forEach((rows, pageIndex) => {
     const pageId = 3 + pageIndex * 2;

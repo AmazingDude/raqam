@@ -1,7 +1,21 @@
 # Statement import recovery plan
 
-Date: 10 October 2026. Status: diagnosis and plan complete; implementation pending.
+Date: 10 October 2026. Status: logical-row repair and legacy-preview recovery implemented; signed-in recovery confirmation remains open.
 Task: RQ-04/F02. This plan refines the existing transaction import requirement in PRD.md; it does not replace the product specification.
+
+## Implemented repair
+
+`statement-rows.ts` groups narration/reference continuations, retains opening/closing balance and recognized footer text as statement metadata, and checks running balances with exact minor-unit arithmetic. Unknown money, orphan text and balance discrepancies remain exceptions. Every extracted physical line is retained in a transaction's source lines or statement metadata. CSV/Excel behavior is unchanged.
+
+New previews carry `logical-rows-v1`, source coverage and balance-check counts. Review shows complete narration, original physical lines and statement information; the displayed PDF limits use the shared constants. The supplied selectable-text UBL layout passes an independent private check. This does not establish accuracy for every bank layout or scanned PDF.
+
+For saved legacy previews, the implementation uses their retained source rows and existing audited correction/rejection APIs. The original preview, hash, physical row identities and confirmation receipt remain immutable. A grouped view proposes explicit corrections to pending transactions and rejections of nontransaction fragments. The user can inspect the earlier preview and must confirm decisions. Confirmed cash records retain their saved values; recovery only resolves remaining rows and cannot repost cash. Already imported descriptions require a separate audited transaction edit. This approach requires no additional migration; the revision-changing reparse design in step 4 below remains a future option if source row identities need to change.
+
+Eve is now an optional fallback for one unfamiliar narration heading when deterministic header mapping fails. One request sends only alphabetic table labels, with predefined column choices and an `unknown` option. Strong valid decisions must still pass deterministic column mapping and financial checks. It uses the assistant's shared daily attempt guard, response bounds, a ten-second timeout, caching and no retries. Recognized layouts, including this UBL sample, make no model request. No live Eve call or credit spending was performed during verification.
+
+Verification: 128/128 backend/security tests and 6/6 client checks passed. The final footer safety adjustment passed 13/13 focused parser/header/client checks. TypeScript passed before unrelated concurrent invoice work appeared; the final workspace check currently reports errors in those invoice modules. Long-PDF synthetic coverage includes 8,000 rows over 400 pages. Browser navigation confirmed the updated picker/help, but automated PDF upload was blocked because the extension's file URL access is disabled. User-confirmed hosted recovery remains unverified. No hosted financial writes were performed.
+
+Remaining: signed-in recovery confirmation/reload; additional bank layouts; geometric source-region previews; account/layout-change isolation; closing-summary checks in application code; scanned-statement OCR. The numbered sections below retain the broader design and acceptance targets, including work beyond this repair.
 
 ## Problem established locally
 
@@ -98,10 +112,10 @@ The immediate repair uses the already installed [pdf-parse](https://github.com/m
 
 [Docling](https://docling-project.github.io/docling/) supports document layout, table structure and OCR. Evaluate it on synthetic challenging layouts if the native path remains insufficient. Scanned-statement OCR is still a separate unimplemented scope choice under the current PRD; benchmark resource needs and deployment fit before adopting a worker.
 
-Eve remains the existing bounded assistant router. The reproduced import path makes no model request, so changing the assistant provider cannot fix this segmentation bug. Any later model-assisted layout mapping must remain a bounded proposal, retain source evidence and pass deterministic financial checks. No live model requests or credit spending are part of this diagnosis/plan.
+[TypeSafe JEV](https://docs.typesafe.ai/introduction) makes structured choices rather than generating text; its [input documentation](https://docs.typesafe.ai/concepts/state) covers text/JSON and does not support PDF/image input. [RunAnywhere's Eve decisions API](https://docs.runanywhere.ai/wally-cloud/decisions) exposes this useful decision interface with model ID `eve`. Its independent service is not evidence of identical model weights. The implemented fallback selects a narration column from extracted labels; PDF.js/pdf-parse still read the file, row assembly joins text, and code verifies cash fields and balances. The existing bounded assistant router remains available. No live model requests or credit spending were needed for the supplied recognized layout.
 
 ## Completion gate and next action
 
-The planning task is done. RQ-04 remains in progress.
+The local repair is implemented. RQ-04 remains in progress.
 
-Next implement row assembly and deterministic statement validation, then the UI and saved-preview recovery in dependency order. Do not advertise recovery from old previews until the reparse/revision checks exist. The product gate requires measured realistic-layout results, user-confirmed persistence and the existing ownership/retry checks.
+Next refresh the app and reupload the same statement. Review the grouped preview and explicitly save the proposed unresolved-row decisions. Verify that cash count/totals remain unchanged and the decisions survive reload. The product gate still requires user-confirmed persistence, broader realistic-layout measurements and ownership/retry verification; no general claim of universal PDF accuracy is made.

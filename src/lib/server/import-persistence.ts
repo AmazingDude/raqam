@@ -6,6 +6,7 @@ import { csvPreviewSchema, importConfirmationResultSchema, importResolutionSchem
 import { BackendError } from './errors.ts';
 import { buildImportPlan, readCsvUpload } from './imports.ts';
 import { uploadStored } from './storage-retry.ts';
+import { recoverStatement } from './statement-rows.ts';
 
 const registrationSchema = z.strictObject({ importId: z.uuid(), duplicate: z.boolean() });
 const batchSchema = z.object({
@@ -25,7 +26,8 @@ export async function getImport(session: RequestSession, workspace: Workspace, i
   if (result.error) throw importDatabaseError(result.error);
   if (!result.data) throw new BackendError('NOT_FOUND', 'Import not found.');
   const batch = batchSchema.parse(result.data);
-  return { importId: batch.source_id, preview: batch.preview, status: batch.status, confirmation: batch.confirmation_result };
+  return { importId: batch.source_id, preview: batch.preview, status: batch.status, confirmation: batch.confirmation_result,
+    recovery: recoverStatement(batch.preview) };
 }
 
 export async function registerImport(session: RequestSession, workspace: Workspace, request: Request) {

@@ -6,7 +6,7 @@ import { cashRowSchema, type ImportConfirmation, type importResolutionStateSchem
 import { api, type ImportBatch } from '../../lib/client/api.ts';
 import { usePrivateRequests } from '../../lib/client/use-private-requests.ts';
 import { money } from '../../lib/client/presentation.ts';
-import { parseAmount } from '../../lib/server/money.ts';
+import { formatAmount, parseAmount } from '../../lib/server/money.ts';
 import s from '../ui/theme.module.css';
 
 type Row = ImportBatch['preview']['rows'][number];
@@ -18,9 +18,19 @@ function initialDraft(row: Row, header: ImportBatch['preview']['header']): Draft
   const original = Object.fromEntries(header.map((field, index) => [field, row.original[index] ?? '']));
   return { action: 'keep', date: original.date ?? '', description: original.description ?? '', direction: original.direction ?? '', amount: original.amount ?? '', reference: original.reference ?? '' };
 }
+function reviewDrafts(batch: ImportBatch, recover = true): Record<number, Draft> {
+  const drafts = Object.fromEntries(batch.preview.rows.map(row => [row.rowNumber, initialDraft(row, batch.preview.header)]));
+  if (recover) for (const decision of batch.recovery?.decisions ?? []) {
+    if (decision.action === 'reject') drafts[decision.rowNumber] = { ...drafts[decision.rowNumber]!, action: 'reject' };
+    else drafts[decision.rowNumber] = { ...decision.transaction, amount: formatAmount(decision.transaction.amountMinor),
+      reference: decision.transaction.reference ?? '', action: 'correct' };
+  }
+  return drafts;
+}
 export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void> }) {
   const run = usePrivateRequests(), locked = useRef(false);
   const [page, setPage] = useState(0);
+  const [previousPreview, setPreviousPreview] = useState(false);
   const [batch, setBatch] = useState<ImportBatch | null>(null), [name, setName] = useState('');
   const [drafts, setDrafts] = useState<Record<number, Draft>>({}), [outcomes, setOutcomes] = useState<Outcomes | null>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
@@ -35,21 +45,22 @@ export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void>
   async function loadState(id: string) {
     const next = await run(signal => api.importBatch(id, signal));
     const current = next.status === 'confirmed' ? await run(signal => api.importOutcomes(id, signal)) : null;
-    setBatch(next); setOutcomes(current); setAttempt(null); setAcknowledged(false);
+    setBatch(next); setOutcomes(current); setAttempt(null); setAcknowledged(false); setPreviousPreview(false); setDrafts(reviewDrafts(next));
   }
   async function upload(file: File) {
     await exclusive(async () => {
       if (!/\.(csv|tsv|xls|xlsx|pdf)$/i.test(file.name) || !file.size || file.size > (/\.pdf$/i.test(file.name) ? MAX_PDF_BYTES : 1024 * 1024)) throw new Error('Choose a .csv, .tsv, .xls, .xlsx, or text-based .pdf file PDFs allow 20 MiB and 20,000 rows; other formats allow 1 MiB and 50 rows.');
       const next = await run(signal => api.registerImport(file, signal));
       setPage(0); setBatch(next); setName(file.name); setOutcomes(null); setAttempt(null); setAcknowledged(false);
-      setDrafts(Object.fromEntries(next.preview.rows.map(row => [row.rowNumber, initialDraft(row, next.preview.header)])));
+      setPreviousPreview(false); setDrafts(reviewDrafts(next));
       setNotice(next.duplicate ? 'Existing import reopened. No duplicate cash records were created.' : 'Original transaction file saved. Review the preview before adding cash records.');
       if (next.status === 'confirmed') setOutcomes(await run(signal => api.importOutcomes(next.importId, signal)));
     });
   }
   const byOutcome = new Map(outcomes?.rows.map(row => [row.rowNumber, row.outcome]) ?? []);
   const available = batch?.preview.rows.filter(row => batch.status === 'pending' || byOutcome.get(row.rowNumber) === 'unresolved') ?? [];
-  const pageCount = Math.ceil((batch?.preview.rows.length ?? 0) / 50);
+  const preview = !previousPreview && batch?.recovery ? batch.recovery.preview : batch?.preview;
+  const pageCount = Math.ceil((preview?.rows.length ?? 0) / 50);
   const currentPage = Math.min(page, Math.max(0, pageCount - 1));
   function makeAttempt(): Attempt {
     if (!batch) throw new Error('Upload a transaction file first.');
@@ -86,25 +97,28 @@ export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void>
   const frozen = busy || attempt !== null;
   return <div className={s.stack}>
     <div className={s.pageHeading}><div><h1>Import transactions</h1><p>Review the original rows, then choose what enters your cashbook.</p></div><a className={s.secondary} href="/api/imports/template" download>Download template</a></div>
-    <section className={`${s.upload} ${s.stack}`}><h2>Choose a transaction file</h2><p>CSV, TSV, Excel .xls/.xlsx, or text-based PDF · up to 1 MiB, 10 PDF pages, and 50 rows · PKR. Common dates and bank column names are mapped in preview. Scanned PDFs need OCR and are not supported yet. Reopen an earlier import by uploading the same file.</p><label className={s.field}>Transaction file<input type="file" accept=".csv,.tsv,.xls,.xlsx,.pdf,text/csv,text/tab-separated-values,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf" disabled={frozen} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void upload(file); }}/></label></section>
+    <section className={`${s.upload} ${s.stack}`}><h2>Choose a transaction file</h2><p>PDF: up to {MAX_PDF_BYTES / 1024 / 1024} MiB, {MAX_PDF_PAGES.toLocaleString()} pages and {MAX_IMPORT_ROWS.toLocaleString()} transactions. CSV, TSV and Excel: up to 1 MiB and 50 rows. PKR. Reopen an earlier import by uploading the same file. Scanned PDFs require OCR text.</p><label className={s.field}>Transaction file<input type="file" accept=".csv,.tsv,.xls,.xlsx,.pdf,text/csv,text/tab-separated-values,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf" disabled={frozen} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void upload(file); }}/></label></section>
     {notice && <p role="status" className={s.success}>{notice}</p>}{error && <p role="alert" className={s.error}>{error}</p>}{busy && <p role="status">Saving or loading your import…</p>}
-    {batch && <section className={s.panel}>
-      <div className={s.panelHeading}><div><h2>{name || 'Stored transaction file'} · {batch.status === 'pending' ? 'Preview' : 'Confirmed import'}</h2><p className={s.small}>Original: {batch.preview.validCount} valid / {batch.preview.invalidCount} needing review</p></div><button className={s.secondary} disabled={busy} onClick={() => void exclusive(async () => { await loadState(batch.importId); await onChanged(); setNotice('Current import status loaded. Check your row choices before confirming.'); })}>Refresh import status</button></div>
+    {batch && preview && <section className={s.panel}>
+      <div className={s.panelHeading}><div><h2>{name || 'Stored transaction file'} · {batch.status === 'pending' ? 'Preview' : 'Confirmed import'}</h2><p className={s.small}>{preview.validCount} transactions ready / {preview.invalidCount} needing review</p></div><button className={s.secondary} disabled={busy} onClick={() => void exclusive(async () => { await loadState(batch.importId); await onChanged(); setNotice('Current import status loaded. Check your row choices before confirming.'); })}>Refresh import status</button></div>
+      {batch.recovery && <div className={s.proposal}><p>Wrapped descriptions and statement text from the earlier preview have been grouped. Review the complete transactions below. Confirmation records the proposed description corrections and rejects the extra text as separate cash rows.</p>{batch.status === 'confirmed' && <p>Existing imported transactions keep their saved values. Only still-unresolved rows can receive new decisions here.</p>}<button className={s.secondary} disabled={frozen} onClick={() => { setPreviousPreview(value => !value); setDrafts(reviewDrafts(batch, previousPreview)); setPage(0); setAcknowledged(false); }}>{previousPreview ? 'Use grouped transaction preview' : 'View earlier preview'}</button></div>}
+      {preview.statement && <div className={s.proposal}><p>Running balance: {preview.statement.balances.matched} of {preview.statement.balances.checked} available checks agree{preview.statement.balances.unavailable ? `; ${preview.statement.balances.unavailable} rows have no complete balance check` : ''}. {preview.statement.mergedLineCount} continuation lines grouped into their transactions.</p><details><summary>Statement information ({preview.statement.metadata.length} source lines)</summary>{preview.statement.metadata.map(line => <p key={line.rowNumber}>Page {line.pageNumber} · {line.kind === 'balance' ? 'Balance information' : 'Page text'} · {line.original.join(' | ')}</p>)}</details></div>}
       {outcomes && <p className={s.proposal} role="status">Current outcomes: {outcomes.importedCount} imported / {outcomes.rejectedCount} rejected / {outcomes.unresolvedCount} unresolved. Unresolved rows stay out of cash totals.</p>}
       {batch.status === 'confirmed' && !outcomes && <p className={`${s.proposal} ${s.error}`}>Current row outcomes are unavailable. Refresh import status before making further decisions.</p>}
       <nav aria-label="Import preview pages" className={s.panelHeading}>
         <button className={s.secondary} disabled={busy || currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous</button>
-        <p>Page {currentPage + 1} of {pageCount} ? {batch.preview.rows.length.toLocaleString()} rows. Confirmation includes choices across all pages.</p>
+        <p>Page {currentPage + 1} of {pageCount} · {preview.rows.length.toLocaleString()} transactions. Confirmation includes choices across all pages.</p>
         <button className={s.secondary} disabled={busy || currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}>Next</button>
       </nav>
-      {batch.preview.rows.slice(currentPage * 50, (currentPage + 1) * 50).map(row => {
-        const draft = drafts[row.rowNumber] ?? initialDraft(row, batch.preview.header);
+      {preview.rows.slice(currentPage * 50, (currentPage + 1) * 50).map(row => {
+        const draft = drafts[row.rowNumber] ?? initialDraft(row, preview.header);
         const outcome = byOutcome.get(row.rowNumber);
         const editable = batch.status === 'pending' || outcome === 'unresolved';
         const update = (patch: Partial<Draft>) => { setDrafts(current => ({ ...current, [row.rowNumber]: { ...draft, ...patch } })); setAcknowledged(false); };
         return <article key={row.rowNumber} className={s.proposal} aria-label={`Transaction row ${row.rowNumber}`}>
-          <div className={s.proposalHeading}><h3>Row {row.rowNumber}{row.pageNumber ? ` ? PDF page ${row.pageNumber}` : ''}</h3><span className={`${s.badge} ${outcome === 'imported' ? s.good : s.pending}`}>{outcome ?? (row.transaction ? 'Valid preview' : 'Needs review')}</span></div>
+          <div className={s.proposalHeading}><h3>Row {row.rowNumber}{row.pageNumber ? ` · PDF page ${row.pageNumber}` : ''}</h3><span className={`${s.badge} ${outcome === 'imported' ? s.good : s.pending}`}>{outcome ?? (row.transaction ? 'Ready to import' : 'Needs review')}</span></div>
           <details><summary>Original source values</summary><dl className={s.details}>{row.original.map((value, index) => <div key={index} style={{display:'contents'}}><dt>{batch.preview.header[index] ?? `Extra field ${index + 1}`}</dt><dd style={{overflowWrap:'anywhere'}}>{value || '(blank)'}</dd></div>)}</dl></details>
+          {row.sourceLines && <details><summary>Original lines before grouping ({row.sourceLines.length})</summary>{row.sourceLines.map(line => <p key={line.rowNumber} style={{overflowWrap:'anywhere'}}>Page {line.pageNumber} · line {line.lineNumber}: {line.original.join(' | ')}</p>)}</details>}
           {row.transaction && <p>{row.transaction.date} · {row.transaction.description} · {row.transaction.direction === 'in' ? 'Cash in' : 'Cash out'} · PKR {money(row.transaction.amountMinor)}</p>}
           {row.errors.length > 0 && <ul>{row.errors.map((issue, index) => <li key={index}>{issue.field}: {issue.message}</li>)}</ul>}
           {editable && <><label className={s.field}>Decision for row {row.rowNumber}<select value={draft.action} disabled={frozen} onChange={event => update({ action: event.target.value as Draft['action'] })}><option value="keep">{batch.status === 'pending' && row.transaction ? 'Include original valid row' : 'Leave unresolved'}</option><option value="correct">Correct and include</option><option value="reject">Reject row</option></select></label>
