@@ -32,8 +32,8 @@ Statuses below are assignments, not implementation claims. A1 coordinates this t
 
 | ID | Owner | RQ link | Work | Depends on | Initial status |
 | --- | --- | --- | --- | --- | --- |
-| BA-00 | A1 | RQ-00/05–08 | Freeze missing command/result/RPC contracts and publish the schema interface | Existing PRD/contracts | todo — first A1 task |
-| BA-01 | A1 | RQ-05/06/07 | Document/proposal persistence schema, owner policies and immutable history | BA-00 | todo |
+| BA-00 | A1 | RQ-00/05–08 | Freeze missing command/result/RPC contracts and publish the schema interface | Existing PRD/contracts | done for document/proposal foundation — executable schemas, canonical RPC/route boundaries and D13 policy published; detailed C assistant result proposals remain unadopted |
+| BA-01 | A1 | RQ-05/06/07 | Document/proposal persistence schema, owner policies and immutable history | BA-00 | in_review — migration 006/RLS/audited RPCs/leases pass embedded tests; user manual application and hosted validation pending |
 | BA-02 | A2 | RQ-05 | Document registration, retrieval, extraction orchestration and explicit field review | BA-00; BA-01 for persistence; C OCR for live extraction | todo — first A2 feature |
 | BA-03 | A2 | RQ-06/07 | Category/match generation wrappers and proposal persistence/listing | BA-00/01; C engines for live generation | todo |
 | BA-04 | A1 | RQ-06/07/09 | Atomic category/match accept/change/reject, one-to-one constraints, correct cashbook match projection | BA-00/01; stored proposals/documents for combined checks | todo |
@@ -45,7 +45,7 @@ Statuses below are assignments, not implementation claims. A1 coordinates this t
 
 1. Reuse `SupportingDocument`, `DocumentFields`, proposal shapes and `assistantToolSchemas`. Freeze request/response schemas, RPC names/parameters, review versions, retry keys, required-field acceptance and safe errors in `docs/raqam/CONTRACTS.md` before A2 wires writes. Resolve material unanswered PRD choices with the user.
 2. Publish explicit interfaces for document registration/extraction result/field review, proposal creation/listing and category/match decisions. Decide the date-filter/unresolved-count scope for assistant summaries explicitly; never silently total the first page.
-3. Prepare owner-scoped tables/functions for originals, extracted/corrected fields, proposals and history. Reserve migration 006 for document/proposal persistence and 007 for category/match approval; A1 alone allocates subsequent numbers. These are reservations, not SQL files already created/applied.
+3. Migration 006 is prepared/tested for originals, extracted/corrected fields, proposals/history and durable extraction reservations. The user applies it manually; it is not yet installed remotely. Migration 007 remains reserved for category/match approval; A1 alone allocates subsequent numbers.
 4. Validate embedded PostgreSQL RLS, foreign-reference denial, malformed inputs, atomic rollback and retry/version behavior. Use non-retryable `PT409` for application conflicts.
 5. Push the foundation and give A2 its exact commit, migration files and frozen interface. User applies the reviewed SQL; verify hosted behavior afterward. Do not require A2 to wait for all later review features.
 

@@ -1,6 +1,6 @@
 # Raqam shared contract v0.1
 
-Owner: user/A on `codex/raqam-backend`. Types and runtime schemas live in `src/lib/contracts/index.ts` and `schemas.ts`. B owns screens and C owns AI modules; neither redefines these shapes. A selected this first contract under the user's implementation request. B/C acknowledgement is pending; request changes through A before diverging.
+Owner: user/A on `codex/raqam-backend`. Types and runtime schemas live in `src/lib/contracts/`. B owns screens and C owns AI modules; neither redefines these shapes. A2 owns document/proposal/assistant service wrappers. The BA-00 command contracts below are A's canonical implementation boundary; C's retained planning shapes remain proposals until explicitly mapped/adopted. B/C acknowledgement is pending; request changes through A before diverging.
 
 ## Financial representation and states
 
@@ -9,7 +9,7 @@ Owner: user/A on `codex/raqam-backend`. Types and runtime schemas live in `src/l
 - Dates use valid `YYYY-MM-DD`. Template/workspace currency is PKR; an unsupported currency column is rejected. OCR currency preserves original evidence or null, never an assumed PKR value.
 - Only an accepted category is attached to a transaction; pending category values live in proposals. Import, category review and matching have separate states. A receipt never becomes a cash transaction.
 - C uses `categorySuggestionSchema`/`matchSuggestionSchema` for raw AI output: no owner/proposal ID and only proposed/needs-review state. Full stored-proposal schemas include accepted/rejected history after user review. A's wrapper must scope every referenced record and assign ownership/IDs independently of the model.
-- Extracted/corrected document fields remain separate and preserve nulls. Accepted documents will require validated financial fields; that review command remains to implement.
+- Extracted/corrected document fields remain separate and preserve nulls. User-confirmed D13 requires valid date, exact total and explicitly confirmed PKR for document acceptance; merchant/reference may remain unknown. Explicit zero is valid; unknown is not zero. This does not infer currency or prove settlement.
 - Source references carry source ID and logical CSV row number (header is row 1). Preview also preserves physical line numbers for multiline fields. Supporting images have a null row number.
 - Hashes cover exact source bytes; database identity is unique per workspace/type/hash and source/row. Equal-valued distinct rows remain legitimate. CSV registration/confirmation implement repeat detection; cloud Storage behavior remains to verify. Failed uploads recover only when the exact owner-scoped hash path is visible through Storage object metadata.
 
@@ -98,3 +98,48 @@ Apply `202610100002_csv_imports.sql` second. It adds stored import batches, immu
 The `cashbook_records` security-invoker view casts bigint to text while retaining underlying RLS. Cashbook reads currently return unmatched status because the match tables/review slice do not exist yet; that slice must update the view/mapper before accepted matches are introduced.
 
 Local security tests execute the migration in embedded PostgreSQL with simulated Supabase schemas/JWT claims. Managed Supabase, verified Clerk tokens, Storage HTTP requests and two live users remain required before RQ-01 passes.
+
+## BA-00: document/proposal foundation, contract v0.2
+
+Canonical exports are `documents.ts` and `proposals.ts`; existing `SupportingDocument`, `DocumentFields` and raw suggestion schemas remain compatible. Resource/request IDs are UUIDs because database IDs use UUIDs. Review versions are nonnegative Postgres integers. Never accept owner/workspace, arbitrary image URL/path, accepted model status or raw provider errors in commands. Authorization and semantic scope checks remain mandatory after shape validation.
+
+### Public requests and results
+
+| Endpoint | Schema / result | Behavior |
+| --- | --- | --- |
+| `POST /api/documents` | `documentRegistrationSchema`: `{ sourceId }`; `documentRegistrationResultSchema` | Register the caller's existing JPEG/PNG source; unique by source; returns `{ record, duplicate }`. No second upload convention or cash creation |
+| `GET /api/documents/{id}` | `documentRecordSchema` | `{ document: SupportingDocument, reviewVersion, schemaVersion, extractionFailure }`; unknowns remain null |
+| `POST /api/documents/{id}/extraction` | `documentExtractionRequestSchema`: `{ requestId, expectedVersion }`; `documentMutationResultSchema` | A2 loads an authorized source and calls C; browser cannot submit extracted fields. A2 durably reserves before the provider call; C1's proof does not supply production caching |
+| `PATCH /api/documents/{id}` | `documentReviewSchema`; `documentMutationResultSchema` | Explicit `accept` with all fields satisfying D13, `correct` with all nullable fields, or `reject` without fields. Correction saves an unresolved review; acceptance is deliberate. Originals survive |
+| `POST /api/category-proposals` | `categoryGenerationRequestSchema`: `{ requestId, transactionIds }`; `proposalBatchResultSchema` | 1–50 unique accessible IDs; server loads versions and protects accepted categories |
+| `POST /api/match-proposals` | `matchGenerationRequestSchema`: `{ requestId, documentId }`; `proposalBatchResultSchema` | Server chooses scoped candidates for the reviewed document; no browser/model ownership or arbitrary candidates |
+| `POST /api/reviews` | `proposalReviewSchema` | `{ requestId, proposalId, expectedVersion, decision }`; accept/reject, or `correct_category` plus category, or `correct_match` plus transaction ID. BA-04 implements semantics/results and one-to-one allocation |
+
+All endpoints retain the common API envelope. Collection routes use `{ items, nextCursor }`; default 20/max 50 and UUID keyset cursors under same-workspace ordering, never silently return a full financial summary from a page. Document mutations return `{ requestId, record, duplicate }`. Stored proposals use `ProposalRecord` with trusted ID/workspace, transaction snapshot version, proposal review version, validated provenance and a discriminated category/match suggestion. C output remains the existing raw suggestion shape; A2 enriches trusted snapshot versions before persistence.
+
+Internal-only `documentExtractionSaveSchema`, `categoryPersistenceSchema` and `matchPersistenceSchema` are the A2-to-database seam, not public mutation bodies. Extraction is either complete with nullable fields and model/prompt/schema versions, or failed with one safe reason code. Failure is not a successful empty extraction. Category batches contain at most one proposal per transaction; match candidate pairs are unique. Neither can claim accepted/rejected user decisions.
+
+### Migration 006 RPC interface (implemented/tested locally; hosted application pending)
+
+| RPC | Parameters | Result |
+| --- | --- | --- |
+| `register_supporting_document` | `p_source_id uuid` | Document registration result |
+| `reserve_document_extraction` | `p_document_id uuid, p_request_id uuid, p_expected_version integer, p_provenance jsonb` | `extractionReservationResultSchema`: reserved/busy with expiry, or cached with a document record |
+| `save_document_extraction` | `p_document_id uuid, p_request_id uuid, p_expected_version integer, p_outcome jsonb` | Document mutation result |
+| `review_supporting_document` | `p_document_id uuid, p_request_id uuid, p_expected_version integer, p_decision jsonb` | Document mutation result; decision contains action/fields only |
+| `register_category_proposals` | `p_request_id uuid, p_provenance jsonb, p_proposals jsonb` | Proposal batch result |
+| `register_match_proposals` | `p_request_id uuid, p_provenance jsonb, p_proposals jsonb` | Proposal batch result |
+
+Ownership is checked before retry lookup. Same operation/request ID and identical target/version/payload returns the immutable original receipt, without reapplying or replacing subsequent reviews; changed payload returns `PT409`. Workspace locks serialize source registration/batches. Document locks serialize review/extraction; every successful mutation increments reviewVersion and preserves immutable prior/current state/actor/time. Extraction reruns cannot overwrite corrected, accepted or rejected document decisions. Stale snapshot/version or a new attempt to propose against a reviewed category/matched document conflicts. Do not use `40001` for application conflicts. Private existing sources, extracted originals and history are never removed by a failed provider call.
+
+A2 calls `reserve_document_extraction` **before inference**. Only `reserved` starts a provider call. `busy` is a recoverable 409 with no new call; `cached` reuses the record (a saved failed operation remains a failure; explicitly retry with a fresh request ID). Reservations last 90 seconds; A2/C's complete extraction run must have a deadline of at most 60 seconds, including any bounded retries. Late writes, mismatched provenance or completions without an active reservation conflict. An expired request ID cannot restart; a new ID can reserve after expiry. The database checks the original version at completion as well, so concurrent user reviews survive. Lease expiry tests use fixture clock simulation; managed multi-client behavior remains a separate gate. This production boundary does not modify C1's standalone proof.
+
+Migration 006 creates `supporting_documents`, `document_history`, `document_operations`, `document_extraction_jobs`, `ai_proposals` and `proposal_batches`, all owner-readable under RLS with ordinary writes revoked. Internal serializers/mutators are not executable by app roles. Only six authenticated owner-checking RPCs above can mutate the new tables. Source identity is unique and constrained to the same workspace/image type. Document operations preserve history and receipts; proposal batches are atomic and never create cash or assign accepted categories. It does **not** create accepted-match allocations or category/match review history: BA-04/migration 007 owns that behavior and must add active-match protection before enabling approvals. A2 maps selected database rows to the canonical result schemas for GET/list routes; internal serializers are deliberately private.
+
+BA-04's review RPC will recheck proposal kind, transaction/document snapshot versions and ownership, enforce reviewed PKR/exact amount compatibility and one-to-one allocation, and preserve cash totals. An active accepted match prevents later document field edits until an explicit match-review operation handles the allocation; no silent unlink. No amount/date tolerance, FX or split payment is introduced.
+
+### Assistant scope and C planning compatibility
+
+The four existing `assistantToolSchemas` are canonical. Date filters apply to transactions by recorded cash date, inclusive, not upload time. A2's filtered summary must aggregate every scoped matching record under the bounded workspace cap. Unresolved import rows are a **whole-workspace** count because missing/invalid dates cannot reliably fall inside a selected range: return explicit `unresolvedImportRowScope: "workspace"` alongside the summary and requested range. Never describe that count as date-filtered. Whole-workspace existing `/api/summary` remains unchanged.
+
+C's `docs/ai/contracts.md` is retained without editing C-owned files: amount representation maps to `MinorUnits`/`parseAmount`/`formatAmount`; review-readiness proposal maps to confirmed D13; raw category/match outputs map to existing suggestion schemas. Field-level raw text/issue provenance, durable operation leases, numeric fact registry and detailed assistant result schemas remain **unadopted proposals**, not implemented claims. A2/C should coordinate those seams before wiring them. Native Node/Groq proof baseline is documented in `docs/ai/FEASIBILITY.md`; C1 owns that runner.

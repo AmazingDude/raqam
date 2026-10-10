@@ -1,5 +1,11 @@
 # Role A local validation, 10 October 2026 (PKT)
 
+## BA-00/01 foundation — 10 October 2026
+
+The current suite passes **48/48 tests** and strict TypeScript checking. Added six executable document/proposal contract tests and four embedded PostgreSQL groups covering migration 006: D13 receipt acceptance, unknowns/originals/history, exact large amounts, registration/retry receipts, stale/conflicting requests, foreign owners/IDs, direct-write/private-helper/anonymous denial, atomic proposal rollback, preservation of accepted categories/cash and durable extraction reservations/late-output fencing. Database roles/JWT claims and lease expiry are simulated; no live OCR, managed concurrency or hosted migration is established by these tests.
+
+The user-authorized backend/main integration at `4b1782c` also passed the production build (including TypeScript) and its then-current 38/38 tests. The new shared contracts/SQL are not yet wired into routes; strict types/full tests suffice for this foundation slice. Migration 006 and the readiness SQL are provided for manual execution; do not claim hosted readiness until user execution and verification. A2's service/new-route tests and BA-04 approvals/allocation guards remain pending. Earlier evidence below is retained with its original scope/time.
+
 The working branch was subsequently renamed to `codex/raqam-backend`, preserving the validated commits. The original validation record below retains its historical branch name. Branch/documentation changes do not alter the tested application code.
 
 Checker: Codex, working for user/A on `codex/platform`. Revision: the platform-foundation commit carrying this record. Model/prompt version: none; no runtime AI was invoked. Inputs are synthetic test literals and a local embedded PostgreSQL fixture, not reserved live evaluation packets or customer data.
