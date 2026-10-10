@@ -30,14 +30,17 @@ import { InvoicesScreen } from './invoices/invoices-screen.tsx';
 import { ExpensesScreen } from './bookkeeping/expenses-screen.tsx';
 import { SupplierBillsScreen } from './bookkeeping/supplier-bills-screen.tsx';
 import { LedgerScreen } from './bookkeeping/ledger-screen.tsx';
+import { ProfileScreen, TaxWorkpaperScreen } from './profile-tax-screen.tsx';
 import s from '../ui/theme.module.css';
-type View = 'cashbook' | 'invoices' | 'expenses' | 'bills' | 'books' | 'import' | 'documents' | 'review' | 'assistant' | 'settings';
+type View = 'cashbook' | 'invoices' | 'expenses' | 'bills' | 'books' | 'profile' | 'tax' | 'import' | 'documents' | 'review' | 'assistant' | 'settings';
 const views: {id:View;label:string;icon:IconName}[] = [
   {id:'cashbook',label:'Cashbook',icon:'book'},
   {id:'invoices',label:'Invoices',icon:'file'},
   {id:'expenses',label:'Expense drafts',icon:'review'},
   {id:'bills',label:'Supplier bills',icon:'file'},
   {id:'books',label:'Books and reports',icon:'book'},
+  {id:'profile',label:'Business profile',icon:'review'},
+  {id:'tax',label:'Tax workpaper',icon:'review'},
   {id:'documents',label:'Documents',icon:'file'},
   {id:'review',label:'Review queue',icon:'review'},
   {id:'assistant',label:'Ask Raqam',icon:'spark'},
@@ -242,9 +245,11 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
         {view==='expenses'&&<ExpensesScreen key={workspace.id} demo={demo} workspaceId={workspace.id}/>}
         {view==='bills'&&<SupplierBillsScreen key={workspace.id} demo={demo} workspaceId={workspace.id} documents={liveDocuments} getLink={getLink}/>}
         {view==='books'&&<LedgerScreen key={workspace.id} demo={demo} workspaceId={workspace.id}/>}
+        {view==='profile'&&<ProfileScreen workspace={workspace}/>}
+        {view==='tax'&&<TaxWorkpaperScreen/>}
         {view==='import'&&!demo&&<LiveImportScreen onChanged={onChanged}/>}
         {view==='import'&&demo&&<ImportScreen demo={demo} workspaceId={workspace.id} imported={imported} onConfirm={(next,remaining)=>{if(!demo||imported)return;setDemoRecords(current=>[...current,...next]);setUnresolved(remaining);setImported(true);decision('example-import-csv','accept',null,{validRows:next.length,unresolvedRows:remaining});setNotice(`${next.length} example rows imported; ${remaining} unresolved rows excluded from totals.`);}}/>}
-        {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} hasMoreDocuments={documentCursor!==null} loadingMoreDocuments={loadingDocumentPage} onLoadMoreDocuments={loadDocumentPage} liveRecords={liveDocuments} documentError={documentsError} extractingDocumentId={extractingDocumentId} onExtractDocument={demo?undefined:extractDocument} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink}/>}
+        {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} hasMoreDocuments={documentCursor!==null} loadingMoreDocuments={loadingDocumentPage} onLoadMoreDocuments={loadDocumentPage} liveRecords={liveDocuments} documentError={documentsError} extractingDocumentId={extractingDocumentId} onExtractDocument={demo?undefined:extractDocument} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink} onStatement={()=>navigate('import')} onBill={()=>navigate('bills')} onInvoice={()=>navigate('invoices')}/>}
         {view==='review'&&<ReviewScreen demo={demo} records={records} documents={documents} proposals={proposals} hasMoreCategoryProposals={categoryCursor!==null} loadingCategoryPage={loadingCategoryPage} onLoadMoreCategoryProposals={loadCategoryPage} matchProposals={demo?[]:liveMatchProposals.filter((item):item is ReviewableMatchProposal=>item.suggestion.kind==='match')} matchScans={matchScans} hasMoreMatchProposals={matchProposalsCursor!==null} onLoadMoreMatchProposals={loadMoreMatchProposals?async()=>{if(loadingMatchPage)return;setLoadingMatchPage(true);try{await loadMoreMatchProposals();}catch(error){setMatchesError(error instanceof Error?error.message:'Saved match decisions could not be loaded.');}finally{setLoadingMatchPage(false);}}:undefined} onMatchPageLoading={loadingMatchPage} matchesError={matchesError} generatingMatchDocumentId={generatingMatchDocumentId} onGenerateMatch={generateMatchCandidates} onReviewMatch={reviewMatch} matchedDocumentIds={demo?matches.map(m=>m.documentId):liveMatchProposals.filter(item=>item.status==='accepted'&&item.suggestion.kind==='match').map(item=>item.suggestion.kind==='match'?item.suggestion.documentId:'')} rejectedDocumentIds={rejectedMatches} onCategory={reviewCategory} onGenerateCategories={demo?undefined:generateCategories} generatingCategories={generatingCategories} categoryError={categoryError} proposalsError={proposalsError} onMatch={match} onRejectMatch={id=>{setRejectedMatches(current=>[...current,id]);const affected=matches.find(m=>m.documentId===id);if(affected)setDemoRecords(current=>current.map(r=>r.id===affected.transactionId?{...r,matchStatus:'unmatched'}:r));else if(id==='example-doc-1')setDemoRecords(current=>current.map(r=>r.id==='example-2'?{...r,matchStatus:'unmatched'}:r));decision(id,'reject',null,null);setNotice('Example match suggestion rejected. Unmatched records remain visible.');}} onDocuments={()=>navigate('documents')} onRecord={setRecord}/>}
         {view==='assistant'&&<AssistantScreen key={workspace.id} demo={demo} records={records} workspaceId={workspace.id} onRecord={setRecord}/>}
         {view==='settings'&&<AIProviderSettings demo={demo}/>}

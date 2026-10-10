@@ -170,6 +170,25 @@
 .tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
 .tabs button { padding: 12px 0; min-height: 44px; border: none; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); font-size: 14px; }
 .tabs .selectedTab { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+.profileGrid, .taxColumns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.profileGrid > :first-child { grid-column: 1 / -1; }
+.profileDetails { display: grid; grid-template-columns: minmax(130px, .7fr) minmax(0, 1.3fr); gap: 12px; padding: 24px; margin: 0; font-size: 13px; }
+.profileDetails dt { color: var(--muted); }
+.profileDetails dd { margin: 0; overflow-wrap: anywhere; }
+.profileChecklist, .profileSteps, .taxContents { display: grid; gap: 12px; padding: 20px 24px; margin: 0; font-size: 13px; }
+.profileFact { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; border-bottom: 1px solid var(--border); }
+.profileFact:last-child { border-bottom: 0; }
+.profileSteps, .taxContents { padding-left: 44px; }
+.noticeText { margin: 0 24px 24px; color: var(--muted); font-size: 12px; }
+.taxGate { display: flex; align-items: flex-start; gap: 16px; padding: 24px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--radius-panel); background: var(--surface); }
+.taxGate h2 { font-size: 18px; margin: 0 0 8px; }
+.taxGate p, .taxFooter { color: var(--muted); font-size: 13px; }
+.taxGateIcon { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border-radius: 12px; background: var(--canvas); }
+.taxFooter { margin-top: 18px; }
+.intakeRoutes { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 20px 24px; margin-bottom: 24px; }
+.intakeRoutes > div { flex: 1 1 100%; }
+.intakeRoutes > p { flex-basis: 100%; margin: 0; }
+@media (max-width: 760px) { .profileGrid, .taxColumns { grid-template-columns: minmax(0, 1fr); } .profileGrid > :first-child { grid-column: auto; } }
 .proposal { padding: 24px; display: grid; gap: 20px; }
 .proposal + .proposal { border-top: 1px solid var(--border); }
 .proposalHeading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
