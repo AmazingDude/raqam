@@ -21,7 +21,8 @@ The cases below reuse these fictional, non-production seeds. Test code should ge
 {
   "workspaceA": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   "workspaceB": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-  "sourceA": "11111111-1111-4111-8111-111111111111",
+  "transactionImportSourceA": "11111111-1111-4111-8111-111111111111",
+  "receiptSourceA": "33333333-3333-4333-8333-333333333333",
   "documentA": "22222222-2222-4222-8222-222222222222",
   "transactionA": {
     "id": "55555555-5555-4555-8555-555555555555",
@@ -55,7 +56,32 @@ The cases below reuse these fictional, non-production seeds. Test code should ge
 }
 ```
 
-For `MATCH-01`, clone `transactionA` with IDs `66666666-6666-4666-8666-666666666666` and `77777777-7777-4777-8777-777777777777`; retain direction `out`, amount `125000`, currency `PKR`, and date `2026-10-02`. Change descriptions to `ACME DESIGN INV 42` and `ACME STUDIO PAYMENT 42`. Both remain plausible candidates; equal amount/reference similarity alone is not an accepted allocation.
+In the JSON fixture, `transactionImportSourceA` is the transaction CSV source and `receiptSourceA` is the receipt image source. They must remain distinct because the database constrains each source to one source type. The document registration request below uses `receiptSourceA`; `transactionA.source.sourceId` uses `transactionImportSourceA`.
+
+For `MATCH-01`, clone `transactionA` with IDs `66666666-6666-4666-8666-666666666666` and `77777777-7777-4777-8777-777777777777`. Change their source row numbers to `3` and `4` respectively (the original stays at row `2`); retain the transaction import source ID, direction `out`, amount `125000`, currency `PKR`, and date `2026-10-02`. Change descriptions to `ACME DESIGN INV 42` and `ACME STUDIO PAYMENT 42`. Both remain plausible candidates; equal amount/reference similarity alone is not an accepted allocation. Distinct source rows satisfy the adopted per-source row uniqueness constraint.
+
+`AST-02` uses an isolated two-record snapshot made by cloning `transactionA` and changing only the listed fields:
+
+```json
+[
+  {"id":"66666666-6666-4666-8666-666666666666","workspaceId":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","source":{"sourceId":"11111111-1111-4111-8111-111111111111","rowNumber":5},"date":"2026-10-02","originalDescription":"Synthetic exact-value fixture one","description":"Synthetic exact-value fixture one","direction":"out","amountMinor":"9007199254740993","currency":"PKR","reference":null,"category":null,"categoryStatus":"needs_review","matchStatus":"unmatched"},
+  {"id":"77777777-7777-4777-8777-777777777777","workspaceId":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","source":{"sourceId":"11111111-1111-4111-8111-111111111111","rowNumber":6},"date":"2026-10-02","originalDescription":"Synthetic exact-value fixture two","description":"Synthetic exact-value fixture two","direction":"out","amountMinor":"2","currency":"PKR","reference":null,"category":null,"categoryStatus":"needs_review","matchStatus":"unmatched"}
+]
+```
+
+Call `list_transactions` first with `{"dateFrom":"2026-10-02","dateTo":"2026-10-02","limit":1}`. It must return the first ID, exact amount string `9007199254740993`, and that ID as `nextCursor`. Call again with the same date filters, `limit:1`, and `cursor:"66666666-6666-4666-8666-666666666666"`; it must return the second ID and `nextCursor:null`. A whole-snapshot summary must report exact `outflowMinor:"9007199254740995"`; neither page alone may be described as the complete filtered total.
+
+`FAIL-01` uses these literal injected provider behaviors. Each run begins with a fresh pending document and keeps the same source, prior evidence, corrections, review state and cash snapshot:
+
+| Scripted input at the provider seam | Expected observable result |
+| --- | --- |
+| Fetch rejects once with `new Error("synthetic network failure")`, then returns a valid extraction response | At most one bounded recovery attempt; success only after validating the second response; provider retries remain disabled underneath the service retry policy. |
+| Response is HTTP `429` with header `retry-after: 120` and body `{"error":{"message":"Synthetic rate limit"}}` | No blind immediate retry; persist/return a safe `provider_rate_limited` failure within the two-attempt maximum. |
+| Response is HTTP `200` with assistant content `{"unexpected":"Synthetic malformed output"}` | Return/persist `invalid_model_output`; do not create normalized fields from it. |
+| Fetch remains pending until its request signal aborts with `new DOMException("Scripted cancellation","AbortError")` | Return/persist `cancelled`; no late result may overwrite the current record. |
+| Provider does not settle before the injected operation deadline | Return/persist the adopted timeout failure; do not retry beyond the original deadline. |
+
+The receipt-service cases align with `tests/backend/receipt-extraction-service.test.ts`; provider network/timeout cases align with `tests/ai/provider.test.ts`. These definitions do not claim every row above is already covered by one integrated test.
 
 | ID | Fixture | Expected result and invariant | Current status/dependency |
 | --- | --- | --- | --- |
@@ -71,8 +97,8 @@ For `MATCH-01`, clone `transactionA` with IDs `66666666-6666-4666-8666-666666666
 | MATCH-03 | C output contains duplicate/foreign transaction or document IDs, omitted candidate coverage, malformed fields, or claims accepted state | Reject the batch safely; IDs/versions are rebound or checked against the trusted snapshot; never persist model ownership/acceptance | A1 schemas constrain persistence, but C2 output/coverage schema is pending |
 | MATCH-04 | Candidate snapshot cannot prove it contains the complete bounded pool or current active allocations | Do not return a successful proposal batch or treat absence from a partial page as “no match”; surface only an error/review state after A1/C2 adopts the exact result mapping | A1/C2 snapshot seam pending |
 | AST-01 | Assistant receives a request with forged workspace/owner/tool arguments or foreign evidence IDs | Reject before any database read or return the same non-disclosing not-found policy adopted for evidence; trail contains only tools actually run | Current A2 tool/route tests cover synthetic path; live two-account/browser check remains |
-| AST-02 | Exact paisa values include `9007199254740993` and another record worth `2`; a filtered request crosses a page boundary | Code arithmetic preserves exact total `9007199254740995`; page completeness/cursor is explicit; no model arithmetic or partial-page total | Existing synthetic cashbook/assistant tests cover exact arithmetic and pagination |
-| FAIL-01 | Provider returns timeout, 429, network failure, malformed JSON, partial output or cancellation | Bounded safe failure; preserve source, prior evidence, corrections, cash totals and accepted review; retries occur only at the owner already assigned by contract | C provider and A1 service tests exist; hosted behavior and C2 match failures pending |
+| AST-02 | Exact paisa values include `9007199254740993` and another record worth `2`; the literal filtered request crosses a one-record page boundary | Code arithmetic preserves exact total `9007199254740995`; the two cursor calls above return distinct complete pages; no model arithmetic or partial-page total | Existing synthetic cashbook/assistant tests cover exact arithmetic and pagination; concrete fixture now recorded above |
+| FAIL-01 | Provider receives the five literal injected behaviors above: one recoverable network error, 429 with `Retry-After: 120`, malformed successful response, caller cancellation and deadline expiry | Bounded safe failure/recovery; preserve source, prior evidence, corrections, cash totals and accepted review; retry only at the owner assigned by contract | Receipt service and provider tests cover overlapping cases; the table is the acceptance matrix, not a claim of one integrated test. Hosted behavior and C2 match failures remain pending |
 | INJECT-01 | Receipt/transaction source text contains “ignore prior instructions,” fake tool names, URLs or SQL | Treat text as untrusted evidence; it cannot alter system instructions, scope, tool allowlist or review state | Assistant prompt/tool tests cover synthetic injection; no live semantic guarantee |
 
 ## Public endpoint examples already adopted
@@ -83,21 +109,21 @@ Examples use synthetic UUIDs and do not authorize a hosted write.
 POST /api/documents
 Content-Type: application/json
 
-{"sourceId":"11111111-1111-4111-8111-111111111111"}
+{"sourceId":"33333333-3333-4333-8333-333333333333"}
 ```
 
 ```http
 POST /api/documents/22222222-2222-4222-8222-222222222222/extraction
 Content-Type: application/json
 
-{"requestId":"33333333-3333-4333-8333-333333333333","expectedVersion":0}
+{"requestId":"44444444-4444-4444-8444-444444444444","expectedVersion":0}
 ```
 
 ```http
 POST /api/match-proposals
 Content-Type: application/json
 
-{"requestId":"44444444-4444-4444-8444-444444444444","documentId":"22222222-2222-4222-8222-222222222222"}
+{"requestId":"55555555-5555-4555-8555-555555555555","documentId":"22222222-2222-4222-8222-222222222222"}
 ```
 
 The document examples correspond to implemented A1 routes. The match route is specified by the shared contract but is **not implemented**; it must not be presented as a working endpoint until C2's matching interface and A2's route/service exist.
