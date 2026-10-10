@@ -1,0 +1,29 @@
+:global(body) {
+  margin: 0;
+}
+
+.page {
+  box-sizing: border-box;
+  display: grid;
+  min-height: 100vh;
+  min-height: 100svh;
+  place-items: center;
+  padding: clamp(24px, 5vh, 56px) 20px;
+  background: #f5f5f3;
+}
+
+.page :global(.cl-rootBox) {
+  width: 100%;
+  max-width: 31.25rem;
+}
+
+.page :global(.cl-card) {
+  width: 100%;
+  box-shadow: 0 20px 56px rgb(24 25 27 / 10%);
+}
+
+@media (max-height: 640px) {
+  .page {
+    align-items: start;
+  }
+}
