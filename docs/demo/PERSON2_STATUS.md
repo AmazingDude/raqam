@@ -48,3 +48,16 @@ No shared schema, migration, package manifest or lockfile was changed. `npm ci -
 2. Implement expense capture, bill review and payment linking against those APIs, then server-calculated reports and expanded exceptions.
 3. Run authenticated hosted receipt/category/invoice journeys, reload and two-owner isolation with confirmed migration/configuration state. The user applies any required SQL.
 4. Reserve independent evaluation labels, measure live semantic quality with denominators and complete release checks. Keep tax workpapers gated.
+
+## Continuation: existing review gaps
+
+The user delegated the ownership choice; Person 1 retains the ledger foundation because Gate 0 accounting choices and shared contracts remain unresolved. Main through `d46253d` adds a Gemini schema fix but no expanded lifecycle or ledger contracts. The step statuses above remain partial/blocked.
+
+Implemented in this continuation:
+
+- Category cursor propagation, explicit next-page controls and incomplete-queue wording. Overlapping pages deduplicate IDs and preserve newer reviewed decisions; foreign workspace pages fail closed.
+- Suggestions whose transactions are outside the loaded cashbook stay visible. The owner can explicitly fetch the original scoped transaction before reviewing it; these reads do not change cashbook totals.
+- Newly generated suggestions remain visible even when their IDs fall outside the first saved page. Generation and page-loading share a synchronous request guard; review actions also prevent duplicate clicks.
+- Receipt review now exposes paginated saved extraction/review history, including before/after fields and review states. The client validates target/workspace, ordering, duplicate IDs and the cursor. Unknown amounts remain unknown. History is fetched on demand and resets with the document review version.
+
+Verification: **17/17** client/invoice/batch/page/history regression checks passed with synthetic records and mocked HTTP responses; strict typecheck passed. Final integrated build and AI regression results are recorded in the new handoff entry. Desktop browser initialization was retried and still failed with the missing kernel-assets error. Hosted sign-in/reload/owner isolation, actual downloads, visual interaction and live semantic quality remain unverified. No migration, dependency or shared contract was changed, and no billable inference or hosted write occurred.
