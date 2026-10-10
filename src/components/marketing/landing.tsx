@@ -2,363 +2,60 @@ import Link from 'next/link';
 import { auth } from '@clerk/nextjs/server';
 import { Icon, Mark } from '../ui/icon.tsx';
 import { LandingPreview } from './landing-preview.tsx';
+import { LandingNav } from './landing-nav.tsx';
 import s from './landing.module.css';
 
+const questions = [
+  ['What can I bring into Raqam?', 'Import CSV, TSV or Excel transaction files, or supported selectable-text PDF statements. Preview the parsed rows and resolve errors before confirming. Bank layouts vary; use the CSV template when a statement is not recognized.'],
+  ['Does AI make decisions for me?', 'AI prepares receipt fields, categories and possible matches. You check the original source and explicitly accept, correct or reject each suggestion. Reviewing a receipt does not add another cash transaction.'],
+  ['What do the cash totals tell me?', 'Cash in, cash out and net cash movement come from your imported transactions, calculated in exact paisa. Net cash movement is not profit or an account balance. Unresolved import rows stay separate.'],
+  ['Can I share my cashbook with my accountant?', 'Export your cashbook as CSV with categories, review statuses and source references. Original records and review history remain available in your workspace.'],
+  ['Can I look around before signing up?', 'Yes. Explore the example workspace without an account. Its records and suggestions are synthetic, and changes last only for that session. Your own workspace requires sign-in.'],
+];
+
 export async function Landing() {
-  const clerkConfigured = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY;
-  const userId = clerkConfigured ? (await auth()).userId : null;
-
-  return (
-    <div className={s.root} data-raqam-ui id="top">
-      <a href="#main" className={s.skip}>
-        Skip to content
-      </a>
-
-      {/* Global Navigation Bar */}
-      <div className={s.navWrapper}>
-        <header className={s.navContainer}>
-          <Link href="/" className={s.brand} aria-label="Raqam home">
-            <span className={s.brandMark}><Mark /></span>
-            <span>raqam</span>
-            <span className={s.brandBadge}>Beta</span>
-          </Link>
-
-          <nav aria-label="Main navigation" className={s.navLinks}>
-            <a href="#workflow" className={s.navLink}>Workflow</a>
-            <a href="#features" className={s.navLink}>Features</a>
-            <a href="#principles" className={s.navLink}>Integrity</a>
-            <a href="#faq" className={s.navLink}>FAQ</a>
-            <Link href="/demo" className={s.navLink} style={{ color: '#34d399' }}>Live Demo</Link>
-          </nav>
-
-          <div className={s.navActions}>
-            {userId ? (
-              <Link href="/workspace" className={s.primaryPill} id="nav-workspace-btn">
-                <span>Open Workspace</span>
-                <Icon name="arrow" size={15} />
-              </Link>
-            ) : (
-              <>
-                <Link href="/sign-in" className={s.ghostPill} id="nav-signin-btn">
-                  Sign In
-                </Link>
-                <Link href="/sign-up" className={s.primaryPill} id="nav-signup-btn">
-                  <span>Sign Up</span>
-                  <Icon name="arrow" size={15} />
-                </Link>
-              </>
-            )}
-          </div>
-        </header>
-      </div>
-
+  const configured = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY;
+  const userId = configured ? (await auth()).userId : null;
+  return <div className={s.root} data-raqam-ui id="top">
+    <a href="#main" className={s.skip}>Skip to content</a>
+    <div className={s.heroWrap}>
+      <LandingNav signedIn={!!userId}/>
       <main id="main">
-        {/* Hero Section */}
-        <section className={s.hero}>
-          <div className={s.heroContent}>
-            <div className={s.heroBadge}>
-              <span className={s.heroBadgeDot} />
-              <span>Reviewed Financial Operations · English &amp; PKR</span>
-            </div>
-
-            <h1 className={s.heroTitle}>
-              Bookkeeping you can actually trust.<br />
-              <span className={s.heroTitleHighlight}>Every rupee connected to proof.</span>
-            </h1>
-
-            <p className={s.heroSubtitle}>
-              Import bank transactions, scan receipt images, and let AI propose categories and matches.
-              You maintain final review over every rupee. No fabricated math, no silent assumptions.
-            </p>
-
-            <div className={s.heroCtaGroup}>
-              {userId ? (
-                <Link href="/workspace" className={s.heroPrimaryBtn} id="hero-primary-workspace">
-                  <span>Launch Workspace</span>
-                  <Icon name="arrow" size={18} />
-                </Link>
-              ) : (
-                <Link href="/sign-up" className={s.heroPrimaryBtn} id="hero-primary-signup">
-                  <span>Get Started Free</span>
-                  <Icon name="arrow" size={18} />
-                </Link>
-              )}
-
-              <Link href="/demo" className={s.heroSecondaryBtn} id="hero-explore-demo">
-                <Icon name="spark" size={17} />
-                <span>Explore Interactive Demo</span>
-              </Link>
-            </div>
-
-            {/* Interactive Preview Island */}
-            <LandingPreview />
+        <section className={s.hero} aria-labelledby="hero-title">
+          <p className={s.heroBadge}><Icon name="book" size={15}/> A little order for your everyday books</p>
+          <h1 id="hero-title">Less bookkeeping.<br/><span>More breathing room.</span></h1>
+          <p className={s.heroCopy}>Bring your transactions and receipts together.<br className={s.desktopBreak}/> Let AI prepare the details. Keep the final say.</p>
+          <div className={s.heroActions}>
+            <Link href="/workspace" className={s.lightButton}>Open workspace <Icon name="arrow" size={17}/></Link>
+            <Link href="/demo" className={s.darkButton}>Explore an example</Link>
           </div>
+          <p className={s.heroNote}>Built for small businesses. English. PKR. Your review.</p>
+          <div className={s.featureRail} aria-label="Your bookkeeping toolkit"><a href="#workflow"><Icon name="upload" size={17}/> Import</a><a href="#features"><Icon name="file" size={17}/> Receipts</a><a href="#features"><Icon name="review" size={17}/> Review</a><a href="#assistant"><Icon name="spark" size={17}/> Ask Raqam</a><a href="#workflow"><Icon name="download" size={17}/> Export</a></div>
         </section>
-
-        {/* Section 3: The 3-Step Workflow */}
-        <section className={s.sectionLight} id="workflow">
-          <div className={s.sectionInner}>
-            <div className={s.sectionHeader}>
-              <span className={s.sectionEyebrow}>Systematic Workflow</span>
-              <h2 className={s.sectionHeading}>
-                From scattered transaction files<br />to an audit-ready cashbook.
-              </h2>
-              <p className={s.sectionLead}>
-                A structured, disciplined three-stage cycle designed specifically for the pace of a growing service business.
-              </p>
-            </div>
-
-            <div className={s.stepsGrid}>
-              <article className={s.stepCard}>
-                <span className={s.stepNumber}>01 / Bring your records</span>
-                <h3 className={s.stepTitle}>Import without friction</h3>
-                <p className={s.stepDescription}>
-                  Drop bank statement files (CSV, TSV, or Excel XLS/XLSX) straight into Raqam.
-                  Our parser isolates errors, validates encoding, and preserves raw source records immutably.
-                </p>
-              </article>
-
-              <article className={s.stepCard}>
-                <span className={s.stepNumber}>02 / Supervised AI Extraction</span>
-                <h3 className={s.stepTitle}>AI proposes, you decide</h3>
-                <p className={s.stepDescription}>
-                  Vision OCR extracts dates, vendors, and totals from receipt snapshots.
-                  Smart suggestions propose categories and 1-to-1 matches, leaving ambiguous items visible for human sign-off.
-                </p>
-              </article>
-
-              <article className={s.stepCard}>
-                <span className={s.stepNumber}>03 / Exact Financial Truth</span>
-                <h3 className={s.stepTitle}>Deterministic totals &amp; export</h3>
-                <p className={s.stepDescription}>
-                  See real-time cash in, cash out, and net movements calculated with integer-paisa math.
-                  Export reconciled books with full audit histories for your accountant in one click.
-                </p>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 4: Technology Deep Dives */}
-        <section className={s.sectionCanvas} id="features">
-          <div className={s.sectionInner}>
-            <div className={s.sectionHeader}>
-              <span className={s.sectionEyebrow}>Core Capabilities</span>
-              <h2 className={s.sectionHeading}>
-                Engineered for financial precision.<br />Zero shortcuts.
-              </h2>
-              <p className={s.sectionLead}>
-                Built on strict principles where software never guesses a financial number or silently alters a ledger.
-              </p>
-            </div>
-
-            <div className={s.featureGrid}>
-              <div className={s.featureCard}>
-                <div className={s.featureIconWrap}>
-                  <Icon name="upload" size={22} />
-                </div>
-                <h3 className={s.featureTitle}>Multi-Format Bank Statement Ingest</h3>
-                <p className={s.featureDesc}>
-                  Whether your Pakistani bank provides standard CSV, TSV, or legacy Excel sheets, Raqam normalizes headers,
-                  detects duplicate movements, and lets you correct malformed rows before atomic confirmation.
-                </p>
-                <div className={s.featureProof}>
-                  <Icon name="check" size={14} />
-                  <span>Supports CSV, TSV, XLS, and XLSX formats</span>
-                </div>
-              </div>
-
-              <div className={s.featureCard}>
-                <div className={s.featureIconWrap}>
-                  <Icon name="file" size={22} />
-                </div>
-                <h3 className={s.featureTitle}>Grounded Receipt OCR &amp; Evidence</h3>
-                <p className={s.featureDesc}>
-                  Every uploaded receipt or bill is stored in private object storage. Our OCR extracts vendors,
-                  amounts, and invoice numbers side-by-side with the image. Unreadable text is flagged—never faked as zero.
-                </p>
-                <div className={s.featureProof}>
-                  <Icon name="check" size={14} />
-                  <span>Side-by-side evidence inspection</span>
-                </div>
-              </div>
-
-              <div className={s.featureCard}>
-                <div className={s.featureIconWrap}>
-                  <Icon name="link" size={22} />
-                </div>
-                <h3 className={s.featureTitle}>1-to-1 Match Reconciliation</h3>
-                <p className={s.featureDesc}>
-                  Prevent duplicate claims with strict one-to-one document matching. Competing match candidates
-                  are surfaced with clear matching rationale, while atomic database locks prevent race conditions.
-                </p>
-                <div className={s.featureProof}>
-                  <Icon name="check" size={14} />
-                  <span>Enforced at database and RPC levels</span>
-                </div>
-              </div>
-
-              <div className={s.featureCard}>
-                <div className={s.featureIconWrap}>
-                  <Icon name="spark" size={22} />
-                </div>
-                <h3 className={s.featureTitle}>Grounded Read-Only Assistant</h3>
-                <p className={s.featureDesc}>
-                  Ask queries about your business cashflow in natural language. Powered by scoped backend tools,
-                  the assistant queries real database totals and cites exact records—with zero capability to write or alter records.
-                </p>
-                <div className={s.featureProof}>
-                  <Icon name="check" size={14} />
-                  <span>100% read-only, zero hallucinated math</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 5: Integrity Principles Matrix */}
-        <section className={s.matrixSection} id="principles">
-          <div className={s.sectionInner}>
-            <div className={s.sectionHeader}>
-              <span className={s.sectionEyebrow} style={{ color: '#34d399' }}>Architectural Integrity</span>
-              <h2 className={s.sectionHeading} style={{ color: '#ffffff' }}>
-                How we protect your business records.
-              </h2>
-              <p className={s.sectionLead} style={{ color: '#9ba1ad' }}>
-                Every architectural choice in Raqam puts data ownership, calculation accuracy, and security first.
-              </p>
-            </div>
-
-            <div className={s.matrixGrid}>
-              <div className={s.matrixCard}>
-                <h3 className={s.matrixCardTitle}>Integer Paisa Math</h3>
-                <p className={s.matrixCardDesc}>
-                  No floating point rounding errors (`0.1 + 0.2 != 0.3`). All currency is stored and summed in exact 64-bit integer paisa.
-                </p>
-              </div>
-
-              <div className={s.matrixCard}>
-                <h3 className={s.matrixCardTitle}>True Tenant Isolation</h3>
-                <p className={s.matrixCardDesc}>
-                  Authenticated sessions with Clerk combined with Supabase Row-Level Security guarantee that no business can access another&apos;s records.
-                </p>
-              </div>
-
-              <div className={s.matrixCard}>
-                <h3 className={s.matrixCardTitle}>Full Immutable Audit Trail</h3>
-                <p className={s.matrixCardDesc}>
-                  When you edit a description or re-categorize an item, Raqam archives the prior state and records the actor and timestamp.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 6: FAQ Accordion */}
-        <section className={s.faqSection} id="faq">
-          <div className={s.sectionInner}>
-            <div className={s.sectionHeader}>
-              <span className={s.sectionEyebrow}>Common Questions</span>
-              <h2 className={s.sectionHeading}>
-                Frequently Asked Questions
-              </h2>
-              <p className={s.sectionLead}>
-                Everything you need to know about setting up and running your cashbook on Raqam.
-              </p>
-            </div>
-
-            <div className={s.faqList}>
-              <details className={s.faqItem} open>
-                <summary className={s.faqSummary}>
-                  <span>Does Raqam automatically modify my bank account or file taxes?</span>
-                  <Icon name="chevron" size={16} />
-                </summary>
-                <div className={s.faqAnswer}>
-                  No. Raqam is a read-supervised bookkeeping system. It operates entirely on the bank statements and receipts you import. AI algorithms propose categories and matches, but nothing is ever finalized without your explicit review.
-                </div>
-              </details>
-
-              <details className={s.faqItem}>
-                <summary className={s.faqSummary}>
-                  <span>Which bank statement formats are supported in Pakistan?</span>
-                  <Icon name="chevron" size={16} />
-                </summary>
-                <div className={s.faqAnswer}>
-                  Raqam supports CSV, TSV, and Excel (.xlsx, .xls) files exported from all commercial banks in Pakistan (Meezan, HBL, Standard Chartered, Bank Alfalah, etc.), as well as digital wallets like Nayapay and Sadapay.
-                </div>
-              </details>
-
-              <details className={s.faqItem}>
-                <summary className={s.faqSummary}>
-                  <span>Can I export my records for my accountant?</span>
-                  <Icon name="chevron" size={16} />
-                </summary>
-                <div className={s.faqAnswer}>
-                  Yes. You can export your full cashbook at any time with one click into standard CSV format, complete with verified review statuses, category codes, and linked receipt reference IDs.
-                </div>
-              </details>
-
-              <details className={s.faqItem}>
-                <summary className={s.faqSummary}>
-                  <span>Can I test Raqam without entering any credit card or signing up?</span>
-                  <Icon name="chevron" size={16} />
-                </summary>
-                <div className={s.faqAnswer}>
-                  Absolutely. Click &ldquo;Explore Interactive Demo&rdquo; at the top of the page to open a sandboxed example workspace with synthetic Pakistani PKR transactions ready to inspect.
-                </div>
-              </details>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 7: Final CTA */}
-        <section className={s.finalCta}>
-          <div className={s.finalCtaContent}>
-            <h2 className={s.finalCtaTitle}>
-              Make room for the actual work.
-            </h2>
-            <p className={s.finalCtaSubtitle}>
-              Stop spending your weekends digging through bank PDFs and shoeboxes of receipts.
-              Keep your cashbook clean and reviewed in minutes.
-            </p>
-
-            <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="/demo" className={s.heroPrimaryBtn} id="final-cta-demo">
-                <span>Try Demo Workspace</span>
-                <Icon name="arrow" size={18} />
-              </Link>
-              {userId ? (
-                <Link href="/workspace" className={s.heroSecondaryBtn} id="final-cta-workspace">
-                  <span>Open Your Workspace</span>
-                </Link>
-              ) : (
-                <Link href="/sign-up" className={s.heroSecondaryBtn} id="final-cta-signup">
-                  <span>Create Account</span>
-                </Link>
-              )}
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className={s.footer}>
-        <div className={s.footerInner}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontWeight: 700, color: '#ffffff' }}>raqam</span>
-            <span>·</span>
-            <span>Engineered by Edge Runners</span>
-            <span>·</span>
-            <span>English · PKR Financial Operations</span>
-          </div>
-
-          <div style={{ display: 'flex', gap: 20 }}>
-            <a href="#top" className={s.footerLink}>Back to top</a>
-            <Link href="/demo" className={s.footerLink}>Demo Workspace</Link>
-            <Link href="/workspace" className={s.footerLink}>Workspace App</Link>
-          </div>
+        <div className={s.productWrap}><LandingPreview/></div>
+        <div className={s.lightBody}>
+          <section className={s.workflow} id="workflow" aria-labelledby="workflow-title">
+            <div className={s.sectionIntro}><p className={s.eyebrow}>A calmer routine</p><h2 id="workflow-title">From scattered records<br/>to a clearer picture.</h2><p>One place to bring it together.<br/>Three steps to keep it moving.</p></div>
+            <div className={s.steps}>{[
+              {icon:'upload' as const,title:'Bring your records',text:'Import your transactions and upload your receipts. Preview what came through before anything joins your cashbook.',tag:'01',note:'CSV · Excel · supported PDFs'},
+              {icon:'review' as const,title:'Give it your review',text:'Check suggested details against the source. Accept what is right, correct what is not, and leave uncertain items open.',tag:'02',note:'AI proposes. You decide.'},
+              {icon:'download' as const,title:'See where you stand',text:'Follow cash in, cash out and what still needs attention. Export your records when it is time to share the books.',tag:'03',note:'Exact totals · CSV export'},
+            ].map(step=><article className={s.step} key={step.tag}><div className={s.stepTop}><span className={s.stepIcon}><Icon name={step.icon} size={23}/></span><span>{step.tag}</span></div><h3>{step.title}</h3><p>{step.text}</p><div className={s.stepNote}>{step.note}</div></article>)}</div>
+          </section>
+          <section className={s.featureSection} id="features" aria-labelledby="features-title">
+            <div className={s.featureVisual}><div className={s.visualTop}><Icon name="file" size={18}/><span>Source &amp; reviewed details</span><span className={s.exampleLabel}>Example</span></div><div className={s.paper}><div className={s.paperMark}>N</div><strong>Northstar Cloud</strong><span>Receipt NS-101</span><div className={s.paperLine}><span>Cloud subscription</span><span>8,500.00</span></div><div className={s.paperTotal}><span>Total · PKR</span><strong>8,500.00</strong></div><small>Synthetic receipt for illustration</small></div><div className={s.connectedRecord}><span className={s.checkCircle}><Icon name="check" size={16}/></span><div><strong>Details reviewed</strong><span>8 Oct 2026 · PKR 8,500.00</span></div><Icon name="link" size={19}/></div></div>
+            <div className={s.featureCopy}><p className={s.eyebrow}>Keep the context</p><h2 id="features-title">The number is only<br/>half the story.</h2><p>A receipt here. A bank row there. Bring the original source beside the proposed details, so you can see what belongs together.</p><ul className={s.checkList}><li><Icon name="check" size={17}/> Check extracted fields against the original</li><li><Icon name="check" size={17}/> Keep uncertain details visible for review</li><li><Icon name="check" size={17}/> Confirm matches without counting cash twice</li></ul><Link href="/demo" className={s.textLink}>Explore document review <Icon name="arrow" size={17}/></Link></div>
+          </section>
+          <section className={s.featureSection} id="assistant" aria-labelledby="assistant-title">
+            <div className={s.featureCopy}><p className={s.eyebrow}>A little help with the books</p><h2 id="assistant-title">Ask a question.<br/>Find the context.</h2><p>Ask Raqam about recorded cash activity and items waiting for review. Follow the references back to your records.</p><p className={s.quietNote}>The assistant reads your workspace. Changes stay in your hands.</p><Link href="/demo" className={s.textLink}>Meet your bookkeeping assistant <Icon name="arrow" size={17}/></Link></div>
+            <div className={s.chatVisual}><div className={s.visualTop}><Icon name="spark" size={18}/><span>Ask Raqam</span><span className={s.exampleLabel}>Sample answer</span></div><div className={s.userQuestion}>What needs my attention?</div><div className={s.sampleAnswer}><span className={s.assistantMark}><Mark/> raqam</span><p>Two example records are waiting for category review. Start with the Northstar Cloud subscription.</p><div className={s.answerSource}><Icon name="file" size={18}/><div><strong>Northstar Cloud</strong><span>8 Oct 2026 · PKR 8,500.00</span></div><span className={s.pending}>Needs review</span></div></div><p className={s.visualFoot}>Illustrative response using synthetic records. No live AI.</p></div>
+          </section>
+          <section className={s.principles} aria-label="Your records, handled with care"><div><Icon name="book" size={22}/><h3>Numbers with a foundation</h3><p>Cash totals are calculated in code, in exact paisa.</p></div><div><Icon name="review" size={22}/><h3>You keep the final say</h3><p>Suggestions and reviewed decisions stay distinct.</p></div><div><Icon name="file" size={22}/><h3>Context stays connected</h3><p>Original sources and review history stay available.</p></div></section>
+          <section className={s.faqSection} id="faq" aria-labelledby="faq-title"><div><p className={s.eyebrow}>Good to know</p><h2 id="faq-title">A few things<br/>you might be wondering.</h2><p className={s.faqIntro}>A clearer start to your cashbook.</p></div><div className={s.faqList}>{questions.map(([question,answer])=><details className={s.faqItem} key={question}><summary>{question}<span className={s.faqPlus} aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></section>
+          <section className={s.finalCta}><div className={s.ctaMark}><Mark/></div><h2>Make room for<br/>the work you love.</h2><p>Your records, receipts and next steps.<br/>A little more together.</p><div className={s.heroActions}><Link href="/workspace" className={s.lightButton}>Open workspace <Icon name="arrow" size={17}/></Link><Link href="/demo" className={s.darkButton}>Explore an example</Link></div></section>
+          <footer className={s.footer}><div><Link href="/" className={s.brand} aria-label="Raqam home"><Mark/>raqam</Link><p>Clearer books. A calmer business.</p></div><nav aria-label="Footer navigation"><a href="#workflow">How it works</a><Link href="/demo">Example workspace</Link><Link href="/workspace">Your workspace</Link><a href="#faq">FAQs</a></nav><div className={s.footerBottom}><span>© 2026 Raqam · Built by edge runners</span><span>English · PKR</span></div></footer>
         </div>
-      </footer>
+      </main>
     </div>
-  );
+  </div>;
 }
