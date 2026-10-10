@@ -1,12 +1,15 @@
 import Link from 'next/link';
+import { auth } from '@clerk/nextjs/server';
 import { Icon, Mark } from '../ui/icon.tsx';
 import s from '../ui/theme.module.css';
-export function Landing() {
+export async function Landing() {
+  const clerkConfigured = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY;
+  const userId = clerkConfigured ? (await auth()).userId : null;
   return <div className={s.root} data-raqam-ui>
     <a href="#main" className={s.skip}>Skip to content</a>
     <div className={s.siteHeaderWrap}><header className={s.siteHeader}>
       <Link href="/" className={s.brand} aria-label="Raqam home"><Mark/>raqam</Link>
-      <nav aria-label="Main navigation" className={s.siteNav}><a href="#how-it-works">How it works</a><Link href="/sign-in" className={s.secondary}>Sign in</Link><Link href="/sign-up" className={s.button}>Sign up</Link></nav>
+      <nav aria-label="Main navigation" className={s.siteNav}><a href="#how-it-works">How it works</a>{userId ? <Link href="/workspace" className={s.button}>Open workspace <Icon name="arrow" size={16}/></Link> : <><Link href="/sign-in" className={s.secondary}>Sign in</Link><Link href="/sign-up" className={s.button}>Sign up</Link></>}</nav>
     </header></div>
     <main id="main">
       <section className={s.hero}>

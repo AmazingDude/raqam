@@ -91,6 +91,8 @@ The two large organizer PDFs are also excluded from Git; share originals separat
 
 ## Session log
 
+- 10 October, Clerk auth navigation fix: landing navigation now shows workspace entry for an authenticated Clerk session and sign-in/sign-up links for signed-out visitors. Both auth pages send existing sessions to `/workspace`, link to each other explicitly, and send successful authentication to `/workspace`. `npx tsc --noEmit` passes; local HTTP requests to `/`, `/sign-in` and `/sign-up` return 200 without redirect. Browser-interactive Clerk flow remains unverified because the connected browser tool exited; no test suite run. Next: confirm forms in a signed-out browser session and complete the signed-in Track B journey.
+
 - 10 October, publishing workflow: added an AGENTS.md rule to push completed, checked task-owned changes to `origin/main` by default, while preserving unrelated files and excluding secrets. Generated `next-env.d.ts` and unrelated `WHAT_WE_ARE_BUILDING.md` remain out of scope. Verification: staged diff reviewed and `git diff --cached --check` passes; no test suite requested or run.
 
 - 10 October, landing-page authentication actions: added Sign in and Sign up links to the marketing navigation and a Clerk-backed `/sign-up` route, paired with the existing `/sign-in` route. Preserved workspace/demo entry points and guarded auth pages on Clerk configuration. Verification: reviewed the pinned Clerk `SignUp` props and local Next.js App Router page guidance; no test suite run. Next: continue the signed-in Track B journey validation.
