@@ -1,5 +1,6 @@
 import { MAX_WORKSPACE_TRANSACTIONS } from '../contracts/limits.ts';
 import { z } from 'zod';
+import { verifiedInvoiceSchema as invoiceSchema, invoicesListSchema, invoiceUpsertInputSchema, invoiceStatusUpdateSchema, invoiceDeleteSchema, generateInvoiceAIRequestSchema, generateInvoiceAIResponseSchema } from '../contracts/invoices.ts';
 import { categorySchema, transactionSchema } from '../contracts/schemas.ts';
 import { csvPreviewSchema, importRecoverySchema, importConfirmationSchema, importConfirmationResultSchema, importResolutionSchema, importResolutionResultSchema, importResolutionStateSchema } from '../contracts/imports.ts';
 import { transactionReviewSchema } from '../contracts/cashbook.ts';
@@ -146,4 +147,17 @@ export const api = {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(matchGenerationRequestSchema.parse(input)),
     }),
   export: async (signal: AbortSignal) => exportResponse(await fetch('/api/export', { signal, cache: 'no-store', credentials: 'same-origin' })),
+  invoices: (signal = new AbortController().signal) => request('/api/invoices', invoicesListSchema, signal),
+  saveInvoice: (input: import('../contracts/invoices.ts').InvoiceUpsertInput, signal = new AbortController().signal) => request('/api/invoices', invoiceSchema, signal, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(invoiceUpsertInputSchema.parse(input)),
+  }),
+  updateInvoiceStatus: (id: string, status: import('../contracts/invoices.ts').InvoiceStatus, expectedVersion: number, signal = new AbortController().signal) => request(`/api/invoices/${encodeURIComponent(id)}`, invoiceSchema, signal, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(invoiceStatusUpdateSchema.parse({ status, expectedVersion })),
+  }),
+  deleteInvoice: (id: string, expectedVersion: number, signal = new AbortController().signal) => request(`/api/invoices/${encodeURIComponent(id)}`, z.strictObject({ ok: z.literal(true), deleted: z.uuid() }), signal, {
+    method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(invoiceDeleteSchema.parse({ expectedVersion })),
+  }),
+  generateInvoiceWithAI: (prompt: string, currentDraft: unknown, signal = new AbortController().signal) => request('/api/invoices/ai-generate', generateInvoiceAIResponseSchema, signal, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(generateInvoiceAIRequestSchema.parse({ prompt, currentDraft })),
+  }),
 };
