@@ -43,7 +43,7 @@ Final combined revision: 121/121 backend/security tests, 67/67 provider/Gemini/c
 
 Hosted migration, signed-in upload/persistence, real bank layouts, scanned-statement OCR and live Eve access remain to be verified.
 
-Logical-row/recovery repair: 128/128 backend/security tests and 6/6 client checks passed; the final footer safety adjustment passed 13/13 focused checks. Strict TypeScript passed before concurrent unrelated invoice edits; the final full-workspace check reports errors in those invoice modules. Private sample checks passed without publishing source data. No live Eve requests, hosted financial writes or production build were run for this repair. Automated browser upload was blocked by disabled extension file URL access; manual recovery confirmation remains open.
+Logical-row/recovery repair: 128/128 backend/security tests and 6/6 client checks passed; the final footer safety adjustment passed 13/13 focused checks. After merging published main, 128/128 backend/security tests, 6/6 client checks and strict TypeScript pass in an isolated checkout of the merged revision. Unrelated concurrent invoice edits in the shared workspace still report TypeScript errors and were preserved. Private sample checks passed without publishing source data. No live Eve requests, hosted financial writes or production build were run for this repair. Automated browser upload was blocked by disabled extension file URL access; manual recovery confirmation remains open.
 
 ## Primary references
 
