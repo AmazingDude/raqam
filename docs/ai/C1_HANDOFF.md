@@ -1,6 +1,6 @@
 # C1 handoff — provider, OCR and categories
 
-**Owner:** user / C1. **Shared branch:** `codex/ai-two-person`. **Updated:** 10 October 2026, PKT.
+**Owner:** user / C1. **Shared branch:** `codex/ai-two-person`. **Updated:** 10 October 2026, PKT (fast-forwarded to `54c667f`).
 Read [split/ownership](TWO_PERSON_EXECUTION.md), [original steps](IMPLEMENTATION_STEPS.md), [plan](PERSON_C_PLAN.md), [combined status](handoff.md), [contracts](contracts.md) and [feasibility](GROQ_FEASIBILITY.md). C1 edits this file; C2 records requests in its own handoff.
 
 ## Assigned work
@@ -9,9 +9,10 @@ Read [split/ownership](TWO_PERSON_EXECUTION.md), [original steps](IMPLEMENTATION
 | --- | --- | --- |
 | 4–5 | in_review | Module acceptance passed: 38 scripted tests, strict typecheck and production build. A/C2 interface acknowledgement and runtime integration pending; see PROVIDER_CONTRACT.md. |
 | 6 | in_review | C extraction module/scripted coverage and one live clean synthetic Groq sample passed; shared field-state/evidence adoption and A/B review integration remain pending. See integration.md. |
-| 7 | blocked | Deterministic owner/source/model/prompt/schema/preprocessing cache identity implemented; A DB reservation/save/review RPCs now exist; service wrapper, full cache identity and raw-evidence mapping are pending, so integrated cache/stale/correction acceptance is not established. |
-| 8 | blocked | A source/DB foundation and B upload/private viewer exist; extraction/review/correction APIs and B live field wiring are pending. No fake integration was run; see integration.md. |
-| 9–10 | todo | Wait for 2, 4–5 and accepted transactions/guide, then real review backend/UI. |
+| 7 | done (C module + local A service/database checks) | Cache identity now hashes provider version as well as owner/workspace/source/provider/model/prompt/schema/preprocessing. A's wrapper calls durable reservation/save RPCs; local tests cover cache/busy states, stale completion and correction preservation. Hosted cache acceptance is part of step 8. |
+| 8 | blocked pending hosted verification | A's extraction/result/history/review APIs and B's live upload/source/field-review screen are present on main. Scripted service and PGlite tests pass; hosted migration 008 and Clerk/Supabase app settings are missing here, so the signed-in review/reload/cash check cannot run. See integration.md. |
+| 9 | done (C module) | Seven-label proposal engine passes scripted coverage; A's BA-03 records guide-version adoption and maps provenance into persistence. Live semantic quality remains for step 19. |
+| 10 | blocked pending signed-in verification | A's authenticated proposal generation/list route and B's live accept/change/reject controls are present. Local tests cover persistence, protected accepted decisions and exact cash invariants; signed-in reload/rerun/summary verification still needs Clerk/Supabase app configuration and an authenticated workspace. Migration 008 is not a category prerequisite. |
 | 17 | todo | Own combined-flow items 5–6 and integration.md; C2 supplies assistant items 1–4. Original predecessors 8/10/13/16 remain required. |
 | 18 | todo | Repair only C1 modules/tests in response to C2's checks; A/B own actual isolation/persistence evidence. |
 | 19 | todo | Own frozen model/prompt manifest, quota schedule and live coordination; A/B independently score, C2 owns runner/report. |
