@@ -1,5 +1,18 @@
 # Receipt extraction and integration evidence
 
+## Follow-up implementation plan — provider selection and integration gates
+
+This plan reuses original Person C steps 7–10 and the repo's two-contributor ownership map; it does not replace their acceptance criteria. The `codebase-design` boundary is the existing server-only `createAIProvider()` port, which already selects the configured provider and is consumed by extraction. The Spec Kit sequence is dependency ordered: fix the wrong route adapter first, diagnose the actual build failure second, then run only the live and authenticated checks whose prerequisites are present. Tests follow the repository's TDD guidance and assert provider behavior through existing public seams.
+
+| Order | Work | Owner/files | Acceptance evidence | Current gate |
+|---|---|---|---|---|
+| 1 | Make category generation honor explicit `AI_PROVIDER` selection through the existing provider factory. This is a narrow transfer for the provider-construction line in the A-owned category service; do not change route contracts or persistence. | C1, limited transfer: `src/lib/server/categories.ts`; existing provider-selection tests | Groq remains the unset/default provider; explicit Gemini selects Gemini; no credential-based fallback; category module and backend checks pass. | Authorized by the user's request to fix the reviewed issues; record the transfer here before editing. |
+| 2 | Reproduce `next build`'s TypeScript `--showConfig` parsing failure with the pinned Next/TypeScript pair and identify the precise emitted bytes/cause before changing configuration or dependencies. | C1, diagnostic only until cause known | The configured production build passes without modifying A-owned configuration or dependencies, or a concrete upstream/environment blocker is documented. | Passed outside the sandbox: Next's child process emitted valid TypeScript output and the full production build succeeded. The sandboxed child process returned empty stdout and caused the earlier parser error. |
+| 3 | Re-run provider-facing scripted tests and a small live synthetic provider check only if the existing quota policy permits it; do not use reserved evaluation cases or repeat successful capability proofs. | C1; existing feasibility runner | Explicit provider/model, sanitized result, request count and duration; scripted and live evidence labeled separately. | Passed: the existing two-request Groq tool probe retained the 60-request reserve guard and left 998 daily requests. |
+| 4 | Complete real category and receipt acceptance through the signed-in hosted application: propose/review/accept/change/reject/reload/rerun and upload/extract/correct/reload/retry, while checking authoritative exact cash totals remain unchanged. | Joint A/B/C; no UI/backend work transferred by this plan | Hosted migration and secrets are configured; tests exercise the authenticated screens/routes and persistent records, not mocked screens. | Blocked until Clerk/Supabase runtime settings and hosted migration 008 are available. A/B routes and controls are present; 008 is not a category prerequisite. |
+
+The implementation must stop at each gate. A local mock cannot close live provider or hosted integration acceptance; a successful build cannot close steps 8 or 10. No commit, push, deploy, broad A/B edits or schema/dependency changes are included.
+
 Date: 10 October 2026. C1 scope: Person C steps 6–8 and C-owned Gemini review fixes. Working tree on codex/ai-two-person; the pending A baseline merge and unrelated changes remain uncommitted. This record separates C module behavior from A/B application acceptance.
 
 ## Step 6 — extraction module
