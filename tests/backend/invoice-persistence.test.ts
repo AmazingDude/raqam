@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { RequestSession } from '../../src/lib/server/auth.ts';
 import {createOrUpdateInvoice,listInvoices,mapInvoice,updateInvoiceStatus,deleteInvoice} from '../../src/lib/server/invoices.ts';

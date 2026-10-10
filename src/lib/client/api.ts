@@ -12,7 +12,8 @@ import {
   receiptExtractionResponseSchema, documentReviewSchema,
 } from '../contracts/documents.ts';
 import {
-  categoryGenerationRequestSchema, proposalBatchResultSchema, proposalRecordSchema, proposalReviewSchema, proposalReviewResultSchema,
+  categoryGenerationRequestSchema, matchGenerationRequestSchema, matchGenerationResultSchema,
+  proposalBatchResultSchema, proposalRecordSchema, proposalReviewSchema, proposalReviewResultSchema,
 } from '../contracts/proposals.ts';
 
 export class ClientError extends Error {
@@ -139,6 +140,12 @@ export const api = {
   reviewProposal: (input: z.infer<typeof proposalReviewSchema>, signal: AbortSignal) => request('/api/reviews', proposalReviewResultSchema, signal, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(proposalReviewSchema.parse(input)),
   }),
+  matchProposals: (signal: AbortSignal, status: 'all' | 'pending' = 'all', cursor: string | null = null) => request(
+    `/api/match-proposals?limit=50&status=${status}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, proposalPageSchema, signal),
+  generateMatchProposals: (input: z.infer<typeof matchGenerationRequestSchema>, signal: AbortSignal) => request(
+    '/api/match-proposals', matchGenerationResultSchema, signal, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(matchGenerationRequestSchema.parse(input)),
+    }),
   export: async (signal: AbortSignal) => exportResponse(await fetch('/api/export', { signal, cache: 'no-store', credentials: 'same-origin' })),
   invoices: (signal = new AbortController().signal) => request('/api/invoices', invoicesListSchema, signal),
   saveInvoice: (input: import('../contracts/invoices.ts').InvoiceUpsertInput, signal = new AbortController().signal) => request('/api/invoices', invoiceSchema, signal, {

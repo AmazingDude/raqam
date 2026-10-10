@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { money } from '../../../lib/client/presentation.ts';
 export function CashflowChart({points,currency}: {points: {day:number;amountMinor:string}[];currency:string}) {
   const amounts=points.map(point=>BigInt(point.amountMinor));

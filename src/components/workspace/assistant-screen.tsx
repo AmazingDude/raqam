@@ -33,7 +33,7 @@ export function AssistantScreen({ demo, records, workspaceId, onRecord }: { demo
     else if (value === questions[1]) {found=records.filter(r=>r.categoryStatus!=='accepted');tool='get_review_queue';text=`${found.length} of ${records.length} example records have an unreviewed category. Pending suggestions have not been accepted.`;}
     else if (value === questions[2]) {found=records;tool='get_cash_summary';const total=summarize(records,workspaceId);text=`Net cash movement is PKR ${money(total.netMovementMinor)} across ${records.length} example transactions: PKR ${money(total.inflowMinor)} cash in minus PKR ${money(total.outflowMinor)} cash out. This is recorded cash movement, not profit.`;}
     else {setError('This example demonstrates the three questions above. Open your workspace to ask about your own records.');return;}
-    setAnswer({ question:value,text,records:found,partial:false,citations:[],actionTrail:[{tool,recordsConsulted:found.length,partial:false}] });
+    setAnswer({ question:value,text,records:found,partial:false,citations:[],actionTrail:[{tool,recordsConsulted:found.length,partial:false,factRefs:[]}] });
   }
   async function openSource(id: string) {
     setError('');

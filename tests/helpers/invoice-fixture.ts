@@ -1,4 +1,4 @@
-﻿import type { Invoice } from '../../src/lib/contracts/invoices.ts';
+import type { Invoice } from '../../src/lib/contracts/invoices.ts';
 export const invoiceWorkspace='10000000-0000-4000-8000-000000000001';
 export const invoiceId='20000000-0000-4000-8000-000000000001';
 export function syntheticInvoice():Invoice {return {id:invoiceId,workspaceId:invoiceWorkspace,invoiceNumber:'SYNTHETIC-001',status:'draft',issueDate:'2026-10-10',dueDate:'2026-10-24',fromName:'Synthetic Studio',clientName:'Synthetic Client',currency:'PKR',subtotalMinor:'10000',discountMinor:'0',shippingMinor:'0',taxMinor:'0',totalMinor:'10000',remindersEnabled:false,viewsCount:0,reviewVersion:0,
