@@ -13,6 +13,7 @@ type Draft = { action: 'keep' | 'correct' | 'reject'; date: string; description:
 type Outcomes = z.infer<typeof importResolutionStateSchema>;
 type Attempt = { kind: 'confirm'; input: ImportConfirmation } | { kind: 'resolve'; input: ImportConfirmation & { requestId: string } };
 function initialDraft(row: Row, header: ImportBatch['preview']['header']): Draft {
+  if (row.draftFields) return { action: 'keep', ...row.draftFields };
   const original = Object.fromEntries(header.map((field, index) => [field, row.original[index] ?? '']));
   return { action: 'keep', date: original.date ?? '', description: original.description ?? '', direction: original.direction ?? '', amount: original.amount ?? '', reference: original.reference ?? '' };
 }
@@ -36,11 +37,11 @@ export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void>
   }
   async function upload(file: File) {
     await exclusive(async () => {
-      if (!file.name.toLowerCase().endsWith('.csv') || !file.size || file.size > 1024 * 1024) throw new Error('Choose a UTF-8 .csv file up to 1 MiB, with 1–50 rows.');
+      if (!/\.(csv|tsv|xls|xlsx)$/i.test(file.name) || !file.size || file.size > 1024 * 1024) throw new Error('Choose a .csv, .tsv, .xls, or .xlsx file up to 1 MiB, with up to 50 rows.');
       const next = await run(signal => api.registerImport(file, signal));
       setBatch(next); setName(file.name); setOutcomes(null); setAttempt(null); setAcknowledged(false);
       setDrafts(Object.fromEntries(next.preview.rows.map(row => [row.rowNumber, initialDraft(row, next.preview.header)])));
-      setNotice(next.duplicate ? 'Existing import reopened. No duplicate cash records were created.' : 'Original CSV saved. Review the preview before adding cash records.');
+      setNotice(next.duplicate ? 'Existing import reopened. No duplicate cash records were created.' : 'Original transaction file saved. Review the preview before adding cash records.');
       if (next.status === 'confirmed') setOutcomes(await run(signal => api.importOutcomes(next.importId, signal)));
     });
   }
@@ -80,7 +81,7 @@ export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void>
   const frozen = busy || attempt !== null;
   return <div className={s.stack}>
     <div className={s.pageHeading}><div><h1>Import transactions</h1><p>Review the original rows, then choose what enters your cashbook.</p></div><a className={s.secondary} href="/api/imports/template" download>Download template</a></div>
-    <section className={`${s.upload} ${s.stack}`}><h2>Choose your transaction CSV</h2><p>UTF-8 CSV · up to 1 MiB and 50 rows · PKR · YYYY-MM-DD dates. Reopen an earlier import by uploading the same file.</p><label className={s.field}>Transaction CSV<input type="file" accept=".csv,text/csv" disabled={frozen} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void upload(file); }}/></label></section>
+    <section className={`${s.upload} ${s.stack}`}><h2>Choose a transaction file</h2><p>CSV, TSV, Excel .xls, or Excel .xlsx · up to 1 MiB and 50 rows · PKR. Common dates and bank column names are mapped in preview. Reopen an earlier import by uploading the same file.</p><label className={s.field}>Transaction file<input type="file" accept=".csv,.tsv,.xls,.xlsx,text/csv,text/tab-separated-values,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={frozen} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void upload(file); }}/></label></section>
     {notice && <p role="status" className={s.success}>{notice}</p>}{error && <p role="alert" className={s.error}>{error}</p>}{busy && <p role="status">Saving or loading your import…</p>}
     {batch && <section className={s.panel}>
       <div className={s.panelHeading}><div><h2>{name || 'Stored CSV'} · {batch.status === 'pending' ? 'Preview' : 'Confirmed import'}</h2><p className={s.small}>Original: {batch.preview.validCount} valid / {batch.preview.invalidCount} needing review</p></div><button className={s.secondary} disabled={busy} onClick={() => void exclusive(async () => { await loadState(batch.importId); await onChanged(); setNotice('Current import status loaded. Check your row choices before confirming.'); })}>Refresh import status</button></div>

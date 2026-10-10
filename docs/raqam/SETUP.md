@@ -34,7 +34,7 @@ Record revision, procedure, counts, checker and timestamp.
 - B cannot read/insert/update/delete A's rows or files through database/Storage/API requests; repeat A→B. Signed-out/expired sessions cannot access saved records.
 - Sign-in remains reachable; proxy/API route coverage, expiry, sign-out and account switch work without previous-user data.
 - Private source retrieval uses authorized short-lived access; known other-user paths remain inaccessible.
-- Upload a synthetic CSV, retrieve its preview, explicitly confirm corrections/rejections and reload cash/history. Unknown amounts stay unresolved; originals persist; repeat upload/confirmation does not duplicate money/evidence. Verify two concurrent imports at the workspace cap roll back safely.
+- Upload a synthetic CSV or supported Excel transaction file, retrieve its preview, explicitly confirm corrections/rejections and reload cash/history. Unknown amounts stay unresolved; originals persist; repeat upload/confirmation does not duplicate money/evidence. Verify two concurrent imports at the workspace cap roll back safely.
 - Production build passes; verify the authenticated spine on the selected deployment when deployment is requested.
 
 Embedded PostgreSQL tests validate SQL privileges/RLS with simulated JWT claims and a simplified Storage schema. They do not validate Clerk signatures, managed Supabase, Storage HTTP endpoints or browser behavior.

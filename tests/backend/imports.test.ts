@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import * as XLSX from 'xlsx';
 import { previewCsv } from '../../src/lib/server/csv.ts';
 import { buildImportPlan, readCsvUpload } from '../../src/lib/server/imports.ts';
 import { importConfirmationSchema } from '../../src/lib/contracts/imports.ts';
@@ -47,6 +48,35 @@ test('UTF-8 CSV upload preserves BOM bytes, column order and original fields', a
   assert.equal(result.preview.contentHash, createHash('sha256').update(bytes).digest('hex'));
   assert.equal(result.preview.rows[0]?.original[1], ' A, original ');
   assert.deepEqual(result.bytes, new Uint8Array(bytes));
+});
+test('XLS and XLSX uploads keep their exact source bytes and preview mapped bank rows', async () => {
+  for (const [extension, bookType] of [['xlsx', 'xlsx'], ['xls', 'biff8']] as const) {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+      ['Posting Date', 'Narration', 'Debit (PKR)', 'Credit (PKR)', 'Ref No.'],
+      ['10/10/2026', 'Bank fee', '25.50', '', 'FEE-1'],
+    ]), 'Transactions');
+    const bytes = XLSX.write(workbook, { bookType, type: 'buffer' });
+    const result = await readCsvUpload(upload(bytes, `bank.${extension}`));
+    assert.equal(result.extension, extension);
+    assert.equal(result.originalName, `bank.${extension}`);
+    assert.equal(result.preview.contentHash, createHash('sha256').update(bytes).digest('hex'));
+    assert.deepEqual(result.preview.rows[0]?.transaction && [
+      result.preview.rows[0].transaction.direction, result.preview.rows[0].transaction.amountMinor,
+    ], ['out', '2550']);
+  }
+});
+test('TSV uploads accept UTF-16 input, preserve source identity and decode legacy Windows text', async () => {
+  const tsvText = 'Date\tDescription\tDirection\tAmount\n2026-10-10\tCafé subscription\tout\t10.50\n';
+  const tsvBytes = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(tsvText, 'utf16le')]);
+  const tsv = await readCsvUpload(upload(tsvBytes, 'bank.tsv'));
+  assert.equal(tsv.preview.contentHash, createHash('sha256').update(tsvBytes).digest('hex'));
+  assert.equal(tsv.preview.rows[0]?.transaction?.description, 'Café subscription');
+
+  const legacyText = 'date,description,direction,amount\n2026-10-10,Café subscription,out,10.50\n';
+  const legacyBytes = Buffer.from(legacyText, 'latin1');
+  const legacy = await readCsvUpload(upload(legacyBytes, 'bank.csv'));
+  assert.equal(legacy.preview.rows[0]?.transaction?.description, 'Café subscription');
 });
 test('CSV upload rejects invalid encoding, extra fields, unsupported files and over-cap previews', async () => {
   await assert.rejects(() => readCsvUpload(upload(new Uint8Array([255, 254, 0]))));

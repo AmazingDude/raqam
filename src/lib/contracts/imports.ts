@@ -3,6 +3,15 @@ import { dateSchema, minorUnitsSchema } from './schemas.ts';
 
 export const MAX_IMPORT_ROWS = 50; // initial prototype guard; host/capacity gate pending
 const requiredHeaders = ['date', 'description', 'direction', 'amount'] as const;
+export const importFieldMapSchema = z.strictObject({
+  date: z.number().int().min(0), description: z.number().int().min(0),
+  direction: z.number().int().min(0).nullable(), amount: z.number().int().min(0).nullable(),
+  debit: z.number().int().min(0).nullable(), credit: z.number().int().min(0).nullable(),
+  reference: z.number().int().min(0).nullable(), currency: z.number().int().min(0).nullable(),
+});
+export const importDraftFieldsSchema = z.strictObject({
+  date: z.string(), description: z.string(), direction: z.string(), amount: z.string(), reference: z.string(),
+});
 export const cashRowSchema = z.strictObject({
   date: dateSchema, description: z.string().min(1).max(2000).refine(value => !!value.trim()),
   direction: z.enum(['in', 'out']), amountMinor: minorUnitsSchema, currency: z.literal('PKR'),
@@ -10,16 +19,27 @@ export const cashRowSchema = z.strictObject({
 });
 export const csvPreviewSchema = z.strictObject({
   currency: z.literal('PKR'), contentHash: z.string().regex(/^[0-9a-f]{64}$/),
-  header: z.array(z.enum(['date', 'description', 'direction', 'amount', 'reference'])).min(4).max(5),
+  // New previews preserve the source's raw header and row order. Older stored previews
+  // still use the canonical header and omit fieldMap/draftFields.
+  header: z.array(z.string().max(200)).min(4).max(100),
+  fieldMap: importFieldMapSchema.optional(),
   rows: z.array(z.strictObject({
     rowNumber: z.number().int().min(2), lineNumber: z.number().int().min(2),
     original: z.array(z.string()), transaction: cashRowSchema.nullable(),
     errors: z.array(z.strictObject({ field: z.string(), message: z.string() })),
+    draftFields: importDraftFieldsSchema.optional(),
   })).min(1).max(MAX_IMPORT_ROWS),
   validCount: z.number().int().min(0), invalidCount: z.number().int().min(0),
 }).superRefine((preview, ctx) => {
-  if (new Set(preview.header).size !== preview.header.length || requiredHeaders.some(name => !preview.header.includes(name)) ||
-    preview.rows.some((row, index) => row.rowNumber !== index + 2 || (row.transaction !== null) !== (row.errors.length === 0)) ||
+  const legacyHeaderValid = new Set(preview.header).size === preview.header.length && requiredHeaders.every(name => preview.header.includes(name));
+  const fieldMapValid = !!preview.fieldMap && preview.fieldMap.date < preview.header.length && preview.fieldMap.description < preview.header.length &&
+    (preview.fieldMap.amount !== null || (preview.fieldMap.debit !== null && preview.fieldMap.credit !== null)) &&
+    [preview.fieldMap.direction, preview.fieldMap.amount, preview.fieldMap.debit, preview.fieldMap.credit, preview.fieldMap.reference, preview.fieldMap.currency]
+      .every(index => index === null || index < preview.header.length);
+  if ((!legacyHeaderValid && !fieldMapValid) ||
+    (preview.fieldMap !== undefined && !fieldMapValid) ||
+    preview.rows.some((row, index) => row.rowNumber <= (preview.rows[index - 1]?.rowNumber ?? 1) ||
+      (row.transaction !== null) !== (row.errors.length === 0) || (preview.fieldMap && row.original.length !== preview.header.length)) ||
     preview.validCount !== preview.rows.filter(row => row.transaction !== null).length ||
     preview.invalidCount !== preview.rows.filter(row => row.transaction === null).length) {
     ctx.addIssue({ code: 'custom', message: 'Preview rows and counts must agree' });
