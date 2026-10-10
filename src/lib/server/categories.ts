@@ -8,7 +8,7 @@ import {
 import { proposeCategories } from '../ai/categories.ts';
 import type { CategoryBatchResult } from '../ai/categories.ts';
 import { CATEGORY_GUIDE_VERSION } from '../ai/prompts/categories.ts';
-import { createGroqProvider } from '../ai/provider.ts';
+import { createAIProvider } from '../ai/factory.ts';
 import { BackendError } from './errors.ts';
 import { readCashbook, readTransaction } from './cashbook.ts';
 
@@ -111,7 +111,7 @@ export async function generateCategoryProposals(session: RequestSession, workspa
   const timer = setTimeout(() => controller.abort(), 50_000);
   try {
     const snapshots = await Promise.all(eligible.map(transaction => readTransaction(session, workspace, transaction.id, controller.signal)));
-    const generated = await proposeCategories({ workspaceId: workspace.id, records: snapshots }, createGroqProvider(), {
+    const generated = await proposeCategories({ workspaceId: workspace.id, records: snapshots }, createAIProvider(), {
       requestId: input.data.requestId, deadlineAtMs, signal: controller.signal,
     });
     if (!generated.ok) {
