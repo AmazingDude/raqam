@@ -26,11 +26,17 @@ import type { ReviewableCategoryProposal, ReviewableMatchProposal } from './revi
 import { AssistantScreen } from './assistant-screen.tsx';
 import { AIProviderSettings } from './ai-provider-settings.tsx';
 import { InvoicesScreen } from './invoices/invoices-screen.tsx';
+import { ExpensesScreen } from './bookkeeping/expenses-screen.tsx';
+import { SupplierBillsScreen } from './bookkeeping/supplier-bills-screen.tsx';
+import { LedgerScreen } from './bookkeeping/ledger-screen.tsx';
 import s from '../ui/theme.module.css';
-type View = 'cashbook' | 'invoices' | 'import' | 'documents' | 'review' | 'assistant' | 'settings';
+type View = 'cashbook' | 'invoices' | 'expenses' | 'bills' | 'books' | 'import' | 'documents' | 'review' | 'assistant' | 'settings';
 const views: {id:View;label:string;icon:IconName}[] = [
   {id:'cashbook',label:'Cashbook',icon:'book'},
   {id:'invoices',label:'Invoices',icon:'file'},
+  {id:'expenses',label:'Expense drafts',icon:'review'},
+  {id:'bills',label:'Supplier bills',icon:'file'},
+  {id:'books',label:'Books and reports',icon:'book'},
   {id:'documents',label:'Documents',icon:'file'},
   {id:'review',label:'Review queue',icon:'review'},
   {id:'assistant',label:'Ask Raqam',icon:'spark'},
@@ -224,6 +230,9 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
       <div key={reset}>
         {view==='cashbook'&&<Cashbook records={records} workspaceId={workspace.id} unresolved={unresolved} onRecord={setRecord} onImport={()=>navigate('import')} onReview={()=>navigate('review')} hasMore={hasMore} loadMore={loadMore} live={!demo} liveSummary={summary} summaryError={summaryError} onRefreshSummary={onChanged}/>}
         {view==='invoices'&&<InvoicesScreen demo={demo} businessName={workspace.businessName} currency={workspace.currency}/>}
+        {view==='expenses'&&<ExpensesScreen key={workspace.id} demo={demo} workspaceId={workspace.id}/>}
+        {view==='bills'&&<SupplierBillsScreen key={workspace.id} demo={demo} workspaceId={workspace.id} documents={liveDocuments} getLink={getLink}/>}
+        {view==='books'&&<LedgerScreen key={workspace.id} demo={demo} workspaceId={workspace.id}/>}
         {view==='import'&&!demo&&<LiveImportScreen onChanged={onChanged}/>}
         {view==='import'&&demo&&<ImportScreen demo={demo} workspaceId={workspace.id} imported={imported} onConfirm={(next,remaining)=>{if(!demo||imported)return;setDemoRecords(current=>[...current,...next]);setUnresolved(remaining);setImported(true);decision('example-import-csv','accept',null,{validRows:next.length,unresolvedRows:remaining});setNotice(`${next.length} example rows imported; ${remaining} unresolved rows excluded from totals.`);}}/>}
         {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} liveRecords={liveDocuments} documentError={documentsError} extractingDocumentId={extractingDocumentId} onExtractDocument={demo?undefined:extractDocument} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink}/>}
