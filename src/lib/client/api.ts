@@ -84,7 +84,13 @@ async function request<T>(path: string, schema: z.ZodType<T>, signal: AbortSigna
   const response = await fetch(path, { ...init, signal, cache: 'no-store', credentials: 'same-origin' });
   const body: unknown = await response.json().catch(() => null);
   const envelope = z.object({ data: z.unknown(), error: z.object({ code: z.string(), message: z.string() }).nullable() }).safeParse(body);
-  if (!envelope.success) throw new ClientError('UNAVAILABLE', 'The workspace returned an unreadable response. Retry in a moment.');
+  if (!envelope.success) {
+    if (response.status === 413) throw new ClientError('PAYLOAD_TOO_LARGE', 'The upload or import preview exceeds the hosting size limit. Try a smaller statement or CSV export.');
+    if (response.status === 504 || response.status === 408) throw new ClientError('UNAVAILABLE', 'The server timed out processing this request. For a statement import, try fewer pages or a CSV export.');
+    if (response.status === 401) throw new ClientError('UNAUTHENTICATED', 'Your session expired. Sign in again, then retry.');
+    if (response.status >= 500) throw new ClientError('UNAVAILABLE', `The hosted server could not complete this request (HTTP ${response.status}). Retry; if it continues, check the deployment logs.`);
+    throw new ClientError('UNAVAILABLE', 'The workspace returned an unreadable response. Retry in a moment.');
+  }
   if (envelope.data.error) throw new ClientError(envelope.data.error.code, envelope.data.error.message);
   if (!response.ok) throw new ClientError('UNAVAILABLE', 'This request could not be completed. Please retry.');
   const data = schema.safeParse(envelope.data.data);

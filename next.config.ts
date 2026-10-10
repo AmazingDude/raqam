@@ -5,6 +5,10 @@ const config: NextConfig = {
   serverExternalPackages: ['pdfjs-dist', 'pdf-parse', '@napi-rs/canvas'],
   outputFileTracingIncludes: {
     '/api/imports': [
+      // PDF.js loads canvas through process.getBuiltinModule/createRequire,
+      // which automatic tracing misses. Include its native Linux bindings.
+      './node_modules/@napi-rs/canvas/**/*',
+      './node_modules/@napi-rs/canvas-linux-*/**/*',
       './node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
       './node_modules/pdfjs-dist/standard_fonts/**/*',
       './node_modules/pdfjs-dist/cmaps/**/*',

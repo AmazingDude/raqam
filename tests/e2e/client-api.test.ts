@@ -106,3 +106,19 @@ test('category proposal client supports list, empty no-op reruns and versioned r
   assert.deepEqual(JSON.parse(String(calls[2]!.init.body)),{requestId:id,proposalId:proposal.id,expectedVersion:0,decision:'accept'});
   assert.ok(calls.every(call=>call.init.cache==='no-store'&&call.init.credentials==='same-origin'&&call.init.signal===signal));
 });
+
+
+test('host error pages surface size, timeout, and server failures without exposing their bodies', async t => {
+  for (const [status, code, message] of [
+    [413, 'PAYLOAD_TOO_LARGE', /hosting size limit/],
+    [504, 'UNAVAILABLE', /timed out/],
+    [408, 'UNAVAILABLE', /timed out/],
+    [401, 'UNAUTHENTICATED', /Sign in again/],
+    [500, 'UNAVAILABLE', /HTTP 500/],
+  ] as const) {
+    t.mock.method(globalThis, 'fetch', async () => new Response('PRIVATE_HOST_DIAGNOSTIC', {status}));
+    await assert.rejects(api.summary(new AbortController().signal), error =>
+      error instanceof ClientError && error.code === code && message.test(error.message) && !error.message.includes('PRIVATE_HOST_DIAGNOSTIC'));
+    t.mock.restoreAll();
+  }
+});
