@@ -4,6 +4,19 @@ import { dateSchema, minorUnitsSchema } from './schemas.ts';
 import { MAX_IMPORT_ROWS, MAX_PDF_PAGES } from './limits.ts';
 export { MAX_IMPORT_ROWS } from './limits.ts';
 const requiredHeaders = ['date', 'description', 'direction', 'amount'] as const;
+export const pdfSourceLineSchema = z.strictObject({
+  rowNumber: z.number().int().min(2), lineNumber: z.number().int().min(2),
+  pageNumber: z.number().int().min(1).max(MAX_PDF_PAGES).optional(), original: z.array(z.string()),
+});
+export const statementPreviewSchema = z.strictObject({
+  parserVersion: z.literal('logical-rows-v1'), sourceLineCount: z.number().int().nonnegative(),
+  mergedLineCount: z.number().int().nonnegative(),
+  metadata: z.array(pdfSourceLineSchema.extend({ kind: z.enum(['balance', 'footer']) })),
+  balances: z.strictObject({ checked: z.number().int().nonnegative(), matched: z.number().int().nonnegative(),
+    unavailable: z.number().int().nonnegative(), mismatchRows: z.array(z.number().int().min(2)) }),
+});
+export type StatementPreview = z.infer<typeof statementPreviewSchema>;
+export type PdfSourceLine = z.infer<typeof pdfSourceLineSchema>;
 export const importFieldMapSchema = z.strictObject({
   date: z.number().int().min(0), description: z.number().int().min(0),
   direction: z.number().int().min(0).nullable(), amount: z.number().int().min(0).nullable(),
@@ -24,12 +37,14 @@ export const csvPreviewSchema = z.strictObject({
   // still use the canonical header and omit fieldMap/draftFields.
   header: z.array(z.string().max(200)).min(4).max(100),
   fieldMap: importFieldMapSchema.optional(),
+  statement: statementPreviewSchema.optional(),
   rows: z.array(z.strictObject({
     rowNumber: z.number().int().min(2), lineNumber: z.number().int().min(2),
     pageNumber: z.number().int().min(1).max(MAX_PDF_PAGES).optional(),
     original: z.array(z.string()), transaction: cashRowSchema.nullable(),
     errors: z.array(z.strictObject({ field: z.string(), message: z.string() })),
     draftFields: importDraftFieldsSchema.optional(),
+    sourceLines: z.array(pdfSourceLineSchema).optional(),
   })).min(1).max(MAX_IMPORT_ROWS),
   validCount: z.number().int().min(0), invalidCount: z.number().int().min(0),
 }).superRefine((preview, ctx) => {
@@ -45,6 +60,18 @@ export const csvPreviewSchema = z.strictObject({
     preview.validCount !== preview.rows.filter(row => row.transaction !== null).length ||
     preview.invalidCount !== preview.rows.filter(row => row.transaction === null).length) {
     ctx.addIssue({ code: 'custom', message: 'Preview rows and counts must agree' });
+  }
+  if (preview.statement) {
+    const lines = [...preview.rows.flatMap(row => row.sourceLines ?? []), ...preview.statement.metadata];
+    const check = preview.statement.balances;
+    const rowsByNumber = new Map(preview.rows.map(row => [row.rowNumber, row]));
+    if (preview.rows.some(row => !row.sourceLines?.length || row.sourceLines[0]?.rowNumber !== row.rowNumber) ||
+      lines.length !== preview.statement.sourceLineCount || new Set(lines.map(line => line.rowNumber)).size !== lines.length ||
+      preview.statement.mergedLineCount !== preview.rows.reduce((sum, row) => sum + (row.sourceLines?.length ?? 1) - 1, 0) ||
+      check.checked + check.unavailable !== preview.rows.length || check.matched + check.mismatchRows.length !== check.checked ||
+      new Set(check.mismatchRows).size !== check.mismatchRows.length ||
+      check.mismatchRows.some(number => { const row = rowsByNumber.get(number); return !row || row.transaction !== null || !row.errors.some(error => error.field === 'balance'); }))
+      ctx.addIssue({ code: 'custom', message: 'Statement source coverage and balance checks must agree' });
   }
 });
 
@@ -65,6 +92,9 @@ export const importConfirmationResultSchema = z.strictObject({
   unresolvedCount: z.number().int().min(0), duplicate: z.boolean(),
 });
 export type ImportConfirmation = z.infer<typeof importConfirmationSchema>;
+export const importRecoverySchema = z.strictObject({
+  preview: csvPreviewSchema, decisions: importConfirmationSchema.shape.rows,
+});
 export type ImportPlanRow = z.infer<typeof importPlanRowSchema>;
 
 // Subsequent corrections only resolve rows left unresolved by confirmation.

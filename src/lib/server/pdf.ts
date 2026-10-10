@@ -4,9 +4,12 @@ import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFParse } from 'pdf-parse';
-import { MAX_PDF_PAGES, MAX_IMPORT_ROWS } from '../contracts/limits.ts';
-import { findTransactionHeader, previewPdfRows, type CsvPreview, type ImportFieldMap } from './csv.ts';
+import { MAX_PDF_PAGES } from '../contracts/limits.ts';
+import { findTransactionHeader, type CsvPreview, type ImportFieldMap } from './csv.ts';
 import { BackendError } from './errors.ts';
+import { createHash } from 'node:crypto';
+import { assembleStatement } from './statement-rows.ts';
+import { decideStatementHeader } from './statement-header-decision.ts';
 
 const packageRequire = createRequire(`${process.cwd()}/package.json`);
 const PDFJS_ROOT = resolve(dirname(packageRequire.resolve('pdfjs-dist/legacy/build/pdf.mjs')), '../..');
@@ -117,10 +120,10 @@ export async function previewPdf(bytes: Uint8Array, signal?: AbortSignal): Promi
   const cancel = () => { void loadingTask.destroy().catch(() => undefined); void tables.destroy().catch(() => undefined); };
   signal?.addEventListener('abort', cancel, { once: true });
   const matrix: string[][] = [], sourcePages: number[] = [];
-  let firstHeader: HeaderLayout | null = null, itemCount = 0, characterCount = 0;
+  let firstHeader: HeaderLayout | null = null, itemCount = 0, characterCount = 0, decisionAttempted = false;
   const append = (values: string[], pageNumber: number) => {
     if (!values.some(value => value.trim())) return;
-    if (matrix.length > MAX_IMPORT_ROWS) throw new PdfImportError(`This PDF has more than ${MAX_IMPORT_ROWS} transaction rows. Split the statement into smaller date ranges.`);
+    if (matrix.length > MAX_PDF_TEXT_ITEMS) throw new PdfImportError('This PDF exceeds the source-line processing limit.');
     matrix.push(values); sourcePages.push(pageNumber);
   };
   try {
@@ -144,8 +147,25 @@ export async function previewPdf(bytes: Uint8Array, signal?: AbortSignal): Promi
           // in the middle of an otherwise selectable-text statement.
           if (!positioned.length) throw new PdfImportError(`Page ${pageNumber} has no selectable transaction text. Scanned or image-only statements need OCR; upload an OCR text-based PDF, CSV, or Excel file.`);
           const lines = groupLines(positioned);
-          const headerLine = lines.slice(0, HEADER_SCAN_LINES).findIndex(line => identifyHeader(line) !== null);
-          const pageHeader = headerLine >= 0 ? identifyHeader(lines[headerLine]!) : null;
+          let headerLine = lines.slice(0, HEADER_SCAN_LINES).findIndex(line => identifyHeader(line) !== null);
+          let pageHeader = headerLine >= 0 ? identifyHeader(lines[headerLine]!) : null;
+          if (!pageHeader && firstHeader) {
+            const repeated = lines.slice(0, HEADER_SCAN_LINES).findIndex(line =>
+              JSON.stringify(groupCells(line).map(cell => cell.text)) === JSON.stringify(firstHeader!.cells.map(cell => cell.text)));
+            if (repeated >= 0) { headerLine = repeated; pageHeader = { cells: groupCells(lines[repeated]!), fieldMap: firstHeader.fieldMap }; }
+          }
+          if (!firstHeader && !pageHeader && !decisionAttempted) {
+            const candidateLine = lines.slice(0, HEADER_SCAN_LINES).findIndex(line => {
+              const text = groupCells(line).map(cell => cell.text).join(' ');
+              return /\bdate\b/i.test(text) && /\bdebit\b/i.test(text) && /\bcredit\b/i.test(text);
+            });
+            if (candidateLine >= 0) {
+              decisionAttempted = true;
+              const cells = groupCells(lines[candidateLine]!);
+              const map = await decideStatementHeader(cells.map(cell => cell.text), signal);
+              if (map) { pageHeader = { cells, fieldMap: map }; headerLine = candidateLine; }
+            }
+          }
           if (pageHeader && firstHeader && !sameFieldMap(pageHeader.fieldMap, firstHeader.fieldMap)) throw new PdfImportError(`The transaction columns change on page ${pageNumber}. Import each account or table layout separately.`);
           if (!firstHeader && pageHeader) {
             const previousMap = matrix.length ? findTransactionHeader([matrix[0]!])?.fieldMap : null;
@@ -184,7 +204,9 @@ export async function previewPdf(bytes: Uint8Array, signal?: AbortSignal): Promi
     }
     if (!matrix.length) throw new PdfImportError('Could not find a readable transaction table in this PDF. Include Date, Description, and Amount plus Direction or separate Debit and Credit columns.');
     active();
-    return previewPdfRows(matrix, bytes, MAX_IMPORT_ROWS, sourcePages);
+    return assembleStatement(matrix[0]!, matrix.slice(1).map((original, index) => ({
+      original, rowNumber: index + 2, lineNumber: index + 2, pageNumber: sourcePages[index]!,
+    })), createHash('sha256').update(bytes).digest('hex'), firstHeader?.fieldMap);
   } catch (failure) {
     active();
     if (failure instanceof PdfImportError || failure instanceof BackendError) throw failure;
