@@ -3,9 +3,9 @@ import { z } from 'zod';
 import { verifiedInvoiceSchema as invoiceSchema, invoicesListSchema, invoiceUpsertInputSchema, invoiceStatusUpdateSchema, invoiceDeleteSchema, generateInvoiceAIRequestSchema, generateInvoiceAIResponseSchema } from '../contracts/invoices.ts';
 import { categorySchema, transactionSchema } from '../contracts/schemas.ts';
 import { csvPreviewSchema, importRecoverySchema, importConfirmationSchema, importConfirmationResultSchema, importResolutionSchema, importResolutionResultSchema, importResolutionStateSchema } from '../contracts/imports.ts';
-import { transactionReviewSchema } from '../contracts/cashbook.ts';
+import { cashSummaryRangeSchema, transactionReviewSchema } from '../contracts/cashbook.ts';
 import type { ImportConfirmation } from '../contracts/imports.ts';
-import type { TransactionReview } from '../contracts/cashbook.ts';
+import type { CashSummaryRange, TransactionReview } from '../contracts/cashbook.ts';
 import { assistantRequestSchema, assistantResponseSchema } from '../contracts/assistant.ts';
 import {
   documentExtractionRequestSchema, documentMutationResultSchema, documentRecordSchema, documentRegistrationResultSchema,
@@ -13,7 +13,7 @@ import {
 } from '../contracts/documents.ts';
 import {
   categoryGenerationRequestSchema, matchGenerationRequestSchema, matchGenerationResultSchema,
-  proposalBatchResultSchema, proposalRecordSchema, proposalReviewSchema, proposalReviewResultSchema,
+  proposalBatchResultSchema, proposalRecordSchema, proposalReviewHistoryItemSchema, proposalReviewSchema, proposalReviewResultSchema,
 } from '../contracts/proposals.ts';
 
 export class ClientError extends Error {
@@ -50,6 +50,7 @@ const reviewHistorySchema = z.object({ items: z.array(z.object({
   action: z.literal('correct'), previous: z.unknown(), current: z.unknown(),
   reviewVersion: z.number().int().positive(), createdAt: z.iso.datetime({ offset: true }),
 })), nextCursor: z.string().nullable() });
+const proposalReviewHistorySchema = z.strictObject({ items: z.array(proposalReviewHistoryItemSchema).max(20), nextCursor: z.string().nullable() });
 const signedMinor = z.string().regex(/^-?(0|[1-9][0-9]*)$/);
 const positiveMinor = z.string().regex(/^(0|[1-9][0-9]*)$/);
 const bucketSchema = z.object({ inflowMinor: positiveMinor, outflowMinor: positiveMinor, netMovementMinor: signedMinor });
@@ -113,7 +114,15 @@ export const api = {
     return request('/api/sources', sourceSchema, signal, { method: 'POST', body });
   },
   sourceLink: (id: string, signal: AbortSignal) => request(`/api/sources/${encodeURIComponent(id)}`, sourceLinkSchema, signal),
-  summary: (signal: AbortSignal) => request('/api/summary', cashSummarySchema, signal),
+  summary: (signal: AbortSignal, range: CashSummaryRange = {}) => {
+    const parsed = cashSummaryRangeSchema.safeParse(range);
+    if (!parsed.success) throw new ClientError('INVALID_INPUT', 'Choose a valid, non-reversed summary date range.');
+    const params = new URLSearchParams();
+    if (parsed.data.dateFrom) params.set('dateFrom', parsed.data.dateFrom);
+    if (parsed.data.dateTo) params.set('dateTo', parsed.data.dateTo);
+    const query = params.size ? `?${params.toString()}` : '';
+    return request(`/api/summary${query}`, cashSummarySchema, signal);
+  },
   registerImport: (file: File, signal: AbortSignal) => {
     const body = new FormData(); body.set('file', file);
     return request('/api/imports', importBatchSchema.safeExtend({ duplicate: z.boolean() }), signal, { method: 'POST', body });
@@ -161,6 +170,21 @@ export const api = {
   reviewProposal: (input: z.infer<typeof proposalReviewSchema>, signal: AbortSignal) => request('/api/reviews', proposalReviewResultSchema, signal, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(proposalReviewSchema.parse(input)),
   }),
+  proposalReviews: async (id: string, workspaceId: string, signal: AbortSignal, cursor: string | null = null) => {
+    let previous = Number(cursor ?? '0');
+    if (!Number.isSafeInteger(previous) || previous < 0 || previous > 2147483647) throw new ClientError('INVALID_INPUT', 'Invalid proposal history cursor.');
+    const page = await request(`/api/reviews?proposalId=${encodeURIComponent(id)}&limit=20&cursor=${encodeURIComponent(cursor ?? '0')}`, proposalReviewHistorySchema, signal);
+    const ids = new Set<string>();
+    for (const item of page.items) {
+      if (item.workspaceId !== workspaceId || item.targetId !== id || item.previous.workspaceId !== workspaceId || item.current.workspaceId !== workspaceId ||
+          item.previous.id !== id || item.current.id !== id || item.reviewVersion <= previous || ids.has(item.id))
+        throw new ClientError('UNAVAILABLE', 'Proposal history could not be verified. Reload the review queue.');
+      previous = item.reviewVersion; ids.add(item.id);
+    }
+    if (page.nextCursor !== null && (!page.items.length || page.nextCursor !== String(previous)))
+      throw new ClientError('UNAVAILABLE', 'Proposal history cursor could not be verified.');
+    return page;
+  },
   matchProposals: (signal: AbortSignal, status: 'all' | 'pending' = 'all', cursor: string | null = null) => request(
     `/api/match-proposals?limit=50&status=${status}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, proposalPageSchema, signal),
   generateMatchProposals: (input: z.infer<typeof matchGenerationRequestSchema>, signal: AbortSignal) => request(

@@ -1,4 +1,5 @@
 import type { CashBucket, CashSummary, Category, Transaction } from '../contracts/index.ts';
+import { cashSummaryRangeSchema, type CashSummaryRange } from '../contracts/cashbook.ts';
 import { transactionSchema } from '../contracts/schemas.ts';
 
 export function validateCashbook(records: readonly Transaction[], workspaceId: string): Transaction[] {
@@ -22,9 +23,11 @@ function add(bucket: CashBucket, record: Transaction): void {
   bucket.netMovementMinor = (BigInt(bucket.inflowMinor) - BigInt(bucket.outflowMinor)).toString();
 }
 
-export function calculateCashSummary(records: readonly Transaction[], workspaceId: string, unresolvedImportRowCount: number): CashSummary {
+export function calculateCashSummary(records: readonly Transaction[], workspaceId: string, unresolvedImportRowCount: number, range: CashSummaryRange = {}): CashSummary {
   if (!Number.isSafeInteger(unresolvedImportRowCount) || unresolvedImportRowCount < 0) throw new Error('Invalid unresolved row count');
-  const validated = validateCashbook(records, workspaceId);
+  const dateRange = cashSummaryRangeSchema.parse(range);
+  const validated = validateCashbook(records, workspaceId).filter(record =>
+    (!dateRange.dateFrom || record.date >= dateRange.dateFrom) && (!dateRange.dateTo || record.date <= dateRange.dateTo));
   const all = emptyBucket(), unreviewed = emptyBucket();
   const categories: Partial<Record<Category, CashBucket>> = {};
   let categoryAcceptedCount = 0;
