@@ -1,6 +1,5 @@
 import 'server-only';
-import { createRequire } from 'node:module';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFParse } from 'pdf-parse';
@@ -11,8 +10,7 @@ import { createHash } from 'node:crypto';
 import { assembleStatement } from './statement-rows.ts';
 import { decideStatementHeader } from './statement-header-decision.ts';
 
-const packageRequire = createRequire(`${process.cwd()}/package.json`);
-const PDFJS_ROOT = resolve(dirname(packageRequire.resolve('pdfjs-dist/legacy/build/pdf.mjs')), '../..');
+const PDFJS_ROOT = resolve(process.cwd(), 'node_modules/pdfjs-dist');
 const STANDARD_FONTS_PATH = `${resolve(PDFJS_ROOT, 'standard_fonts')}/`;
 const CMAPS_PATH = `${resolve(PDFJS_ROOT, 'cmaps')}/`;
 GlobalWorkerOptions.workerSrc = pathToFileURL(resolve(PDFJS_ROOT, 'legacy/build/pdf.worker.mjs')).href;

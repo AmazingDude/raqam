@@ -1,9 +1,13 @@
 import {chatHistorySchema,chatSendResultSchema,chatApplyResultSchema,chatSendSchema,chatDecisionSchema} from '../contracts/chat.ts';
-import { MAX_WORKSPACE_TRANSACTIONS } from '../contracts/limits.ts';
+import { MAX_WORKSPACE_TRANSACTIONS, MAX_PDF_BYTES } from '../contracts/limits.ts';
 import { z } from 'zod';
 import { verifiedInvoiceSchema as invoiceSchema, invoicesListSchema, invoiceUpsertInputSchema, invoiceStatusUpdateSchema, invoiceDeleteSchema, generateInvoiceAIRequestSchema, generateInvoiceAIResponseSchema } from '../contracts/invoices.ts';
 import { categorySchema, transactionSchema } from '../contracts/schemas.ts';
-import { csvPreviewSchema, importRecoverySchema, importConfirmationSchema, importConfirmationResultSchema, importResolutionSchema, importResolutionResultSchema, importResolutionStateSchema } from '../contracts/imports.ts';
+import {
+  csvPreviewSchema, importRecoverySchema, importConfirmationSchema, importConfirmationResultSchema, importResolutionSchema,
+  importResolutionResultSchema, importResolutionStateSchema, importUploadIntentRequestSchema, importUploadIntentSchema,
+  importFinalizeUploadSchema,
+} from '../contracts/imports.ts';
 import { cashSummaryRangeSchema, transactionReviewSchema } from '../contracts/cashbook.ts';
 import type { ImportConfirmation } from '../contracts/imports.ts';
 import type { CashSummaryRange, TransactionReview } from '../contracts/cashbook.ts';
@@ -108,6 +112,69 @@ export async function request<T>(path: string, schema: z.ZodType<T>, signal: Abo
   if (!data.success) throw new ClientError('UNAVAILABLE', 'The workspace returned unexpected records. Please reload.');
   return data.data;
 }
+
+function importMimeType(name: string): string {
+  switch (name.toLowerCase().split('.').at(-1)) {
+    case 'csv': return 'text/csv';
+    case 'tsv': return 'text/tab-separated-values';
+    case 'xls': return 'application/vnd.ms-excel';
+    case 'xlsx': return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    case 'pdf': return 'application/pdf';
+    default: return 'application/octet-stream';
+  }
+}
+
+function verifySignedImportUpload(intent: z.infer<typeof importUploadIntentSchema>): URL {
+  const configuredStorageUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!configuredStorageUrl) throw new ClientError('UNAVAILABLE', 'Private file storage is not configured.');
+  let base: URL, signed: URL;
+  try { base = new URL(configuredStorageUrl); signed = new URL(intent.signedUrl); }
+  catch { throw new ClientError('UNAVAILABLE', 'The private upload destination could not be verified. Reload the workspace.'); }
+  const basePath = base.pathname.replace(/\/+$/, '');
+  const expectedPath = `${basePath}/storage/v1/object/upload/sign/raqam-sources/${intent.path}`;
+  if (base.protocol !== 'https:' || signed.protocol !== 'https:' || signed.origin !== base.origin || signed.pathname !== expectedPath ||
+      !signed.searchParams.get('token') || signed.username || signed.password || signed.hash) {
+    throw new ClientError('UNAVAILABLE', 'The private upload destination could not be verified. Reload the workspace.');
+  }
+  return signed;
+}
+
+async function uploadImportFile(file: File, signal: AbortSignal): Promise<ImportBatch & {duplicate:boolean}> {
+  const intent = await request('/api/imports/upload-url', importUploadIntentSchema, signal, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(importUploadIntentRequestSchema.parse({ name: file.name, size: file.size })),
+  });
+  const signedUrl = verifySignedImportUpload(intent);
+  const publicKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!publicKey) throw new ClientError('UNAVAILABLE', 'Private file storage is not configured.');
+
+  let uploaded: Response;
+  try {
+    uploaded = await fetch(signedUrl, {
+      method: 'PUT',
+      headers: { apikey: publicKey, Authorization: `Bearer ${publicKey}`, 'x-upsert': 'false', 'cache-control': 'max-age=3600', 'Content-Type': importMimeType(file.name) },
+      body: file, signal, cache: 'no-store', credentials: 'omit', redirect: 'error',
+    });
+  } catch (error) {
+    if (signal.aborted) throw error;
+    throw new ClientError('UNAVAILABLE', 'The file could not reach private storage. Check the connection and retry.');
+  }
+  if (!uploaded.ok) {
+    try { await uploaded.body?.cancel(); } catch { /* status is sufficient */ }
+    if (uploaded.status === 413) {
+      const maxBytes = file.name.toLowerCase().endsWith('.pdf') ? MAX_PDF_BYTES : 1024 * 1024;
+      throw new ClientError('PAYLOAD_TOO_LARGE', `Private storage rejected this ${ (file.size / 1024 / 1024).toFixed(1) } MiB file. The limit is ${(maxBytes / 1024 / 1024).toFixed(0)} MiB.`);
+    }
+    throw new ClientError('UNAVAILABLE', 'The file could not be saved to private storage. Your cashbook is unchanged; retry the upload.');
+  }
+  try { await uploaded.body?.cancel(); } catch { /* finalization verifies the stored object */ }
+
+  const finalize = importFinalizeUploadSchema.parse({ path: intent.path, name: file.name });
+  return request('/api/imports', importBatchSchema.safeExtend({ duplicate: z.boolean() }), signal, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(finalize),
+  });
+}
+
 export const api = {
   chatHistory:(signal:AbortSignal,conversationId?:string,cursor?:string)=>request(`/api/assistant/chat?${new URLSearchParams({...conversationId?{conversationId}:{},...cursor?{cursor}:{}})}`,chatHistorySchema,signal),
   chatSend:(input: z.infer<typeof chatSendSchema>,signal:AbortSignal)=>request('/api/assistant/chat',chatSendResultSchema,signal,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(chatSendSchema.parse(input))}),
@@ -149,10 +216,7 @@ export const api = {
     const query = params.size ? `?${params.toString()}` : '';
     return request(`/api/summary${query}`, cashSummarySchema, signal);
   },
-  registerImport: (file: File, signal: AbortSignal) => {
-    const body = new FormData(); body.set('file', file);
-    return request('/api/imports', importBatchSchema.safeExtend({ duplicate: z.boolean() }), signal, { method: 'POST', body });
-  },
+  registerImport: uploadImportFile,
   importBatch: (id: string, signal: AbortSignal) => request(`/api/imports/${encodeURIComponent(id)}`, importBatchSchema, signal),
   confirmImport: (id: string, input: ImportConfirmation, signal: AbortSignal) => request(`/api/imports/${encodeURIComponent(id)}/confirmation`, importConfirmationResultSchema, signal, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(importConfirmationSchema.parse(input)),

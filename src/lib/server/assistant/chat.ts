@@ -19,7 +19,7 @@ import { acquireAssistantRequest } from './request-budget.ts';
 function failure(code?:string):BackendError {
  if(code==='P0002')return new BackendError('NOT_FOUND','Conversation or record not found in your workspace.');
  if(['PT409','23505','40001'].includes(code??''))return new BackendError('CONFLICT','These records changed or have a saved accounting/match decision. Refresh and request a new correction.');
- if(['42P01','42883','PGRST202','PGRST205'].includes(code??''))return new BackendError('UNAVAILABLE','Chat storage is not ready. Apply migration 016 after the earlier migrations.');
+ if(['42P01','42883','PGRST202','PGRST205'].includes(code??''))return new BackendError('UNAVAILABLE','Chat storage is not ready. Apply migration 017 after the earlier migrations.');
  if(['22023','23514','22P02','22003','22007','22008'].includes(code??''))return new BackendError('INVALID_INPUT','Check the dates, amounts and accounting classification before saving.');
  return new BackendError('UNAVAILABLE','Chat could not complete. Retry the same request to recover any saved result.');
 }
@@ -50,6 +50,7 @@ export function buildChatPlan(draftInput:unknown,records:ReadonlyMap<string,{tra
  if(!draft.actions.length)return {plan:null,clarification:'Describe the transactions or the correction you want to save.'};
  for(const action of draft.actions){
   if(action.kind==='journal'){
+   if(action.reversalOfId&&ledger.journals.find(j=>j.id===action.reversalOfId)?.cashMovement)return {plan:null,clarification:'To correct a cash-related statement, specify the cashbook transaction and its corrected values. Its cash journal will be corrected together with the record.'};
    if(!dateSchema.safeParse(action.entryDate).success)return {plan:null,clarification:'What is the full accounting date, including the year?'};
    const lines=action.lines.map(line=>({id:randomUUID(),accountId:line.accountId,debitMinor:amount(line.debit),creditMinor:amount(line.credit),memo:null}));
    const id=randomUUID(),requestId=randomUUID(),noteId=randomUUID();

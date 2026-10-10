@@ -1,5 +1,7 @@
 -- Private, explicitly confirmed tax-readiness profile. This stores self-reported
 -- categories only; it does not calculate liability or prepare/file a return.
+begin;
+
 create or replace function public.tax_readiness_array_valid(
   p_value jsonb, p_allowed text[], p_min integer, p_max integer
 ) returns boolean language sql immutable set search_path = '' as $$
@@ -65,7 +67,7 @@ begin
 end
 $$;
 
-create table public.tax_readiness_profiles (
+create table if not exists public.tax_readiness_profiles (
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
   tax_year integer not null check (tax_year between 2000 and 2200),
   answers jsonb not null check (public.tax_readiness_answers_valid(answers)),
@@ -75,6 +77,7 @@ create table public.tax_readiness_profiles (
 );
 alter table public.tax_readiness_profiles enable row level security;
 alter table public.tax_readiness_profiles force row level security;
+drop policy if exists tax_readiness_profiles_owner_read on public.tax_readiness_profiles;
 create policy tax_readiness_profiles_owner_read on public.tax_readiness_profiles
   for select to authenticated using (
     exists (select 1 from public.workspaces w where w.id = workspace_id and w.owner_subject = (select auth.jwt()->>'sub'))
@@ -82,7 +85,7 @@ create policy tax_readiness_profiles_owner_read on public.tax_readiness_profiles
 revoke all on public.tax_readiness_profiles from public, anon, authenticated;
 grant select on public.tax_readiness_profiles to authenticated;
 
-create function public.save_tax_readiness_profile(p_tax_year integer, p_answers jsonb, p_confirmed boolean, p_expected_version integer)
+create or replace function public.save_tax_readiness_profile(p_tax_year integer, p_answers jsonb, p_confirmed boolean, p_expected_version integer)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
   subject text := (select auth.jwt()->>'sub');
@@ -128,3 +131,5 @@ revoke all on function public.save_tax_readiness_profile(integer, jsonb, boolean
 grant execute on function public.tax_readiness_array_valid(jsonb, text[], integer, integer) to authenticated;
 grant execute on function public.tax_readiness_answers_valid(jsonb) to authenticated;
 grant execute on function public.save_tax_readiness_profile(integer, jsonb, boolean, integer) to authenticated;
+
+commit;

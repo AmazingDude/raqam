@@ -1,4 +1,4 @@
--- Chat-entered history, durable proposals, atomic audited edits. Requires 001-015.
+-- Chat-entered history, durable proposals, atomic audited edits. Requires 001-016.
 begin;
 alter table public.sources drop constraint sources_source_type_check;
 alter table public.sources add constraint sources_source_type_check check(source_type in ('transaction_csv','receipt_image','manual_chat'));
@@ -145,7 +145,9 @@ begin
   user_text:=coalesce(m.plan->>'originalText',user_text);
   for a in select value from jsonb_array_elements(m.plan->'actions') loop
    if a->>'kind'='post_journal' then
-    command:=a->'journal';src:='[]'::jsonb;
+    command:=a->'journal';
+    if (command->'cashMovement' is not null and command->'cashMovement'<>'null'::jsonb) or exists(select 1 from public.ledger_journals where workspace_id=p_workspace_id and id=(command->>'reversalOfId')::uuid and cash_movement is not null) then raise exception using errcode='22023',message='Cash statement corrections must use the versioned cashbook action'; end if;
+    if exists(select 1 from public.workspace_payments where workspace_id=p_workspace_id and journal_id=(command->>'reversalOfId')::uuid) then raise exception using errcode='PT409',message='A linked payment needs an explicit settlement correction'; end if;src:='[]'::jsonb;
     if jsonb_array_length(command->'sources')<>1 or command->'sources'->0->>'kind'<>'manual_note' then raise exception using errcode='22023',message='A chat adjustment requires its confirmed note'; end if;
     perform public.chat_recognition_note(p_workspace_id,(command->'sources'->0->>'noteId')::uuid,(command->>'requestId')::uuid,user_text,(command->>'entryDate')::date,(select sum((value->>'debitMinor')::numeric)::bigint from jsonb_array_elements(command->'lines')));
     src:=jsonb_build_array(jsonb_build_object('kind','manual_note','id',command->'sources'->0->>'noteId','locator',command->'sources'->0->'locator'));
@@ -176,6 +178,7 @@ begin
     if (a->>'expectedVersion') is null or t.review_version<>(a->>'expectedVersion')::integer then raise exception using errcode='PT409',message='Transaction changed'; end if;
     before_value:=jsonb_build_object('date',t.date,'description',t.description,'direction',t.direction,'amountMinor',t.amount_minor::text,'reference',t.reference,'category',t.category,'categoryStatus',t.category_status);
     financial:=(t.date<>(v->>'date')::date or t.direction<>v->>'direction' or t.amount_minor<>(v->>'amountMinor')::bigint or a->>'counterAccountId' is not null);
+    if financial and exists(select 1 from public.workspace_payments where workspace_id=p_workspace_id and transaction_id=t.id) then raise exception using errcode='PT409',message='A linked payment needs an explicit settlement correction'; end if;
     if financial and exists(select 1 from public.accepted_matches where transaction_id=t.id and active) then raise exception using errcode='PT409',message='Undo the accepted match before changing cash values'; end if;
     update public.transactions set date=(v->>'date')::date,description=v->>'description',direction=v->>'direction',amount_minor=(v->>'amountMinor')::bigint,reference=v->>'reference',category=v->>'category',category_status=case when v->>'category' is null then 'needs_review' else 'accepted' end,review_version=review_version+1 where id=t.id returning * into t;
    end if;
@@ -200,6 +203,51 @@ begin
 end $$;
 revoke all on function public.confirm_chat_exchange(uuid,uuid,uuid,uuid,text) from public,anon,authenticated;
 grant execute on function public.confirm_chat_exchange(uuid,uuid,uuid,uuid,text) to authenticated;
+-- Extend the deferred statement-origin guard without weakening its reversal checks.
+create or replace function public.validate_ledger_entry_invariants() returns trigger language plpgsql security definer set search_path='' as $$
+declare original public.ledger_journals%rowtype;
+begin
+  if new.cash_movement->>'kind'='bank_transaction' and not (exists(
+    select 1 from public.transactions t join public.imports i on i.source_id=t.source_id and i.workspace_id=t.workspace_id
+    cross join lateral jsonb_array_elements(i.confirmation_plan) plan
+    join public.review_decisions d on d.target_id=i.source_id and d.source_row=t.source_row
+      and d.workspace_id=i.workspace_id and d.target_kind='import_row' and d.action in ('accept','correct')
+    join public.sources s on s.id=i.source_id and s.workspace_id=i.workspace_id and s.status='complete'
+    where t.id=(new.cash_movement->>'transactionId')::uuid and t.workspace_id=new.workspace_id and i.status='confirmed'
+      and (plan->>'rowNumber')::integer=t.source_row and plan->>'action' in ('import','correct')
+  ) or exists(
+    select 1 from public.transactions t join public.sources s on s.id=t.source_id and s.workspace_id=t.workspace_id
+    join public.chat_messages m on m.workspace_id=t.workspace_id and m.id::text=split_part(s.storage_path,'/',3)
+    where t.id=(new.cash_movement->>'transactionId')::uuid and t.workspace_id=new.workspace_id
+      and t.source_type='manual_chat' and s.source_type='manual_chat' and s.status='complete'
+      and m.state='applied' and m.role='assistant' and m.result->'transactionIds' ? t.id::text
+  )) then
+    raise exception using errcode='22023',message='Cash postings require a confirmed statement row or owner-confirmed chat history';
+  end if;
+  if new.reversal_of_id is null then return new; end if;
+  select * into original from public.ledger_journals
+    where workspace_id=new.workspace_id and id=new.reversal_of_id for update;
+  if not found or original.status<>'posted' or original.id=new.id or original.reversal_of_id is not null then
+    raise exception using errcode='22023',message='A reversal must target an unreversed original posted journal';
+  end if;
+  if exists(
+    select 1
+    from (
+      select account_id,sum(debit_minor) as debit_minor,sum(credit_minor) as credit_minor
+      from public.ledger_journal_lines where workspace_id=new.workspace_id and journal_id=original.id group by account_id
+    ) old_lines
+    full join (
+      select account_id,sum(debit_minor) as debit_minor,sum(credit_minor) as credit_minor
+      from public.ledger_journal_lines where workspace_id=new.workspace_id and journal_id=new.id group by account_id
+    ) reverse_lines using(account_id)
+    where coalesce(old_lines.debit_minor,0)<>coalesce(reverse_lines.credit_minor,0)
+      or coalesce(old_lines.credit_minor,0)<>coalesce(reverse_lines.debit_minor,0)
+  ) then
+    raise exception using errcode='22023',message='Reversal must exactly reverse original';
+  end if;
+  return new;
+end;
+$$;
 -- Keep old view columns stable; append source type for honest manual provenance.
 create or replace view public.cashbook_records with(security_invoker=true) as
  select t.id,t.workspace_id,t.source_id,t.source_row,t.date,t.original_description,t.description,t.direction,t.amount_minor::text as amount_minor,t.currency,t.reference,t.category,t.category_status,t.review_version,

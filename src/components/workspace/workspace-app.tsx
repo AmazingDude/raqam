@@ -33,13 +33,15 @@ import { SupplierBillsScreen } from './bookkeeping/supplier-bills-screen.tsx';
 import { LedgerScreen } from './bookkeeping/ledger-screen.tsx';
 import { ProfileScreen, TaxWorkpaperScreen } from './profile-tax-screen.tsx';
 import { TaxReadinessScreen } from './tax-readiness-screen.tsx';
+import { PaymentsScreen } from './bookkeeping/payments-screen.tsx';
 import s from '../ui/theme.module.css';
-type View = 'cashbook' | 'invoices' | 'expenses' | 'bills' | 'books' | 'profile' | 'tax' | 'tax-workpaper' | 'import' | 'documents' | 'review' | 'assistant' | 'settings';
+type View = 'cashbook' | 'invoices' | 'expenses' | 'bills' | 'payments' | 'books' | 'profile' | 'tax' | 'tax-workpaper' | 'import' | 'documents' | 'review' | 'assistant' | 'settings';
 const views: {id:View;label:string;icon:IconName}[] = [
   {id:'cashbook',label:'Cashbook',icon:'book'},
   {id:'invoices',label:'Invoices',icon:'file'},
   {id:'expenses',label:'Expense drafts',icon:'review'},
   {id:'bills',label:'Supplier bills',icon:'file'},
+  {id:'payments',label:'Payments and links',icon:'review'},
   {id:'books',label:'Books and reports',icon:'book'},
   {id:'profile',label:'Business profile',icon:'review'},
   {id:'tax',label:'Tax readiness',icon:'file'},
@@ -247,6 +249,7 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
         {view==='invoices'&&<InvoicesScreen demo={demo} businessName={workspace.businessName} currency={workspace.currency}/>}
         {view==='expenses'&&<ExpensesScreen key={workspace.id} demo={demo} workspaceId={workspace.id}/>}
         {view==='bills'&&<SupplierBillsScreen key={workspace.id} demo={demo} workspaceId={workspace.id} documents={liveDocuments} getLink={getLink}/>}
+        {view==='payments'&&<PaymentsScreen key={workspace.id} demo={demo} workspaceId={workspace.id}/>}
         {view==='books'&&<LedgerScreen key={workspace.id} demo={demo} workspaceId={workspace.id}/>}
         {view==='profile'&&<ProfileScreen workspace={workspace} onTaxReadiness={()=>navigate('tax')}/>}
         {view==='tax-workpaper'&&<TaxWorkpaperScreen/>}

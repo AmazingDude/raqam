@@ -1,4 +1,4 @@
--- Read-only migration 016 completeness check. Returns metadata only.
+-- Read-only migration 017 completeness check. Returns metadata only.
 select
  to_regclass('public.chat_conversations') is not null as conversations_exist,
  to_regclass('public.chat_messages') is not null as messages_exist,

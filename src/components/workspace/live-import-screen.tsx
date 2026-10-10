@@ -13,6 +13,7 @@ type Row = ImportBatch['preview']['rows'][number];
 type Draft = { action: 'keep' | 'correct' | 'reject'; date: string; description: string; direction: string; amount: string; reference: string };
 type Outcomes = z.infer<typeof importResolutionStateSchema>;
 type Attempt = { kind: 'confirm'; input: ImportConfirmation } | { kind: 'resolve'; input: ImportConfirmation & { requestId: string } };
+function formatFileSize(bytes: number) { return `${(bytes / 1024 / 1024).toFixed(1)} MiB`; }
 function initialDraft(row: Row, header: ImportBatch['preview']['header']): Draft {
   if (row.draftFields) return { action: 'keep', ...row.draftFields };
   const original = Object.fromEntries(header.map((field, index) => [field, row.original[index] ?? '']));
@@ -49,8 +50,17 @@ export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void>
   }
   async function upload(file: File) {
     await exclusive(async () => {
-      if (!/\.(csv|tsv|xls|xlsx|pdf)$/i.test(file.name) || !file.size || file.size > (/\.pdf$/i.test(file.name) ? MAX_PDF_BYTES : 1024 * 1024)) throw new Error('Choose a .csv, .tsv, .xls, .xlsx, or text-based .pdf file PDFs allow 20 MiB and 20,000 rows; other formats allow 1 MiB and 50 rows.');
-      const next = await run(signal => api.registerImport(file, signal));
+      if (!/\.(csv|tsv|xls|xlsx|pdf)$/i.test(file.name)) throw new Error('Choose a .csv, .tsv, .xls, .xlsx, or text-based .pdf transaction file.');
+      if (!file.size) throw new Error('The selected file is empty. Choose a transaction export.');
+      const pdf = /\.pdf$/i.test(file.name), maximumBytes = pdf ? MAX_PDF_BYTES : 1024 * 1024;
+      if (file.size > maximumBytes) throw new Error(`This file is ${formatFileSize(file.size)}; the limit is ${formatFileSize(maximumBytes)}.`);
+      let next: ImportBatch & {duplicate:boolean};
+      try { next = await run(signal => api.registerImport(file, signal)); }
+      catch (failure) {
+        if (failure instanceof DOMException && failure.name === 'AbortError') throw failure;
+        const message = failure instanceof Error ? failure.message : 'The import could not complete. Retry.';
+        throw new Error(`${message} Selected file size: ${formatFileSize(file.size)}.`, { cause: failure });
+      }
       setPage(0); setBatch(next); setName(file.name); setOutcomes(null); setAttempt(null); setAcknowledged(false);
       setPreviousPreview(false); setDrafts(reviewDrafts(next));
       setNotice(next.duplicate ? 'Existing import reopened. No duplicate cash records were created.' : 'Original transaction file saved. Review the preview before adding cash records.');

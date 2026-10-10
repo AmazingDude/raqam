@@ -1,4 +1,4 @@
-:global(body) {
+:global(body):has(.page) {
   margin: 0;
 }
 

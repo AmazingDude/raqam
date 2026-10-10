@@ -101,7 +101,7 @@ PDF deployment check: after `npm run build`, run `node scripts/smoke-pdf-package
 
 ### Chat-entered history and corrections
 
-Apply `202610100016_conversational_bookkeeping.sql` after migrations 001–015 have been verified. It adds private conversations, durable change proposals, manual-chat sources and atomic audited cash/ledger corrections. Run `scripts/check-chat-migration.sql` for a read-only completeness check. It does not upload any files or mutate financial records.
+Apply `202610100017_conversational_bookkeeping.sql` after migrations 001–016 have been verified. It adds private conversations, durable change proposals, manual-chat sources and atomic audited cash/ledger corrections. Run `scripts/check-chat-migration.sql` for a read-only completeness check. It does not upload any files or mutate financial records.
 
 In Ask Raqam, enter the full date/year, PKR amount and actual paid/received status. Review the proposed rows, then press **Save changes** or say **save these**. A batch contains at most 10 actions. Missing dates/amounts require clarification. Chat sources retain the human messages; imported statement originals remain unchanged. Amount/date/direction corrections use current review versions and reverse/replace a prior simple two-line cash posting. Accepted matches must be undone before changing cash values; split journals require an explicit accounting adjustment. Specify the accounting counterpart when known; otherwise entries use review clearing and do not become invented income/expense.
 
