@@ -98,3 +98,13 @@ To use RunAnywhere Eve for Ask Raqam, add `ASSISTANT_PROVIDER=eve` and `RUNA_CLO
 Eve defaults to 20 attempted calls per UTC day per process, one at a time, without automatic retries. Set `EVE_DAILY_REQUEST_LIMIT=0` to disable calls or lower it to an integer from 1 to 20. Restarts/multiple instances have separate memory counters; account billing limits remain authoritative. PDF parsing consumes no Eve requests.
 
 PDF deployment check: after `npm run build`, run `node scripts/smoke-pdf-package.mjs`. This checks text and table extraction using only traced serverless dependencies; the canvas package and its Linux native bindings must be included even though PDF.js loads them dynamically. Vercel limits function requests and responses to 4.5 MB; the application's 20 MiB PDF allowance does not override that platform limit.
+
+### Chat-entered history and corrections
+
+Apply `202610100016_conversational_bookkeeping.sql` after migrations 001–015 have been verified. It adds private conversations, durable change proposals, manual-chat sources and atomic audited cash/ledger corrections. Run `scripts/check-chat-migration.sql` for a read-only completeness check. It does not upload any files or mutate financial records.
+
+In Ask Raqam, enter the full date/year, PKR amount and actual paid/received status. Review the proposed rows, then press **Save changes** or say **save these**. A batch contains at most 10 actions. Missing dates/amounts require clarification. Chat sources retain the human messages; imported statement originals remain unchanged. Amount/date/direction corrections use current review versions and reverse/replace a prior simple two-line cash posting. Accepted matches must be undone before changing cash values; split journals require an explicit accounting adjustment. Specify the accounting counterpart when known; otherwise entries use review clearing and do not become invented income/expense.
+
+Conversations and proposals reload from the database. Retrying the same send or saved decision does not create duplicate cash. The model drafts actions; only an explicit owner decision applies a persisted proposal. Posted journal contents remain unchanged and the audit history records corrections. General ledger adjustments require an accounting date and balanced current-account lines.
+
+Local visual checks: `node tests/e2e/prepare-chat-harness.mjs`, `npm run dev`, open `/chat-checks`, then run `node tests/e2e/prepare-chat-harness.mjs --remove`. This route is temporary and development-only; all of its records/actions are simulated. Synthetic live planner checks: `node --env-file-if-exists=.env.local --conditions=react-server scripts/smoke-chat-planner.mjs`. This spends bounded Groq/Gemini calls and never reads or writes workspace data.

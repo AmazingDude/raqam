@@ -230,3 +230,7 @@ Status: `in_review`. The user explicitly requested repair of the existing invoic
 ### User-authorized tax-readiness slice — 10 October 2026
 
 **Local implementation and checks complete; hosted acceptance pending.** PRD D21 adds a guided Pakistan profile for the current normal tax year, memory-only drafts, records checklist and explicitly confirmed private versioned saves. Additive migration **015** follows upstream ledger **014**; no tax calculation, full workpaper, filing/payment or AI exposure of tax answers. Local evidence and exact files/setup are recorded in [the tax-readiness plan](docs/plans/tax-readiness-interview.md) and the appended handoff entry. The user reports the table already exists and declined a schema checker, so full hosted setup/save/reload/isolation is unknown; this does not open the wider tax workpaper/release gates.
+
+## Approved conversational bookkeeping extension
+
+10 October 2026: the user approved chat-entered historical transactions without document uploads, cashbook/statement-row corrections, persistent conversation/edit history and one-step saving of reviewed action batches. The implementation uses migration 016 and retains the original grounded read-only query engine. Local contracts, database isolation/atomicity, exact corrections/reversals and synthetic UI checks are implemented; hosted migration, signed-in integration and live planner evaluation remain release gates. See [chatbot plan](docs/plans/chatbot-bookkeeping-actions.md) and [setup](docs/raqam/SETUP.md).

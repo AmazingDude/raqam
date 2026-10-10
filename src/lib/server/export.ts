@@ -10,12 +10,12 @@ export function encodeCsvCell(value: string): string {
 
 export function exportCashbook(records: readonly Transaction[], workspaceId: string): string {
   const validated = validateCashbook(records, workspaceId);
-  const header = ['id', 'date', 'original_description', 'reviewed_description', 'direction', 'amount', 'currency', 'reference', 'accepted_category', 'category_review_status', 'match_status', 'source_id', 'source_row'];
+  const header = ['id', 'date', 'original_description', 'reviewed_description', 'direction', 'amount', 'currency', 'reference', 'accepted_category', 'category_review_status', 'match_status', 'source_id', 'source_row', 'source_kind'];
   const rows = validated.map(record => [
     record.id, record.date, record.originalDescription, record.description, record.direction,
     formatAmount(record.amountMinor), record.currency, record.reference ?? '',
     record.categoryStatus === 'accepted' ? record.category ?? '' : '',
-    record.categoryStatus, record.matchStatus, record.source.sourceId, String(record.source.rowNumber),
+    record.categoryStatus, record.matchStatus, record.source.sourceId, record.source.rowNumber===null?'':String(record.source.rowNumber),record.source.kind??'statement_row',
   ]);
   return [header, ...rows].map(row => row.map(encodeCsvCell).join(',')).join('\r\n') + '\r\n';
 }

@@ -40,7 +40,7 @@ export function LiveRecordDetail({ record, onClose, onChanged }: { record: Trans
   }
   const current = detail?.transaction ?? record;
   return <Dialog title="Transaction details" onClose={onClose}><div className={s.stack}>
-    <dl className={s.details}><dt>Source</dt><dd style={{overflowWrap:'anywhere'}}>{current.source.sourceId} / row {current.source.rowNumber}</dd><dt>Original text</dt><dd>{current.originalDescription || '(blank)'}</dd><dt>Date</dt><dd>{displayDate(current.date)}</dd><dt>Amount</dt><dd>{current.direction === 'in' ? 'Cash in' : 'Cash out'} · PKR {money(current.amountMinor)}</dd><dt>Reference</dt><dd>{current.reference ?? 'Not present'}</dd><dt>Review version</dt><dd>{detail?.reviewVersion ?? 'Loading…'}</dd></dl>
+    <dl className={s.details}><dt>Source</dt><dd style={{overflowWrap:'anywhere'}}>{current.source.kind==='manual_chat'?'Manual history from chat':`${current.source.sourceId} / row ${current.source.rowNumber}`}</dd><dt>Original text</dt><dd>{current.originalDescription || '(blank)'}</dd><dt>Date</dt><dd>{displayDate(current.date)}</dd><dt>Amount</dt><dd>{current.direction === 'in' ? 'Cash in' : 'Cash out'} · PKR {money(current.amountMinor)}</dd><dt>Reference</dt><dd>{current.reference ?? 'Not present'}</dd><dt>Review version</dt><dd>{detail?.reviewVersion ?? 'Loading…'}</dd></dl>
     {!detail && !error && <p role="status">Loading the current reviewed record…</p>}
     {error && <p className={s.error} role="alert">{error}</p>}{notice && <p className={s.success} role="status">{notice}</p>}
     {(!detail || conflict) && <button className={s.secondary} disabled={busy} onClick={() => void exclusive(async () => {

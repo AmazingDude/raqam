@@ -301,3 +301,13 @@
   .details { grid-template-columns: 100px 1fr; font-size: 13px; } .composer .actions { align-items: start; }
   .composer .actions .small { max-width: 140px; } .notice { padding: 14px; }
 }
+
+/* Conversational bookkeeping: comparisons carry the emphasis. */
+.chatLayout {display:grid;grid-template-columns:230px minmax(0,1fr);gap:var(--space-6);align-items:start;}
+.chatSidebar {display:grid;gap:var(--space-4);padding:var(--space-4);border:1px solid var(--border);border-radius:var(--radius-control);}
+.chatBody {min-width:0;display:grid;gap:var(--space-4);}
+.chatMessages {display:grid;gap:var(--space-4);}
+.chatMessage {display:grid;gap:var(--space-3);background:var(--surface);border:1px solid var(--border);padding:var(--space-6);border-radius:var(--radius-panel);overflow-wrap:anywhere;}
+.chatOwner {background:var(--canvas);margin-left:var(--space-8);}
+.chatChange {border-left:3px solid var(--ink);padding:var(--space-3) var(--space-4);display:grid;gap:var(--space-3);font-variant-numeric:tabular-nums;}
+@media(max-width:768px){.chatLayout{grid-template-columns:minmax(0,1fr);}.chatSidebar{padding:var(--space-3);}.chatOwner{margin-left:var(--space-4);}.chatMessage{padding:var(--space-4);}}

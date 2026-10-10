@@ -9,7 +9,7 @@ export type Direction = 'in' | 'out';
 // JSON-safe integer paisa string; NEVER a floating-point rupee value.
 export type MinorUnits = string;
 export type ISODate = string;
-export type SourceReference = { sourceId: string; rowNumber: number | null };
+export type SourceReference = { sourceId: string; rowNumber: number | null; kind?: 'manual_chat' | undefined };
 export type Workspace = { id: string; ownerSubject: string; businessName: string; currency: 'PKR' };
 export type Transaction = {
   id: string; workspaceId: string; source: SourceReference;

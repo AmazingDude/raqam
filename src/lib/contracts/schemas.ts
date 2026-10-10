@@ -14,7 +14,7 @@ export const minorUnitsSchema = z.string().refine(value => {
 export const reviewStatusSchema = z.enum(['proposed', 'accepted', 'rejected', 'needs_review']);
 export const categorySchema = z.enum(CATEGORIES);
 export const workspaceInputSchema = z.strictObject({ businessName: z.string().trim().min(1).max(200) });
-export const sourceReferenceSchema = z.strictObject({ sourceId: z.string().min(1), rowNumber: z.number().int().min(2).nullable() });
+export const sourceReferenceSchema = z.strictObject({ sourceId: z.string().min(1), rowNumber: z.number().int().min(2).nullable(), kind: z.literal('manual_chat').optional() });
 export const transactionSchema = z.strictObject({
   id: z.string().min(1), workspaceId: z.string().min(1), source: sourceReferenceSchema,
   // An invalid blank/long original can be corrected, but the source text must survive.

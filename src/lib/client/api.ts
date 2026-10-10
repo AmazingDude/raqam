@@ -1,3 +1,4 @@
+import {chatHistorySchema,chatSendResultSchema,chatApplyResultSchema,chatSendSchema,chatDecisionSchema} from '../contracts/chat.ts';
 import { MAX_WORKSPACE_TRANSACTIONS } from '../contracts/limits.ts';
 import { z } from 'zod';
 import { verifiedInvoiceSchema as invoiceSchema, invoicesListSchema, invoiceUpsertInputSchema, invoiceStatusUpdateSchema, invoiceDeleteSchema, generateInvoiceAIRequestSchema, generateInvoiceAIResponseSchema } from '../contracts/invoices.ts';
@@ -108,6 +109,9 @@ export async function request<T>(path: string, schema: z.ZodType<T>, signal: Abo
   return data.data;
 }
 export const api = {
+  chatHistory:(signal:AbortSignal,conversationId?:string,cursor?:string)=>request(`/api/assistant/chat?${new URLSearchParams({...conversationId?{conversationId}:{},...cursor?{cursor}:{}})}`,chatHistorySchema,signal),
+  chatSend:(input: z.infer<typeof chatSendSchema>,signal:AbortSignal)=>request('/api/assistant/chat',chatSendResultSchema,signal,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(chatSendSchema.parse(input))}),
+  chatDecide:(input:z.infer<typeof chatDecisionSchema>,signal:AbortSignal)=>request('/api/assistant/chat/decision',chatApplyResultSchema,signal,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(chatDecisionSchema.parse(input))}),
   taxReadiness: async (workspaceId: string, signal: AbortSignal) => {
     const state = await request('/api/tax-readiness', taxReadinessStateSchema, signal);
     if (state.profile && state.profile.workspaceId !== workspaceId) throw new ClientError('UNAVAILABLE', 'The saved profile could not be verified. Reload your workspace.');

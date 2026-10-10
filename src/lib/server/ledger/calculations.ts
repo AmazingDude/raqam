@@ -53,6 +53,23 @@ function validateAccounts(inputs: LedgerInputs): Map<string, LedgerAccount> {
 function validatedPostedJournals(inputs: LedgerInputs, accounts: ReadonlyMap<string, LedgerAccount>): LedgerJournal[] {
   const seen = new Set<string>();
   const seenCashMovements = new Set<string>();
+  const reversedIds = new Set<string>();
+  for (const raw of inputs.journals) {
+    const parsedReversal = ledgerJournalSchema.safeParse(raw);
+    if (!parsedReversal.success) throw new Error('INVALID_JOURNAL');
+    const reversal = parsedReversal.data;
+    if (reversal.status !== 'posted' || !reversal.reversalOfId) continue;
+    const original = inputs.journals.find(j => j.id === reversal.reversalOfId);
+    if (!original || original.status !== 'posted' || original.workspaceId !== inputs.workspaceId || reversal.workspaceId !== inputs.workspaceId || reversedIds.has(original.id)) throw new Error('INVALID_REVERSAL');
+    const totals = (lines: LedgerJournal['lines']) => {
+      const map = new Map<string, {debit:bigint;credit:bigint}>();
+      for (const line of lines) {const old=map.get(line.accountId)??{debit:0n,credit:0n};map.set(line.accountId,{debit:old.debit+BigInt(line.debitMinor),credit:old.credit+BigInt(line.creditMinor)});}
+      return map;
+    };
+    const old=totals(original.lines),current=totals(reversal.lines);
+    for(const id of new Set([...old.keys(),...current.keys()])) if((old.get(id)?.debit??0n)!==(current.get(id)?.credit??0n)||(old.get(id)?.credit??0n)!==(current.get(id)?.debit??0n)) throw new Error('INVALID_REVERSAL');
+    reversedIds.add(original.id);
+  }
   const result: LedgerJournal[] = [];
   for (const raw of inputs.journals) {
     const parsed = ledgerJournalSchema.safeParse(raw);
@@ -62,7 +79,7 @@ function validatedPostedJournals(inputs: LedgerInputs, accounts: ReadonlyMap<str
     seen.add(journal.id);
     if (journal.workspaceId !== inputs.workspaceId) throw new Error('FOREIGN_JOURNAL');
     if (journal.status !== 'posted') continue;
-    if (journal.cashMovement) {
+    if (journal.cashMovement && !reversedIds.has(journal.id)) {
       const key = journal.cashMovement.kind === 'bank_transaction'
         ? `bank_transaction:${journal.cashMovement.transactionId}`
         : `manual_payment:${journal.cashMovement.paymentId}`;

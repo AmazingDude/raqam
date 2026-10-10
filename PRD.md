@@ -148,7 +148,7 @@ Every feature below is required for the agreed core. Completion is measured by o
 - The model selects from a small allowlist of read-only tools. Application code executes them against the authenticated workspace and validates arguments/results.
 - Numerical answers use deterministic tool outputs. Returned record/source references must resolve to accessible evidence.
 - Show a concise action trail: tool used, records consulted, calculation result and references. Do not expose or claim private chain-of-thought.
-- Pending categories/matches remain described as proposals. Queries cannot approve records or rewrite the cashbook.
+- Pending categories/matches remain described as proposals. The grounded query tool loop remains read-only. The user-approved conversational action flow can draft typed historical cash entries and corrections; an explicit owner confirmation applies a persisted proposal through audited, versioned writes. It retains private conversation history and original evidence, and recalculates statements from validated ledger entries. Missing dates/year, amounts and payment status require clarification. No document upload is required for typed history.
 - Missing data yields a scoped clarification. Out-of-scope tax/investment/payment requests are not answered as established bookkeeping facts.
 - Bound the tool loop, context and provider retries; show a recoverable failure rather than inventing a successful answer.
 
@@ -186,7 +186,7 @@ Agree these four read-only tools in RQ-00; frontend, AI and backend contributors
 | `get_review_queue` | Unreviewed categories, unmatched records or unresolved document fields | Outstanding items, reasons and existing source references |
 | `get_record_evidence` | A bounded list of transaction/document IDs | Accessible original fields, corrected fields, review decisions and source locators |
 
-The authenticated session supplies workspace ownership independently of model arguments. Every tool rejects inaccessible IDs. Financial values have an exact canonical representation and an explicit currency. Absence findings reference the supplied dataset scope, not an invented receipt. The assistant cannot invoke approval, category-change, deletion or payment tools.
+The authenticated session supplies workspace ownership independently of model arguments. Every tool rejects inaccessible IDs. Financial values have an exact canonical representation and an explicit currency. Absence findings reference the supplied dataset scope, not an invented receipt. The four grounded query tools cannot invoke mutations. A separate conversational planner proposes owner-reviewed cash/journal actions; it cannot execute writes or approve its own proposals. Explicit confirmation uses the owner-scoped atomic decision API. Payments, arbitrary SQL and silent deletion remain excluded.
 
 Recommended loop cap: three model/tool rounds per question, followed by a partial-result or clarification response if unfinished. Treat document text as evidence, never as instructions granting tools or changing ownership.
 
