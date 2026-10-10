@@ -2,7 +2,7 @@ import 'server-only';
 import { z } from 'zod';
 import type { RequestSession } from './auth.ts';
 import type { Workspace } from '../contracts/index.ts';
-import { csvPreviewSchema, importConfirmationResultSchema } from '../contracts/imports.ts';
+import { csvPreviewSchema, importConfirmationResultSchema, importResolutionSchema, importResolutionResultSchema, importResolutionStateSchema } from '../contracts/imports.ts';
 import { BackendError } from './errors.ts';
 import { buildImportPlan, readCsvUpload } from './imports.ts';
 import { uploadStored } from './storage-retry.ts';
@@ -14,6 +14,7 @@ const batchSchema = z.object({
 });
 export function importDatabaseError(error: { code?: string }): BackendError {
   if (error.code === 'P0002') return new BackendError('NOT_FOUND', 'Import not found.');
+  if (error.code === 'PT409' || error.code === '40001') return new BackendError('CONFLICT', 'This row was already reviewed or the request ID was reused. Reload the import before deciding again.');
   if (error.code === 'P0001') return new BackendError('CONFLICT', 'This import exceeds the prototype workspace limit of 50 transactions. Review or reject rows before confirming.');
   if (['22023', '22007', '22008', '22003', '23514', '23505'].includes(error.code ?? '')) return new BackendError('INVALID_INPUT', 'Import rows are invalid or changed. Reload the preview.');
   return new BackendError('UNAVAILABLE', 'Import could not complete. Existing records are unchanged; retry.');
@@ -48,4 +49,25 @@ export async function confirmImport(session: RequestSession, workspace: Workspac
   const result = await session.database.rpc('confirm_csv_import', { p_import_id: importId, p_rows: plan });
   if (result.error) throw importDatabaseError(result.error);
   return importConfirmationResultSchema.parse(result.data);
+}
+
+export async function readImportResolutions(session: RequestSession, workspace: Workspace, importId: string) {
+  const batch = await getImport(session, workspace, importId);
+  if (batch.status !== 'confirmed') throw new BackendError('CONFLICT', 'Confirm the import preview before resolving remaining rows.');
+  const result = await session.database.rpc('read_import_resolution_state', { p_import_id: importId });
+  if (result.error) throw importDatabaseError(result.error);
+  if (!result.data) throw new BackendError('NOT_FOUND', 'Import not found.');
+  return importResolutionStateSchema.parse(result.data);
+}
+
+export async function resolveImport(session: RequestSession, workspace: Workspace, importId: string, body: unknown) {
+  const input = importResolutionSchema.safeParse(body);
+  if (!input.success) throw new BackendError('INVALID_INPUT', 'Provide a requestId and 1–50 distinct row corrections or rejections.');
+  const batch = await getImport(session, workspace, importId);
+  if (batch.status !== 'confirmed') throw new BackendError('CONFLICT', 'Confirm the import preview before resolving remaining rows.');
+  const result = await session.database.rpc('resolve_csv_import_rows', {
+    p_import_id: importId, p_request_id: input.data.requestId, p_rows: input.data.rows,
+  });
+  if (result.error) throw importDatabaseError(result.error);
+  return importResolutionResultSchema.parse(result.data);
 }

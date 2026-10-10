@@ -5,6 +5,7 @@ const env = process.env;
 const base = new URL(env.APP_URL ?? 'http://localhost:3000');
 const businessName = 'Raqam synthetic validation';
 let passed = 0;
+let phase = 'native readiness';
 class ValidationError extends Error {}
 function ok(name) { passed++; console.log(`PASS ${name}`); }
 function requireCondition(condition, message) { if (!condition) throw new ValidationError(message); }
@@ -60,9 +61,11 @@ try {
     process.exit(0);
   }
   async function request(path, { method = 'GET', body, form, expected = 200, origin = base.origin } = {}) {
+    phase = `${method} ${path.split('?')[0].replace(/[0-9a-f]{8}-[0-9a-f-]{27}/gi, '{id}')} (expected ${expected})`;
+    const bearer = await token();
     const response = await fetch(new URL(path, base), {
       method, redirect: 'manual', signal: AbortSignal.timeout(20000),
-      headers: { Authorization: `Bearer ${await token()}`, Origin: origin, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      headers: { Authorization: `Bearer ${bearer}`, Origin: origin, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
       body: form ?? (body === undefined ? undefined : JSON.stringify(body)),
     });
     requireCondition(response.status === expected, `${method} ${path.split('?')[0]} failed (HTTP ${response.status}; expected ${expected}).`);
@@ -74,6 +77,7 @@ try {
     requireCondition(payload.error === null, 'Backend returned a safe error instead of data.');
     return payload.data;
   }
+  phase = 'workspace persistence';
   let workspace = await json('/api/workspace');
   if (!workspace) workspace = await json('/api/workspace', { method: 'POST', expected: 201, body: { businessName } });
   requireCondition(workspace.businessName === businessName, 'Existing workspace is not the synthetic validation workspace; refusing to mix test records.');
@@ -84,6 +88,7 @@ try {
     const form = new FormData(); form.set('file', new File([csv], 'synthetic-validation.csv', { type: 'text/csv' }));
     return json('/api/imports', { method: 'POST', expected: 201, form });
   };
+  phase = 'CSV registration and confirmation';
   const batch = await uploadCsv();
   assert.equal(batch.preview.validCount, 2); assert.equal(batch.preview.invalidCount, 1);
   assert.equal((await json(`/api/imports/${batch.importId}`)).importId, batch.importId);
@@ -102,6 +107,7 @@ try {
   assert.deepEqual(rows.map(row => row.amountMinor).sort(), ['1005', '2015']);
   ok('atomic CSV confirmation, exact money, unresolved preservation and duplicate retries');
   if (process.argv.includes('--reviews')) {
+    phase = 'cashbook review, summary and export';
     // Exercise only this script's own fixture row, even in a previously used test workspace.
     const expense = rows.find(row => row.amountMinor === '1005');
     const detail = await json(`/api/transactions/${expense.id}`);
@@ -132,6 +138,7 @@ try {
     const form = new FormData(); form.set('file', new File([image], 'synthetic-pixel.png', { type: 'image/png' }));
     return json('/api/sources', { method: 'POST', expected: 201, form });
   };
+  phase = 'private source storage';
   const source = await uploadImage();
   assert.equal((await uploadImage()).duplicate, true);
   const signed = await json(`/api/sources/${source.sourceId}`);
@@ -152,6 +159,6 @@ try {
 } catch (error) {
   // Assert failures intentionally omit actual payloads; vendor exceptions/tokens never reach logs.
   console.error(error instanceof ValidationError ? `FAIL ${error.message}` :
-    error?.code === 'ERR_ASSERTION' ? 'FAIL Live behavior differed from the synthetic expected result.' : 'FAIL Live validation could not complete.');
+    error?.code === 'ERR_ASSERTION' ? `FAIL Synthetic behavior differed during ${phase}.` : `FAIL Live validation could not complete during ${phase}${error?.name === 'TimeoutError' ? ' (request timed out)' : ''}.`);
   process.exitCode = 1;
 }

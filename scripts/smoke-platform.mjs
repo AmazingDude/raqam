@@ -21,6 +21,8 @@ const privateRequests = [
   ['/api/imports', 'POST'], ['/api/imports/template', 'GET'],
   ['/api/imports/10000000-0000-4000-8000-000000000001', 'GET'],
   ['/api/imports/10000000-0000-4000-8000-000000000001/confirmation', 'POST'],
+  ['/api/imports/10000000-0000-4000-8000-000000000001/resolutions', 'GET'],
+  ['/api/imports/10000000-0000-4000-8000-000000000001/resolutions', 'POST'],
   ['/api/transactions/10000000-0000-4000-8000-000000000001', 'GET'],
   ['/api/transactions/10000000-0000-4000-8000-000000000001', 'PATCH'],
   ['/api/transactions/10000000-0000-4000-8000-000000000001/reviews', 'GET'],

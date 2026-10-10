@@ -48,6 +48,7 @@ CSV, transaction review/history and whole-workspace summary/export routes below 
 | `GET/POST /api/workspace` | Load/create the verified owner's one workspace |
 | `POST /api/imports`, `POST /api/imports/{id}/confirmation` | Store original CSV/preview; atomically confirm valid rows |
 | `GET /api/imports/{id}`, `GET /api/imports/template` | Retrieve scoped stored preview/receipt; download authenticated PKR template |
+| `GET/POST /api/imports/{id}/resolutions` | Read current confirmed row outcomes; explicitly correct/reject outstanding rows after migration 004 |
 | `GET /api/transactions`, `PATCH /api/transactions/{id}` | Cashbook queries and audited reviewed corrections |
 | `GET /api/transactions/{id}`, `GET /api/transactions/{id}/reviews` | Reviewed record/version and paginated immutable edit history |
 | `POST /api/documents`, `POST /api/documents/{id}/extraction` | Private image upload/extraction through C's adapter |
@@ -66,7 +67,13 @@ Error/status mapping: UNAUTHENTICATED 401, NOT_FOUND 404, INVALID_INPUT 422, CON
 
 Confirmation accepts `{ rows: [{ rowNumber, action: "correct", transaction }, { rowNumber, action: "reject" }] }`. `rows` defaults to `[]`. The full corrected transaction uses `cashRowSchema` in `src/lib/contracts/imports.ts`, including exact `amountMinor` string, PKR and nullable reference. Omitted valid rows are imported; omitted invalid rows remain unresolved. Confirmation is an explicit user action. Originals remain intact. The result is `{ importId, importedCount, rejectedCount, unresolvedCount, duplicate }`.
 
-Confirmation writes all cash/history/status in one database transaction. Repeating a completed request returns its original receipt and never reapplies changed corrections. Unresolved/rejected originals and the confirmation plan remain stored; a later command to resolve a confirmed batch's outstanding rows is not implemented yet. The workspace lock serializes confirmations; multi-client behavior still requires managed database validation.
+Confirmation writes all cash/history/status in one database transaction. Repeating a completed request returns its original receipt and never reapplies changed corrections. Originals, the confirmation plan and its initial receipt remain stored unchanged. The workspace lock serializes confirmations; multi-client behavior still requires managed database validation.
+
+After migration 004, `GET /api/imports/{id}/resolutions` returns `{ importId, rows: [{ rowNumber, outcome, transactionId }], importedCount, rejectedCount, unresolvedCount }`. Outcomes are `imported`, `rejected` or `unresolved`; only imported rows have a transaction ID. These are current cumulative counts, unlike the original confirmation receipt. Pending batches return CONFLICT until confirmed.
+
+`POST /api/imports/{id}/resolutions` accepts `{ requestId, rows }`: a client-generated UUID and 1–50 explicit correction/rejection decisions using the same full corrected cash shape above. Only originally unresolved, still outstanding rows can be decided. Nothing is auto-imported by this command. A correction creates cash and immutable history; rejection creates history without cash. Original CSV fields remain intact, including unknown amounts and blank descriptions.
+
+The result is `{ importId, requestId, correctedCount, rejectedCount, remainingUnresolvedCount, transactionIds, duplicate }`. Correction/rejection counts describe this request; the remaining count is its saved receipt. Retrying the same ID and exact decisions returns that receipt with `duplicate: true`, without overwriting later cashbook reviews. Reusing the ID with different decisions or trying to decide an already reviewed row returns CONFLICT. Use a fresh GET for current totals after other decisions. Invalid input or the 50-transaction workspace cap rolls back all cash, history and the request receipt together. Ownership is checked before retry lookup; clients cannot supply a trusted owner/workspace.
 
 ### Reviewed cashbook commands for B
 
@@ -82,7 +89,11 @@ After migration 003, `GET /api/transactions/{id}` returns `{ transaction, review
 
 Apply `202610100002_csv_imports.sql` second. It adds stored import batches, immutable import-row review history, registration and atomic confirmation functions. Direct transaction INSERT is revoked so cash creation cannot bypass audited confirmation or its cap. Transaction UPDATE remains unavailable; subsequent reviewed edits, documents/proposals and matches need later migrations. The confirmation function uses explicit session-owner verification, a fixed empty search path and authenticated-only execution.
 
-`202610100003_cashbook_review.sql` adds transaction review versions/history, removes direct transaction DELETE and supplies scoped snapshot/review functions. Direct transaction UPDATE remains revoked; only the audited function changes reviewed descriptions/categories. Apply it once after 002 before wiring the new endpoints. It has not been applied to the managed project by this chat. Document/proposal/match persistence remains future work.
+`202610100003_cashbook_review.sql` adds transaction review versions/history, removes direct transaction DELETE and supplies scoped snapshot/review functions. Direct transaction UPDATE remains revoked; only the audited function changes reviewed descriptions/categories. Hosted migrations 001–003 are already applied; do not reapply them.
+
+`202610100004_import_resolution.sql` adds owner-readable immutable resolution receipts, authenticated owner-checked atomic decisions and a current outcome snapshot. It updates summary/export unresolved counts from immutable row history while preserving initial confirmation receipts. Ordinary clients cannot directly write receipts or transactions. Migration 004 is locally validated and pending hosted application. Document/proposal/match persistence remains future work.
+
+`202610100005_review_conflict.sql` is a forward repair for the already-applied review function. It preserves owner/audit/version behavior and uses `PT409` for stale application decisions. Migration 004 also uses `PT409` for resolved-row/request-key conflicts. Never manually raise `40001` for these decisions: it denotes retryable serialization failure and can trigger an infinite managed PostgREST retry loop. Migration 003 remains unchanged for migration history. Apply 005 after 004; both are pending hosted application.
 
 The `cashbook_records` security-invoker view casts bigint to text while retaining underlying RLS. Cashbook reads currently return unmatched status because the match tables/review slice do not exist yet; that slice must update the view/mapper before accepted matches are introduced.
 
