@@ -35,7 +35,7 @@ Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo
 
 ### Current integration checkpoint — 10 October 2026
 
-Latest published main is `91bd612fc098551b12f5edf65ba79305185430fe`. The cashbook summary now supports inclusive date-range totals and coverage; the review screen exposes paginated, scoped category/match decision history. Existing CSV export, categorization and one-to-one reconciliation implementations remain in place. Verification on the integrated tree: backend/security **187/187**, focused summary/client history **17/17**, strict TypeScript and Git whitespace checks pass. Live provider quality, signed-in browser/account-isolation checks, independent evaluation, hosted BYOK migration 013 and ledger migration 014 state, and production release checks remain open; no live provider call, hosted write or deployment is claimed.
+Latest published main is `c591939`. It includes the expense, supplier-bill and Books screens, a gated business/tax profile view, and paginated receipt loading. The upstream handoff reports strict typecheck, 45/45 backend/security tests and 1/1 client API test; its production build still fails on an unresolved provider-module import. This checkout merged that tip and preserves the local migration 010 edit. The focused ledger suites pass 23/23; full app typecheck/build cannot be rerun until the ignored dependency tree is restored. Live provider quality, signed-in account-isolation checks, hosted BYOK migration 013 and ledger migration 014, and production release checks remain open. No hosted write or deployment is claimed.
 
 ### Earlier integration checkpoint — 10 October 2026
 
@@ -208,15 +208,15 @@ Do not mark implementation tasks done because these planning documents exist.
 
 ### Proposed follow-on: Adding a few more features
 
-The user accepted the deterministic-first bookkeeping expansion and operating defaults in PRD D20. Feature slices and FBR sources are in [BOOKKEEPING_EXPANSION_PLAN.md](docs/raqam/BOOKKEEPING_EXPANSION_PLAN.md); two-person ownership and acceptance gates are in [BOOKKEEPING_MVP_TWO_PERSON_PLAN.md](docs/raqam/BOOKKEEPING_MVP_TWO_PERSON_PLAN.md). The integrated branch includes ledger backend commit `d80f777`: contracts, migration `202610100014_double_entry_ledger.sql`, scoped journal/account/report, expense-draft and supplier-bill backend, and exact report calculators. The BYOK migration remains version 013. Focused ledger checks passed 23/23 on `d80f777`; hosted state and product acceptance remain open.
+The user accepted the deterministic-first bookkeeping expansion and operating defaults in PRD D20. Feature slices and FBR sources are in [BOOKKEEPING_EXPANSION_PLAN.md](docs/raqam/BOOKKEEPING_EXPANSION_PLAN.md); two-person ownership and acceptance gates are in [BOOKKEEPING_MVP_TWO_PERSON_PLAN.md](docs/raqam/BOOKKEEPING_MVP_TWO_PERSON_PLAN.md). The integrated branch includes ledger backend commit `d80f777`: contracts, migration `202610100014_double_entry_ledger.sql`, scoped journal/account/report, expense-draft and supplier-bill backend, and exact report calculators. The BYOK migration remains version 013. Focused ledger checks pass 23/23; hosted state and product acceptance remain open.
 
 | Expansion task | Status and evidence |
 | --- | --- |
 | EXP-00 — semantics and non-goals | `in_progress`: D20 defaults are accepted; per-workspace history/source inputs, date-evidence criteria, scanned-layout limits and independent journey review remain open. |
 | EXP-01 — lifecycle and ledger contracts | `in_review`: implemented in cached `origin/main`; contracts, journal/report validators and focused tests pass. Person 2 review and final API/UI mapping remain open. |
 | EXP-02/03/11 — ledger persistence and deterministic reports | `in_review`: ledger migration 014, scoped APIs and exact calculators pass focused PGlite/contracts/calculation checks 23/23. Hosted migration status and integrated UI/report reconciliation remain unverified. |
-| EXP-04/06 — expense and supplier bill | `in_review`: manual draft and supplier-bill persistence/API exist locally. Expense AI/UI, bill UI, hosted reload and full payment flow remain open. |
-| EXP-05/07–10 — document, invoice, payment, exception and AI workflows | `todo`/`in_progress`: prior receipt/category/match paths exist; invoice-to-ledger accrual, payment settlement/no-double-count, exception queue, selected scanned layouts and new workflow UI remain incomplete. |
+| EXP-04/06 — expense and supplier bill | `in_review`: manual draft and supplier-bill persistence/APIs plus expense, supplier-bill and Books screens exist. Expense-note AI endpoint, hosted save/reload and payment settlement remain open. |
+| EXP-05/07–10 — document, invoice, payment, exception and AI workflows | `todo`/`in_progress`: existing invoice CRUD/status and receipt/category/match paths remain available; invoice accrual linkage, payment settlement/no-double-count, exception queue and selected scanned layouts remain incomplete. |
 | EXP-12/13 — tax and release | `todo`: tax workpaper remains gated on taxpayer profile and practitioner review; full signed-in product/release checks remain outstanding. |
 
 No hosted write, migration application or deployment was made. The latest `origin/main` handoff at `91bd612` reports **161/161** local tests and strict typecheck passing; the focused ledger contract/calculation/database tests pass **23/23** on `d80f777`.
