@@ -1,7 +1,9 @@
 import { MAX_WORKSPACE_TRANSACTIONS } from '../../contracts/limits.ts';
 import { z } from 'zod';
+import { cashSummaryResultSchema, listTransactionsResultSchema } from '../../contracts/assistant.ts';
 import { assistantToolSchemas, transactionSchema } from '../../contracts/schemas.ts';
 import { BackendError } from '../errors.ts';
+import { cashbookSnapshot } from './snapshot.ts';
 import { calculateCashSummary, validateCashbook } from '../summary.ts';
 
 type Options = {
@@ -46,9 +48,11 @@ export function createCashbookTools(options: Options) {
       const raw = await Promise.race([read, stopped]);
       assertActive();
       const snapshot = snapshotSchema.parse(raw);
+      const records = validateCashbook(snapshot.records, workspaceId);
       return {
-        records: validateCashbook(snapshot.records, workspaceId),
+        records,
         unresolvedImportRowCount: snapshot.unresolvedImportRowCount,
+        assistantSnapshot: cashbookSnapshot(workspaceId, records, snapshot.unresolvedImportRowCount),
       };
     } catch (error) {
       if (error instanceof BackendError) throw error;
@@ -76,7 +80,7 @@ export function createCashbookTools(options: Options) {
       if (args.cursor !== undefined && !z.uuid().safeParse(args.cursor).success) {
         throw new BackendError('INVALID_INPUT', 'Provide a valid transaction cursor.');
       }
-      const { records } = await load();
+      const { records, assistantSnapshot } = await load();
       const filtered = records.filter(record =>
         (args.dateFrom === undefined || record.date >= args.dateFrom) &&
         (args.dateTo === undefined || record.date <= args.dateTo) &&
@@ -91,18 +95,27 @@ export function createCashbookTools(options: Options) {
       const remaining = filtered.slice(cursorIndex + 1);
       // Detach returned objects so downstream consumers cannot change the cached summary inputs.
       const items = remaining.slice(0, args.limit).map(record => transactionSchema.parse(record));
+      const nextCursor = remaining.length > args.limit ? items.at(-1)!.id : null;
       assertActive();
-      return { items, nextCursor: remaining.length > args.limit ? items.at(-1)!.id : null };
+      return listTransactionsResultSchema.parse({
+        items, returnedCount: items.length, totalCount: filtered.length,
+        complete: args.cursor === undefined && nextCursor === null,
+        nextCursor, snapshot: assistantSnapshot,
+      });
     },
     async get_cash_summary(input: unknown) {
       const parsed = assistantToolSchemas.get_cash_summary.safeParse(input);
       if (!parsed.success) throw new BackendError('INVALID_INPUT', 'Provide the valid imported cash summary scope.');
-      const { records, unresolvedImportRowCount } = await load();
+      const { records, unresolvedImportRowCount, assistantSnapshot } = await load();
       const { dateFrom, dateTo } = parsed.data;
       const filtered = records.filter(record => (!dateFrom || record.date >= dateFrom) && (!dateTo || record.date <= dateTo));
       const summary = calculateCashSummary(filtered, workspaceId, unresolvedImportRowCount);
       assertActive();
-      return summary;
+      return cashSummaryResultSchema.parse({
+        summary, dateFrom: dateFrom ?? null, dateTo: dateTo ?? null, unresolvedImportRowScope: 'workspace',
+        returnedCount: summary.transactionCount, totalCount: summary.transactionCount,
+        complete: true, nextCursor: null, snapshot: assistantSnapshot,
+      });
     },
   };
 }

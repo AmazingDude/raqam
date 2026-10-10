@@ -1,7 +1,7 @@
 # Raqam — Person C handoff
 
 **Updated:** 10 October 2026, PKT. **Owner:** the user, Person C / Person 3.
-**State:** Step3/C-01 passed. Steps4–5 provider module is implemented. Step6 extraction remains in_review; step7/8 remain blocked on A's extraction/cache/history adapter and B's live document-field review. Remote main c2ffec2 now supplies document registration/list/detail/review routes; those routes do not yet invoke OCR. Step9 category proposal module is implemented with10 focused scripted tests; A's semantic guide-version adoption and production route mapping remain pending. Step10 is blocked because category proposal generation/listing is not exposed through A's authenticated application path and B's live review queue has no proposal controls. No live model-quality or integrated category decision test was run. See [integration evidence](integration.md).
+**State (10 October 2026):** Steps3/C-01 and provider steps4–5 passed their recorded gates. Step6 extraction module and step9 category engine are implemented. A's current main now includes durable receipt reservation/evidence routes and SQL, B's authenticated receipt field/review UI, authenticated category generation/list routes and live review controls. Step7 identity now includes provider implementation version; A's local simulated service/database tests cover durable cache hits, stale fencing and correction preservation. Step8 is blocked pending hosted migration 008 and signed-in receipt verification. Step10 is blocked pending configured Clerk/Supabase runtime and signed-in category verification. The category service now uses the shared `createAIProvider()` selector. Full tests, typecheck and production build pass; the sandbox-only `--showConfig` parser error disappears when the configured build runs outside the sandbox. A new two-request synthetic Groq tool probe passed; this is not signed-in or feature integration evidence. See [integration evidence](integration.md).
 **Read first:** [Person C plan](PERSON_C_PLAN.md), [numbered implementation steps](IMPLEMENTATION_STEPS.md), [PRD](../../PRD.md), [team ownership](../../TEAM_TASKS.md), [shared handoff](../../handoff.md), [build gates](../../BUILD_PLAN.md).
 
 **Two-contributor execution:** [TWO_PERSON_EXECUTION.md](TWO_PERSON_EXECUTION.md) assigns original steps 4–20 without changing the implementation plan. C1 (user) owns provider/OCR/categories; C2 owns matching/tools/assistant. Each writes its own [C1 handoff](C1_HANDOFF.md) or [C2 handoff](C2_HANDOFF.md); C1 alone consolidates this handoff. Shared integration branch: `codex/ai-two-person`.
@@ -34,12 +34,14 @@ C: `src/lib/ai/**`, `tests/ai/**`, `docs/ai/**`, subject to A's actual bootstrap
 | Step 4 server-only provider | done (module) | Lazy configuration, three public operations and A shared schemas compile; scripted interface and server-only checks pass |
 | Step 5 bounded failures | done (module) | Two-attempt cap, absolute deadline, cancellation, rate-limit recovery and sanitized telemetry verified in 38 scripted tests |
 | C-02 adapter | in_review | Module checks pass; A/C2 acknowledgement, private model settings and runtime route integration remain pending |
-| C-03 extraction | in_review | C extraction/module and one live synthetic sample pass; agreed outcome/evidence and app adoption remain pending in integration.md |
-| C-04 categories / step 9 | in_review | C module validates versioned scoped transactions and returns complete guide-limited proposals, ambiguity abstentions, source evidence and accepted-category skips; A still needs to adopt the semantic guide version and map provenance/evidence into persistence |
-| Step 10 category integration | blocked | A has proposal decision RPC/service and transaction category review, but no authenticated category-generation/list path; B's live queue says proposals await APIs and exposes no live proposal accept/change/reject controls |
+| C-03 extraction | in_review | C extraction module and one live synthetic sample pass; accepted evidence mapping and app route/UI are now present. Hosted signed-in acceptance remains pending. |
+| Step 7 OCR cache/reruns | done (module + local integration tests) | C's SHA-256 identity covers owner/workspace/source/provider/provider-version/model/prompt/schema/preprocessing. A's route uses durable reserve/save RPCs; service and PGlite tests cover cache/busy responses, stale completion and correction preservation. Hosted migration 008 remains pending for step 8. |
+| Step 8 receipt integration | blocked pending hosted verification | A's authenticated upload/register/extract/history/review paths and B's live receipt field/source UI are present. Scripted service and PGlite tests pass; missing app env and unapplied hosted migration 008 prevent signed-in upload/correction/reload/cache and cash-total verification. |
+| C-04 categories / step 9 | done (module) | C validates versioned scoped transactions, all eligible IDs, guide-limited proposals, abstentions, source evidence and accepted-category skips. A's BA-03 records guide-version adoption and persistence mapping. Live semantic quality remains a step-19 evaluation item. |
+| Step 10 category integration | blocked pending signed-in verification | A's authenticated generation/list route and B's live accept/change/reject controls are present; local proposal persistence/security tests pass. Signed-in generation, decision reload, rerun preservation and authoritative cash/category-summary comparison remain unverified without app environment/workspace. Migration 008 is not a category prerequisite. |
 | C-05 matching | todo | Reviewed document fields, candidate/allocation snapshots |
 | C-06 assistant | todo | A's four authorized read-only tools and fact contracts |
-| C-07 integration | blocked | A durable DB foundation and B source UI exist; live OCR/review/correction APIs plus B's live field wiring are pending |
+| C-07 integration | blocked | Receipt OCR/review routes and B's live receipt/category screens are now present; full product acceptance still depends on hosted verification, match integration and remaining C2 assistant/matching work |
 | C-08 reserved evaluation | todo | Frozen configuration and independent A/B labels |
 | C-09 demo/release preparation | todo | Core gates and release candidate |
 | C-10 final defects/handoff | todo | Pinned release and completed checks |
@@ -48,7 +50,7 @@ No implementation task is done merely because its plan exists. Keep detailed cri
 
 ## Immediate next task
 
-Continue step10 only after A exposes authenticated category generation/list operations that load current `{transaction, reviewVersion}` snapshots, preserve accepted decisions and persist category-guide provenance, and B wires the live proposal queue controls. Then verify accept/change/reject, reload, rerun preservation and exact cash/category-summary consistency through the real app. C's independent module and its current limits are recorded in [integration evidence](integration.md).
+Next: apply and verify hosted migration 008, provide working local Clerk/Supabase runtime configuration, then run the signed-in receipt and category journeys. Verify upload → OCR → correction → reload → same-source retry with unchanged exact cash totals; then category generation → accept/change/reject → reload → rerun with accepted decisions preserved and category remainder reconciling to unchanged cash totals. Keep live model quality separate from scripted checks and independent scoring.
 
 Use separate clones/worktrees and the single-publisher procedure in TWO_PERSON_EXECUTION.md. The original planning checkout and safety stash are preserved. The user authorized committing/integrating reviewed changes and pushing main; no deployment is requested.
 
@@ -59,12 +61,16 @@ Step 3: original live clean/layout images and account model list retained with s
 ## Open dependencies and cautions
 
 - Step 3 passed; Qwen remains preview and this local proof does not guarantee future model availability or deployed correctness.
-- A's app/SDK/contracts are present and used by the provider module. A/C2 acknowledgement, host-compatible deadline, route/persistence/cache integration and feature outcome mapping remain pending. Safety stash/snapshot are retained; no other checkout was changed.
-- Local GROQ_API_KEY is present, but GROQ_VISION_MODEL/GROQ_TEXT_MODEL are unset. This task changed no environment values; production adapter requests currently fail safely with configuration_missing.
-- Shared interface details are proposals until A adopts them; B must confirm rendering needs.
+- A's document/category routes and B's live screens are present on main. Migration 008 remains a manual hosted prerequisite; this checkout currently lacks required Clerk/Supabase settings, so no signed-in app journey can run here.
+- Receipt cache identity includes the accepted provider/version inputs. The route owns durable reservation and stale fencing. Local PGlite/service tests are not managed Supabase or deployed-runtime evidence.
+- The category service now constructs its provider through `createAIProvider()`. Default/unset or explicit Groq uses Groq; explicit Gemini selects Gemini; no key-based fallback is introduced. The category/Gemini factory regression suite passed, but a signed-in category route call is still blocked by missing Clerk/Supabase configuration.
 - C1 preserves at least60 daily requests per model for reserved evaluation/two rehearsals. Runner checks actual remaining-request headers and fails closed when absent/insufficient. Other teammates must coordinate live usage with C1; the local reserve is not an atomic organization-wide setting. Reserved labels remain with A/B.
 - Future live probes should use the smallest quota-coordinated budget; don't rerun receipt/schema probes already captured. Keep strict schema output and tool calling in separate requests per current Groq docs.
 - Corrected fields/accepted decisions never get replaced by rerun/cache results. Version checks belong in integration.
+
+## Latest verification — 10 October 2026
+
+After syncing `origin/main` at `8780195`, installing the exact lockfile, and applying the narrow category-provider selection and cache-identity-v2 changes, the focused AI suite passed 38/38 tests, `npm test` passed all 32 test files, `npm run typecheck` passed, and the production build passed outside the sandbox. The sandbox build error came from Next receiving empty stdout from its spawned TypeScript CLI; no application workaround was needed. The fresh synthetic Groq tool probe passed in two calls (1275ms combined, zero automatic retries, 998 requests remaining) with the 60-request reserve intact. `scripts/check-env.mjs --ai` still reports Clerk/Supabase app settings missing, so hosted receipt and signed-in category workflows remain unverified.
 - Assistant fact values come from deterministic authorized tools; model prose is not numerical authority.
 - No runtime framework/tracing/vector store is added solely because a skill suggests one.
 - Stretch is closed until the shared PRD gate passes. The core demo does not depend on stretch.

@@ -1,6 +1,22 @@
 # Role A local validation, 10 October 2026 (PKT)
 
-## Latest main integration and receipt routes
+## Merged integration verification (10 October)
+
+Integrated `origin/main` through `fe9a490` with the receipt/category work and the A2 assistant snapshot/result changes. The production build exposed outdated flat-field reads in the assistant cash-summary renderer and assertions against the former result shape; corrected them to use the versioned structured result. The latest main also includes C1's extraction/category fixes, B's workspace refresh fix and the UBL statement recovery plan. Validation passes: **121/121 backend/security tests**, **99/99 AI/provider/category/client tests**, `npm run typecheck`, and `npm run build`. The build includes all document, proposal, import, assistant and review API routes. Backend/security tests used native Node's `--test-isolation=none` mode to avoid Windows sandbox worker-spawn failures; provider tests that deliberately spawn child Node processes ran with approved process execution. All fixtures were synthetic; no provider inference, financial writes or migration application occurred during these checks.
+
+The current ignored `.env.local` has no non-empty Groq, Gemini or Eve provider key, so no live OCR/category/assistant result is claimed. The earlier authenticated list-route GETs and 27 signed-out route denials are prior read-only evidence; they were not repeated against this newest merged build. The user's port-3000 process was not touched.
+
+After the latest fresh production build, a temporary server on port 3187 passed the read-only HTTP smokes: **3/3 public/UI pages and 9/9 signed-out private GET denials**, plus **27/27 platform private-request denials** with expected no-store/error contracts. The temporary server was stopped. The first smoke attempt exposed outdated landing-copy assertions; the A platform smoke and frontend HTTP smoke now assert the current signed-out landing language.
+
+## Post-migration verification (10 October)
+
+The user applied migration `202610100008_receipt_extraction_context.sql` and supplied the read-only checker result. All expected states pass: three tables installed; extraction-context RLS enabled and forced; authenticated owner read plus the three owner RPC grants present; direct authenticated insert/update/delete and anonymous table/RPC privileges denied.
+
+`node --env-file-if-exists=.env.local --conditions=react-server scripts/smoke-live.mjs --readiness-only --user=<selected-active-test-user>` passes with issuer match, fresh token, `role: authenticated` and Supabase HTTP 200; no records were written. On a fresh production build at port 3187, authenticated `GET /api/documents?limit=1` and `GET /api/category-proposals?limit=1&status=pending` each return HTTP 200 with zero rows in a known test workspace; no record fields are logged and no writes occur. The pre-existing port-3000 app returns 404 for the new category route, so restart it from the published revision before browser verification. The temporary 3187 server was stopped after checking.
+
+`node --env-file-if-exists=.env.local scripts/smoke-platform.mjs --configured` previously passed home, sign-in, health, headers and **27 signed-out private-request denials**. At that earlier revision, synthetic checks passed **111/111 backend/security**, **10/10 category**, **6/6 client API**, strict typecheck and production build. The user-applied 008 check remains valid; migration 009/010 hosted status is unknown. No live receipt extraction, category generation, mutations or browser journey were tested. Do not reapply 008; inspect hosted migration/schema state before applying later migrations.
+
+## Earlier main integration baseline and receipt routes
 
 Published integration commit `a8a656b` to `origin/main` after merging current main through `dc6109e`, including Excel transaction import and its importer-verification note. `node --conditions=react-server --test --test-isolation=none tests/backend/*.test.ts tests/security/*.test.ts tests/e2e/client-api.test.ts tests/ai/*.test.ts tests/ai/live/feasibility.test.ts` passes **199/199** with zero skipped/cancelled. `npm run typecheck` and the production build pass. The configured signed-out platform smoke on port 3187 passes **25 private-route denials** including `/api/assistant`; the frontend smoke passes **3 UI routes and 9 private GET denials**. The separate port avoids interrupting the user's existing port-3000 browser session. These checks are synthetic/signed-out; migration 008 is not applied, no live model call or signed-in receipt mutation was made, and the second account's `Dukaan` workspace is not the isolated cap-test workspace.
 
