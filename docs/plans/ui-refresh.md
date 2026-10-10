@@ -1,6 +1,6 @@
 # UI refresh — 10 October 2026
 
-Status: in_review pending integration with the latest `origin/main`. User requested landing and website UI improvement with Jinna.ai inspiration. This continues the already approved monochrome direction in `DESIGN.md`; no product scope changes.
+Status: complete; published to `origin/main` at `15be3213ea15ae312660bc487095d9a91d1c7f11`. User requested landing and website UI improvement with Jinna.ai inspiration. This continues the already approved monochrome direction in `DESIGN.md`; no product scope changes.
 
 Claim: `src/components/marketing/{landing.tsx,landing-preview.tsx,landing.module.css,landing-nav.tsx}`, `src/components/ui/theme.module.css`, presentation-only workspace shell/cashbook changes, auth-page styling, frontend checks, the frontend review disposition, and append-only BUILD_PLAN/handoff entries. Unrelated staged/untracked AI work is preserved.
 
@@ -17,4 +17,4 @@ Memorable element: an inspectable transaction-to-receipt relationship, rendered 
 
 Implemented: landing + workspace shared UI polished; preview totals use exact integer-paisa arithmetic for filtered rows; original/reviewed evidence content differs; accessible tabs, nav, FAQ, focus and reduced motion. No live provider or signed-in financial mutation was used for UI verification.
 
-Validation on the task branch: `npm test` (154/154), `npm run typecheck`, `npm run build`, client API tests (6/6), frontend HTTP smoke (3 public/UI routes and 9 signed-out private GET denials), and configured platform smoke (27 private requests denied) passed. The production landing and synthetic `/demo` preview were inspected at desktop; the tab interaction was exercised. Responsive screenshots at 360/768/1280 were reviewed with no horizontal overflow. Next: integrate with current `origin/main`, rerun applicable checks, then publish the task-owned commit.
+Validation after rebasing onto `origin/main` at `9a7fa35`: `npm test` (158/158), `npm run typecheck`, `npm run build`, client API tests (6/6), frontend HTTP smoke (3 public/UI routes and 9 signed-out private GET denials), and configured platform smoke (27 private requests denied) passed. The production landing and synthetic `/demo` preview were inspected; keyboard tabs and filtered totals were exercised. Responsive screenshots at 360/768/1280 were reviewed with no horizontal overflow. No live provider or signed-in financial mutation was used. Remote verification confirmed `origin/main` at the published commit.
