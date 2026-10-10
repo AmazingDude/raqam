@@ -12,7 +12,7 @@ async function fixture(run:(db:PGlite)=>Promise<void>){
       create table public.workspaces(id uuid primary key,owner_subject text not null unique);
       insert into public.workspaces values ('${workspace}','owner-a'),('10000000-0000-4000-8000-000000000002','owner-b');
       grant usage on schema public,auth to authenticated; grant execute on function auth.jwt() to authenticated;`);
-    await db.exec(await readFile(new URL('../../supabase/migrations/202610100011_byok_provider_credentials.sql',import.meta.url),'utf8'));
+    await db.exec(await readFile(new URL('../../supabase/migrations/202610100013_byok_provider_credentials.sql',import.meta.url),'utf8'));
     await run(db);
   }finally{await db.close();}
 }

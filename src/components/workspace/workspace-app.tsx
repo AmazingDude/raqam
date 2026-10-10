@@ -23,9 +23,17 @@ import { ReviewScreen } from './review-screen.tsx';
 import type { ReviewableCategoryProposal, ReviewableMatchProposal } from './review-screen.tsx';
 import { AssistantScreen } from './assistant-screen.tsx';
 import { AIProviderSettings } from './ai-provider-settings.tsx';
+import { InvoicesScreen } from './invoices/invoices-screen.tsx';
 import s from '../ui/theme.module.css';
-type View = 'cashbook' | 'import' | 'documents' | 'review' | 'assistant' | 'settings';
-const views: {id:View;label:string;icon:IconName}[] = [{id:'cashbook',label:'Cashbook',icon:'book'},{id:'documents',label:'Documents',icon:'file'},{id:'review',label:'Review queue',icon:'review'},{id:'assistant',label:'Ask Raqam',icon:'spark'},{id:'settings',label:'AI provider',icon:'settings'}];
+type View = 'cashbook' | 'invoices' | 'import' | 'documents' | 'review' | 'assistant' | 'settings';
+const views: {id:View;label:string;icon:IconName}[] = [
+  {id:'cashbook',label:'Cashbook',icon:'book'},
+  {id:'invoices',label:'Invoices',icon:'file'},
+  {id:'documents',label:'Documents',icon:'file'},
+  {id:'review',label:'Review queue',icon:'review'},
+  {id:'assistant',label:'Ask Raqam',icon:'spark'},
+  {id:'settings',label:'AI provider',icon:'settings'}
+];
 const EMPTY_DOCUMENTS: DocumentRecord[] = [];
 const EMPTY_PROPOSALS: ProposalRecord[] = [];
 function sameSnapshot<T>(current:T[], incoming:T[]):boolean {
@@ -160,8 +168,8 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
     try {
       const result=await run(signal=>api.generateMatchProposals({requestId:crypto.randomUUID(),documentId},signal));
       setNotice(result.snapshot.createdCount
-        ? `${result.snapshot.createdCount} exact-amount candidate${result.snapshot.createdCount===1?'':'s'} saved from a complete scan of ${result.snapshot.transactionCount} transactions.${result.snapshot.omittedCount?` ${result.snapshot.omittedCount} more candidates remain for another scan.`:' Compare each source before reviewing.'}`
-        : 'The complete cashbook scan found no new exact-amount candidates. Existing review decisions were preserved.');
+        ? `${result.snapshot.createdCount} evidence-ranked candidate${result.snapshot.createdCount===1?'':'s'} saved from a complete scan of ${result.snapshot.transactionCount} transactions.${result.snapshot.omittedCount?` ${result.snapshot.omittedCount} more candidates remain for another scan.`:' Compare each source before reviewing.'}`
+        : 'The complete cashbook scan found no new compatible candidates. Existing review decisions were preserved.');
       await onChanged();
       setLiveMatchProposals(current=>[...current.filter(item=>!result.items.some(saved=>saved.id===item.id)),...result.items]);
     } catch(error) {setMatchesError(error instanceof Error?error.message:'Match candidates could not be prepared. Existing decisions are unchanged.');}
@@ -189,12 +197,13 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
     <a href="#workspace-main" className={s.skip}>Skip to cashbook content</a>
     <aside className={s.sidebar}><Link href="/" className={s.brand} aria-label="Raqam home"><Mark/>raqam</Link><div className={s.business}><span className={s.businessIcon}>{workspace.businessName.slice(0,1).toUpperCase()}</span><div><strong>{workspace.businessName}</strong><p className={s.muted}>Business workspace · PKR</p></div></div>{nav}<div className={s.sidebarBottom}><p>Clear books start with<br/>a little context.</p>{demo?<Link href="/workspace" className={s.secondary}>Open your workspace</Link>:<button className={s.secondary} onClick={onReload}>Reload workspace</button>}<Link href="/" className={`${s.small} ${s.muted}`}>Back to Raqam</Link></div></aside>
     <details className={s.mobileMenu} data-mobile-nav><summary><span className={s.brand}><Mark/>raqam</span><span className={s.actions}><span className={s.small}>Menu</span><Icon name="menu"/></span></summary>{nav}<Link href="/" className={s.textButton}>Back to Raqam</Link></details>
-    <main className={s.main} id="workspace-main"><header className={s.topbar}><span>{workspace.businessName} / {view==='cashbook'?'Cashbook':views.find(v=>v.id===view)?.label??'Import'}</span><span className={s.identity}><span>{demo?'Example owner':'Your account'}</span>{account??<span className={s.avatar}>SS</span>}</span></header>
+    <main className={s.main} id="workspace-main"><header className={s.topbar}><span>{workspace.businessName} / {view==='cashbook'?'Cashbook':view==='invoices'?'Invoices':views.find(v=>v.id===view)?.label??'Import'}</span><span className={s.identity}><span>{demo?'Example owner':'Your account'}</span>{account??<span className={s.avatar}>SS</span>}</span></header>
       {demo && <div className={s.notice}><p><strong>Example workspace.</strong> Synthetic records, simulated suggestions and session-only changes. No live AI or saved books.</p><button className={s.textButton} onClick={resetExample}><Icon name="reset" size={14}/> Reset example</button></div>}
       {notice && <p role="status" className={s.success} style={{marginBottom:24}}>{notice}</p>}{failure&&<p className={s.error} role="alert">{failure}</p>}
-      <div className={s.actions} style={{justifyContent:'flex-end',marginBottom:16}}>{demo && <button className={s.textButton} onClick={()=>setHistoryOpen(true)}>Review trail ({history.length})</button>}<button className={s.secondary} onClick={()=>setExportOpen(true)}><Icon name="download" size={16}/> Export cashbook</button></div>
+      {view !== 'invoices' && <div className={s.actions} style={{justifyContent:'flex-end',marginBottom:16}}>{demo && <button className={s.textButton} onClick={()=>setHistoryOpen(true)}>Review trail ({history.length})</button>}<button className={s.secondary} onClick={()=>setExportOpen(true)}><Icon name="download" size={16}/> Export cashbook</button></div>}
       <div key={reset}>
         {view==='cashbook'&&<Cashbook records={records} workspaceId={workspace.id} unresolved={unresolved} onRecord={setRecord} onImport={()=>navigate('import')} onReview={()=>navigate('review')} hasMore={hasMore} loadMore={loadMore} live={!demo} liveSummary={summary} summaryError={summaryError} onRefreshSummary={onChanged}/>}
+        {view==='invoices'&&<InvoicesScreen demo={demo} businessName={workspace.businessName} currency={workspace.currency}/>}
         {view==='import'&&!demo&&<LiveImportScreen onChanged={onChanged}/>}
         {view==='import'&&demo&&<ImportScreen demo={demo} workspaceId={workspace.id} imported={imported} onConfirm={(next,remaining)=>{if(!demo||imported)return;setDemoRecords(current=>[...current,...next]);setUnresolved(remaining);setImported(true);decision('example-import-csv','accept',null,{validRows:next.length,unresolvedRows:remaining});setNotice(`${next.length} example rows imported; ${remaining} unresolved rows excluded from totals.`);}}/>}
         {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} liveRecords={liveDocuments} documentError={documentsError} extractingDocumentId={extractingDocumentId} onExtractDocument={demo?undefined:extractDocument} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink}/>}
