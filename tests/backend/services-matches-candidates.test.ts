@@ -78,7 +78,8 @@ test('semantic provider can distinguish an alias only when code corroborates it 
     transaction({ id: id('21'), direction: 'out', amountMinor: '1050', date: '2026-10-20', description: 'Unrelated vendor' }),
   ], fields);
   const ranked = await rankWithProvider(snapshot, fields, { requestTextProposal: async () => ({ ok: true, output: {
-    candidates: [{ transactionId: id('20'), merchantRelation: 'alias' }, { transactionId: id('21'), merchantRelation: 'different' }],
+    candidates: [{ transactionId: id('20'), merchantRelation: 'alias', supportingEvidence: ['merchant_alias'], conflictingEvidence: [] },
+      { transactionId: id('21'), merchantRelation: 'different', supportingEvidence: [], conflictingEvidence: ['merchant_mismatch'] }],
     recommendedTransactionId: id('20'),
   }, metadata: providerMetadata }) }, context);
   assert.equal(ranked.recommendedId, id('20'));
@@ -90,7 +91,7 @@ test('foreign or incomplete model candidate IDs force abstention', async () => {
     transaction({ id: id('22'), direction: 'out', amountMinor: '1050', date: '2026-10-10', description: 'Corner shop' }),
   ], fields);
   const ranked = await rankWithProvider(snapshot, fields, { requestTextProposal: async () => ({ ok: true, output: {
-    candidates: [{ transactionId: id('999'), merchantRelation: 'same' }], recommendedTransactionId: id('999'),
+    candidates: [{ transactionId: id('999'), merchantRelation: 'same', supportingEvidence: ['merchant_name'], conflictingEvidence: [] }], recommendedTransactionId: id('999'),
   }, metadata: providerMetadata }) }, context);
   assert.equal(ranked.recommendedId, null);
   assert.match(ranked.candidates[0]!.rationale, /could not be verified/);
