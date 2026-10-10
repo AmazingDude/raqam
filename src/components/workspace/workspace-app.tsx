@@ -148,14 +148,20 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
   }
   async function generateCategories() {
     if(generatingCategories)return;
-    const transactionIds=records.filter(item=>item.categoryStatus!=='accepted').map(item=>item.id);
-    if(!transactionIds.length){setCategoryError('There are no unreviewed transactions to prepare.');return;}
+    const unreviewed=records.filter(item=>item.categoryStatus!=='accepted');
+    if(!unreviewed.length){setCategoryError('There are no unreviewed transactions to prepare.');return;}
+    const transactionIds=unreviewed.slice(0, 10).map(item=>item.id);
     setGeneratingCategories(true);setCategoryError('');
     try {
       await run(signal=>api.generateCategoryProposals({requestId:crypto.randomUUID(),transactionIds},signal));
       const refreshed=await run(signal=>api.categoryProposals(signal));
       setLiveProposalRecords(refreshed.items);
-      setNotice(refreshed.items.some(item=>item.status==='proposed'||item.status==='needs_review')?'Category suggestions are ready for your review.':'No new category suggestions were needed. Existing accepted categories remain unchanged.');
+      const remaining=unreviewed.length - transactionIds.length;
+      setNotice(remaining > 0
+        ? `Prepared ${transactionIds.length} category suggestions. ${remaining} more unreviewed transactions remaining.`
+        : refreshed.items.some(item=>item.status==='proposed'||item.status==='needs_review')
+          ? 'Category suggestions are ready for your review.'
+          : 'No new category suggestions were needed. Existing accepted categories remain unchanged.');
     } catch(error) {setCategoryError(error instanceof Error?error.message:'Category preparation failed. Existing books are unchanged.');}
     finally {setGeneratingCategories(false);}
   }
