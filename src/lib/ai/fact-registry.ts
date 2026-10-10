@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { assistantToolSchemas } from '../contracts/schemas.ts';
 
 const integerString = z.string().regex(/^-?(0|[1-9]\d*)$/).max(80);
 const metricSchema = z.enum([
@@ -36,7 +37,8 @@ export class AssistantFactRegistry {
   readonly #createId: () => string;
   constructor(createId: () => string = () => crypto.randomUUID()) { this.#createId = createId; }
 
-  register(tool: AssistantFact['tool'], rawObservation: unknown): AssistantFact[] {
+  register(tool: AssistantFact['tool'], rawObservation: unknown, rawArguments?: unknown): AssistantFact[] {
+    const args = rawArguments === undefined ? null : assistantToolSchemas[tool].parse(rawArguments);
     const observation = observationSchema.safeParse(rawObservation);
     if (!observation.success) throw new Error('Assistant tool result could not be registered as verified evidence.');
     const { records, citations, partial, details } = observation.data;
@@ -50,19 +52,19 @@ export class AssistantFactRegistry {
     const resultSnapshot = z.object({ snapshot: snapshotSchema }).passthrough().safeParse(envelope.data.result);
     if (!resultSnapshot.success) throw new Error('Assistant tool snapshot could not be verified.');
     const snapshot = resultSnapshot.data.snapshot;
-    this.#snapshots.set(snapshot.token, snapshot);
     const staged: AssistantFact[] = [];
     const add = (metric: AssistantFact['metric'], value: string | number, currency: 'PKR' | null,
       scope: AssistantFact['scope'], sourceCount: number, complete: boolean,
       sourceTransactions = transactionIds, sourceDocuments = documentIds) => {
       const fact = assistantFactSchema.parse({ id: this.#createId(), tool, metric, value: String(value), currency, snapshot,
         scope, sourceTransactionIds: sourceTransactions.slice(0, 50), sourceDocumentIds: sourceDocuments.slice(0, 50), sourceCount,
-        sourcesComplete: sourceCount <= sourceTransactions.length + sourceDocuments.length,
+        sourcesComplete: sourceCount <= Math.min(50, sourceTransactions.length) + Math.min(50, sourceDocuments.length),
         complete: complete && !partial });
       if (this.#ids.has(fact.id) || staged.some(item => item.id === fact.id)) throw new Error('Assistant fact IDs must be unique within a request.');
       staged.push(fact);
     };
-    const noDate = { dateFrom: null, dateTo: null, unresolvedImportRowScope: null } as const;
+    const noDate = { dateFrom: args && 'dateFrom' in args ? args.dateFrom ?? null : null,
+      dateTo: args && 'dateTo' in args ? args.dateTo ?? null : null, unresolvedImportRowScope: null } as const;
     if (tool === 'get_cash_summary') {
       const parsed = z.object({ summary: summarySchema, dateFrom: z.iso.date().nullable(), dateTo: z.iso.date().nullable(), unresolvedImportRowScope: z.literal('workspace') }).passthrough().safeParse(envelope.data.result);
       if (!parsed.success || parsed.data.summary.transactionIds.length !== parsed.data.summary.transactionCount ||
@@ -99,7 +101,8 @@ export class AssistantFactRegistry {
       }
     }
     for (const fact of staged) { this.#ids.add(fact.id); this.#facts.push(fact); }
-    return staged;
+    this.#snapshots.set(snapshot.token, snapshot);
+    return structuredClone(staged);
   }
 
   has(id: string): boolean { return this.#ids.has(id); }
