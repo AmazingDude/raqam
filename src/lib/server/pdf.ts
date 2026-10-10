@@ -1,21 +1,27 @@
 import 'server-only';
-import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
-import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { findTransactionHeader, previewSpreadsheetRows, type CsvPreview, type ImportFieldMap } from './csv.ts';
+import { pathToFileURL } from 'node:url';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { PDFParse } from 'pdf-parse';
+import { MAX_PDF_PAGES, MAX_IMPORT_ROWS } from '../contracts/limits.ts';
+import { findTransactionHeader, previewPdfRows, type CsvPreview, type ImportFieldMap } from './csv.ts';
+import { BackendError } from './errors.ts';
 
 const packageRequire = createRequire(`${process.cwd()}/package.json`);
-const STANDARD_FONTS_PATH = `${resolve(dirname(packageRequire.resolve('pdfjs-dist/legacy/build/pdf.mjs')), '../../standard_fonts').replace(/[\\/]$/, '')}/`;
-const MAX_PDF_PAGES = 10;
-const MAX_PDF_TEXT_ITEMS = 20_000;
-const MAX_PDF_TEXT_CHARACTERS = 200_000;
+const PDFJS_ROOT = resolve(dirname(packageRequire.resolve('pdfjs-dist/legacy/build/pdf.mjs')), '../..');
+const STANDARD_FONTS_PATH = `${resolve(PDFJS_ROOT, 'standard_fonts')}/`;
+const CMAPS_PATH = `${resolve(PDFJS_ROOT, 'cmaps')}/`;
+GlobalWorkerOptions.workerSrc = pathToFileURL(resolve(PDFJS_ROOT, 'legacy/build/pdf.worker.mjs')).href;
+PDFParse.setWorker(GlobalWorkerOptions.workerSrc);
+const MAX_PDF_TEXT_ITEMS = 2_000_000;
+const MAX_PDF_TEXT_CHARACTERS = 20_000_000;
 const HEADER_SCAN_LINES = 30;
 
 type PositionedText = { text: string; x: number; y: number; width: number; height: number };
 type PdfLine = { y: number; items: PositionedText[] };
 type PdfCell = { text: string; left: number; right: number };
-type HeaderLayout = { page: number; line: number; cells: PdfCell[]; fieldMap: ImportFieldMap };
+type HeaderLayout = { cells: PdfCell[]; fieldMap: ImportFieldMap };
 class PdfImportError extends Error {}
 
 function hasPdfSignature(bytes: Uint8Array): boolean {
@@ -66,7 +72,7 @@ function identifyHeader(line: PdfLine): HeaderLayout | null {
   const cells = groupCells(line);
   if (cells.length < 4 || cells.length > 100) return null;
   const match = findTransactionHeader([cells.map(cell => cell.text)]);
-  return match ? { page: -1, line: -1, cells, fieldMap: match.fieldMap } : null;
+  return match ? { cells, fieldMap: match.fieldMap } : null;
 }
 
 function valuesForLine(line: PdfLine, centers: number[]): string[] {
@@ -86,89 +92,105 @@ function sameFieldMap(left: ImportFieldMap, right: ImportFieldMap): boolean {
     left.reference === right.reference && left.currency === right.currency;
 }
 
-function pdfReadError(failure: unknown): PdfImportError {
+function pdfReadError(failure: unknown): Error {
   const name = failure && typeof failure === 'object' && 'name' in failure ? String(failure.name) : '';
   const message = failure instanceof Error ? failure.message : '';
-  if (name === 'PasswordException' || /password/i.test(message)) return new PdfImportError('This PDF is password-protected. Save an unlocked copy and upload it again.');
-  return new PdfImportError('This PDF could not be read. Save a valid, unlocked PDF copy and try again.');
+  if (name === 'PasswordException' || /password/i.test(message)) return new PdfImportError('This PDF is password-protected. Save an unlocked copy and upload it again.', { cause: failure });
+  if (name === 'InvalidPDFException') return new PdfImportError('This PDF is damaged or incomplete. Download a fresh PDF copy and try again.', { cause: failure });
+  const unavailable = new BackendError('UNAVAILABLE', /fake worker|workerSrc|Cannot find module/i.test(message)
+    ? 'The PDF reader could not start. Restart the Raqam server and try again.'
+    : 'Raqam could not process this PDF right now. Please try again.');
+  unavailable.cause = failure;
+  return unavailable;
 }
 
-export async function previewPdf(bytes: Uint8Array): Promise<CsvPreview> {
+export async function previewPdf(bytes: Uint8Array, signal?: AbortSignal): Promise<CsvPreview> {
   if (!hasPdfSignature(bytes)) throw new PdfImportError('This file is not a readable PDF. Choose a PDF account statement.');
-
-  const loadingTask = getDocument({
-    // PDF.js may transfer and detach typed-array input to its worker; keep the original upload intact.
-    data: bytes.slice(), stopAtErrors: true, disableAutoFetch: true, enableXfa: false, standardFontDataUrl: STANDARD_FONTS_PATH,
-  });
-  let document: Awaited<typeof loadingTask.promise>;
+  const active = () => { if (signal?.aborted) throw new BackendError('UNAVAILABLE', 'PDF import was cancelled.'); };
+  active();
+  const options = { stopAtErrors: true, disableAutoFetch: true, enableXfa: false,
+    standardFontDataUrl: STANDARD_FONTS_PATH, cMapUrl: CMAPS_PATH, cMapPacked: true };
+  const loadingTask = getDocument({ ...options, data: new Uint8Array(bytes) });
+  // Use the library's ruled-table detector; positional text preserves blank
+  // Debit/Credit cells when the statement has no drawn table borders.
+  const tables = new PDFParse({ ...options, data: new Uint8Array(bytes) });
+  const cancel = () => { void loadingTask.destroy().catch(() => undefined); void tables.destroy().catch(() => undefined); };
+  signal?.addEventListener('abort', cancel, { once: true });
+  const matrix: string[][] = [], sourcePages: number[] = [];
+  let firstHeader: HeaderLayout | null = null, itemCount = 0, characterCount = 0;
+  const append = (values: string[], pageNumber: number) => {
+    if (!values.some(value => value.trim())) return;
+    if (matrix.length > MAX_IMPORT_ROWS) throw new PdfImportError(`This PDF has more than ${MAX_IMPORT_ROWS} transaction rows. Split the statement into smaller date ranges.`);
+    matrix.push(values); sourcePages.push(pageNumber);
+  };
   try {
-    document = await loadingTask.promise;
+    const document = await loadingTask.promise;
+    if (document.numPages < 1 || document.numPages > MAX_PDF_PAGES) throw new PdfImportError(`PDF statements must have 1-${MAX_PDF_PAGES} pages.`);
+    // Keep only one 25-page table result and one page's text in memory.
+    for (let start = 1; start <= document.numPages; start += 25) {
+      active();
+      const end = Math.min(document.numPages, start + 24);
+      const tableBatch = await tables.getTable({ first: start, last: end });
+      for (let pageNumber = start; pageNumber <= end; pageNumber++) {
+        active();
+        const page = await document.getPage(pageNumber);
+        try {
+          const content = await page.getTextContent({ includeMarkedContent: false, disableNormalization: false });
+          const positioned = positionTextItems(content.items);
+          itemCount += content.items.length;
+          characterCount += positioned.reduce((sum, item) => sum + item.text.length, 0);
+          if (itemCount > MAX_PDF_TEXT_ITEMS || characterCount > MAX_PDF_TEXT_CHARACTERS) throw new PdfImportError('This PDF exceeds the text processing limit. Split it into smaller date ranges.');
+          // Do not return a deceptively complete preview if a scanned page occurs
+          // in the middle of an otherwise selectable-text statement.
+          if (!positioned.length) throw new PdfImportError(`Page ${pageNumber} has no selectable transaction text. Scanned or image-only statements need OCR; upload an OCR text-based PDF, CSV, or Excel file.`);
+          const lines = groupLines(positioned);
+          const headerLine = lines.slice(0, HEADER_SCAN_LINES).findIndex(line => identifyHeader(line) !== null);
+          const pageHeader = headerLine >= 0 ? identifyHeader(lines[headerLine]!) : null;
+          if (pageHeader && firstHeader && !sameFieldMap(pageHeader.fieldMap, firstHeader.fieldMap)) throw new PdfImportError(`The transaction columns change on page ${pageNumber}. Import each account or table layout separately.`);
+          if (!firstHeader && pageHeader) {
+            const previousMap = matrix.length ? findTransactionHeader([matrix[0]!])?.fieldMap : null;
+            if (previousMap && !sameFieldMap(previousMap, pageHeader.fieldMap)) throw new PdfImportError(`The transaction columns change on page ${pageNumber}. Import each account or table layout separately.`);
+            firstHeader = pageHeader;
+            if (!matrix.length) matrix.push(pageHeader.cells.map(cell => cell.text));
+          }
+          const detectedTables = tableBatch.pages.find(p => p.num === pageNumber)?.tables ?? [];
+          let usedTable = false;
+          for (const table of detectedTables) {
+            const match = findTransactionHeader(table);
+            if (!match) continue;
+            if (firstHeader && !sameFieldMap(match.fieldMap, firstHeader.fieldMap)) throw new PdfImportError(`Conflicting transaction tables on page ${pageNumber}. Import the account tables separately.`);
+            const previousMap = matrix.length ? findTransactionHeader([matrix[0]!])?.fieldMap : null;
+            if (previousMap && !sameFieldMap(previousMap, match.fieldMap)) throw new PdfImportError(`Conflicting transaction tables on page ${pageNumber}. Import the account tables separately.`);
+            if (!matrix.length) matrix.push(table[match.index]!);
+            for (const values of table.slice(match.index + 1)) {
+              if (findTransactionHeader([values])) continue;
+              append(values, pageNumber);
+            }
+            usedTable = true;
+          }
+          if (usedTable) continue;
+          if (!firstHeader) {
+            if (matrix.length) throw new PdfImportError(`The transaction layout on page ${pageNumber} could not be verified. Upload a bank CSV/Excel export or a PDF with repeated column headings.`);
+            continue; // introductory pages before the first table
+          }
+          const header = pageHeader ?? firstHeader;
+          const centers = header.cells.map(cell => (cell.left + cell.right) / 2);
+          for (const line of lines.slice(headerLine >= 0 ? headerLine + 1 : 0)) {
+            if (identifyHeader(line)) continue;
+            append(valuesForLine(line, centers), pageNumber);
+          }
+        } finally { page.cleanup(); }
+      }
+    }
+    if (!matrix.length) throw new PdfImportError('Could not find a readable transaction table in this PDF. Include Date, Description, and Amount plus Direction or separate Debit and Credit columns.');
+    active();
+    return previewPdfRows(matrix, bytes, MAX_IMPORT_ROWS, sourcePages);
   } catch (failure) {
-    await loadingTask.destroy().catch(() => undefined);
-    throw pdfReadError(failure);
-  }
-
-  let matrix: string[][];
-  try {
-    if (document.numPages < 1 || document.numPages > MAX_PDF_PAGES) {
-      throw new PdfImportError(`PDF statements must have 1-${MAX_PDF_PAGES} pages.`);
-    }
-
-    const pages: PdfLine[][] = [];
-    let itemCount = 0, characterCount = 0;
-    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber++) {
-      const page = await document.getPage(pageNumber);
-      try {
-        const content = await page.getTextContent({ includeMarkedContent: false, disableNormalization: false });
-        itemCount += content.items.length;
-        const positioned = positionTextItems(content.items);
-        characterCount += positioned.reduce((sum, item) => sum + item.text.length, 0);
-        if (itemCount > MAX_PDF_TEXT_ITEMS || characterCount > MAX_PDF_TEXT_CHARACTERS) {
-          throw new PdfImportError('This PDF has too much text to preview. Save a smaller statement copy and try again.');
-        }
-        pages.push(groupLines(positioned));
-      } finally {
-        page.cleanup();
-      }
-    }
-
-    const headers: HeaderLayout[] = [];
-    pages.forEach((pageLines, pageIndex) => {
-      pageLines.slice(0, HEADER_SCAN_LINES).forEach((line, lineIndex) => {
-        const header = identifyHeader(line);
-        if (header) headers.push({ ...header, page: pageIndex, line: lineIndex });
-      });
-    });
-    const firstHeader = headers[0];
-    if (!firstHeader) {
-      if (itemCount === 0 || characterCount === 0) {
-        throw new PdfImportError('This PDF has no selectable transaction text. Scanned or image-only statements need OCR; upload a text-based PDF, CSV, or Excel file.');
-      }
-      throw new PdfImportError('Could not find a readable transaction table in this PDF. Include Date, Description, and Amount plus Direction or separate Debit and Credit columns.');
-    }
-
-    const headerValues = firstHeader.cells.map(cell => cell.text);
-    const centersFor = (header: HeaderLayout): number[] => header.cells.map(cell => (cell.left + cell.right) / 2);
-    matrix = [headerValues];
-    for (let pageIndex = firstHeader.page; pageIndex < pages.length; pageIndex++) {
-      const pageLines = pages[pageIndex]!;
-      const repeatedHeader = headers.find(header => header.page === pageIndex && header.line >= (pageIndex === firstHeader.page ? firstHeader.line : 0) &&
-        sameFieldMap(header.fieldMap, firstHeader.fieldMap));
-      const header = repeatedHeader ?? firstHeader;
-      const firstLine = pageIndex === firstHeader.page ? firstHeader.line + 1 : repeatedHeader ? repeatedHeader.line + 1 : 0;
-      const centers = centersFor(header);
-      for (let lineIndex = firstLine; lineIndex < pageLines.length; lineIndex++) {
-        const line = pageLines[lineIndex]!;
-        if (lineIndex < HEADER_SCAN_LINES && identifyHeader(line)) continue;
-        if (line.items.length) matrix.push(valuesForLine(line, centers));
-      }
-    }
-  } catch (failure) {
-    if (failure instanceof PdfImportError) throw failure;
+    active();
+    if (failure instanceof PdfImportError || failure instanceof BackendError) throw failure;
     throw pdfReadError(failure);
   } finally {
-    await loadingTask.destroy().catch(() => undefined);
+    signal?.removeEventListener('abort', cancel);
+    await Promise.allSettled([loadingTask.destroy(), tables.destroy()]);
   }
-
-  return previewSpreadsheetRows(matrix, bytes);
 }

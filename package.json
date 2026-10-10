@@ -14,7 +14,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --conditions=react-server --test --test-isolation=none tests/backend/*.test.ts tests/security/*.test.ts",
+    "test": "node --conditions=react-server --test --test-concurrency=1 tests/backend/*.test.ts tests/security/*.test.ts",
     "check:env": "node --env-file-if-exists=.env.local scripts/check-env.mjs",
     "check:services": "node --env-file-if-exists=.env.local scripts/check-services.mjs"
   },
@@ -23,7 +23,8 @@
     "@supabase/supabase-js": "2.117.3",
     "groq-sdk": "1.6.0",
     "next": "16.4.0",
-    "pdfjs-dist": "6.4.299",
+    "pdf-parse": "2.4.5",
+    "pdfjs-dist": "5.4.296",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "0.0.1",

@@ -55,7 +55,7 @@ See [BUILD_PLAN.md](BUILD_PLAN.md) for proposed calendar milestones. Confirm the
 
 One owner account has one business workspace for the MVP. Different signed-in owners have isolated workspaces. Shared organization membership and accountant collaboration are deferred until after the hackathon.
 
-Engineering size targets: up to **50 transactions and 10 receipt images per workspace**, processed in small batches; a **20-transaction, 3-image** demo. These are proposed implementation caps to keep the prototype tractable, not vendor limits or measured capacity. Validate them during the first technical gate and document any agreed adjustment.
+Engineering size targets: up to **50,000 transactions and 10 receipt images per workspace**, processed in small batches; a **20-transaction, 3-image** demo. The PDF/cashbook bounds were expanded at the user's request on 10 October for long bank statements; they are application guards, not vendor limits or measured hosting capacity. Validate them during the first technical gate and document any agreed adjustment.
 
 | Core | Beyond core |
 | --- | --- |
@@ -96,7 +96,7 @@ Every feature below is required for the agreed core. Completion is measured by o
 
 ### F02 - Transaction import and cashbook foundation
 
-- Provide a downloadable CSV template with `date`, `description`, `direction` (`in`/`out`), `amount` and optional `reference`; also accept CSV/TSV, Excel `.xls`/`.xlsx`, and selectable-text PDF account statements with recognizable date/description/amount-direction or debit/credit columns. PDF statements are limited to 10 pages and 50 transaction rows; scanned/image-only PDFs are identified and require OCR outside this import flow. Import PKR only; map common date and amount notation into a preview, keep ambiguous or foreign-currency values unresolved, and require formula-based imported cells to be saved as values first.
+- Provide a downloadable CSV template with `date`, `description`, `direction` (`in`/`out`), `amount` and optional `reference`; also accept CSV/TSV, Excel `.xls`/`.xlsx`, and selectable-text PDF account statements with recognizable date/description/amount-direction or debit/credit columns. PDF statements allow up to 20 MiB, 1,000 pages and 20,000 transaction rows; CSV/Excel retain their 50-row guard; scanned/image-only PDFs are identified and require OCR outside this import flow. Import PKR only; map common date and amount notation into a preview, keep ambiguous or foreign-currency values unresolved, and require formula-based imported cells to be saved as values first.
 - Preserve the original file and row references. Preview valid rows, invalid rows and counts before confirmation; never silently drop a row.
 - Validate amount, direction, date and currency. Unknown/unparseable amounts stay unresolved, never zero.
 - Confirmed valid rows create transaction records; corrections retain original source values and the user's decision.
@@ -303,6 +303,7 @@ Prepare signed-in access before the slot; verify sign-in separately during QA. A
 | D10 | Repo remote: `https://github.com/AmazingDude/raqam.git`; hosting and environment provisioning | Remote supplied by user; local Git initialized on `main`. Push status in handoff; hosting/provider accounts still unverified |
 | D11 | Session middleware with Clerk tokens for Supabase access; resource checks and row/file policies | User requested middleware if suitable; selected within existing F01/RQ-01 under delegated stack choice. No separate Supabase Auth session |
 | D12 | User owns A; platform/backend implementation with validation at each step | Confirmed on 10 October. Work on codex/raqam-backend; B/C modules reserved. Live accounts/deployment remain pending |
+| D14 | Long selectable-text PDF bank statements; RunAnywhere Eve for structured assistant routing | User requested hundreds of pages and selected Eve on 10 October. Local synthetic validation and setup requirements are in docs/raqam/LONG_STATEMENTS.md; scanned statement OCR and live Eve credit/access remain unverified |
 | D13 | Receipt acceptance requires a valid document date, exact nonnegative total and explicitly confirmed PKR; merchant/reference may remain unknown | Confirmed by user on 10 October during BA-00. Unknown financial fields stay unresolved; currency is never inferred automatically |
 
 ## 14. Source documents

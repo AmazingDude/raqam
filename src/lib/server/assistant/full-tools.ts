@@ -95,7 +95,7 @@ export function createAssistantTools(options: Options) {
           records: [], citations: citations([], result.items), partial: result.nextCursor !== null || args.cursor !== undefined,
           details: { documents: result.items, nextCursor: result.nextCursor, total: result.total } };
       }
-      const all = (await cashbook.list_transactions({ limit: 50 })).items;
+      const all = await cashbook.allRecords();
       const matching = all.filter(r => args.kind === 'unreviewed_categories' ? r.categoryStatus !== 'accepted' : r.matchStatus !== 'accepted');
       const result = page(matching, args.limit, args.cursor);
       const text = args.kind === 'unreviewed_categories'
@@ -108,7 +108,7 @@ export function createAssistantTools(options: Options) {
       const parsed = assistantToolSchemas.get_record_evidence.safeParse(input);
       if (!parsed.success) throw new BackendError('INVALID_INPUT', 'Provide between 1 and 20 evidence record IDs.');
       const { transactionIds, documentIds } = parsed.data;
-      const all = transactionIds.length ? (await cashbook.list_transactions({ limit: 50 })).items : [];
+      const all = transactionIds.length ? await cashbook.allRecords() : [];
       const records = [...new Set(transactionIds)].map(id => all.find(r => r.id === id));
       const allDocs = documentIds.length ? await docs() : [];
       const evidenceDocs = [...new Set(documentIds)].map(id => allDocs.find(d => d.id === id));

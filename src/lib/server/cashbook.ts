@@ -1,3 +1,4 @@
+import { MAX_WORKSPACE_TRANSACTIONS } from '../contracts/limits.ts';
 import 'server-only';
 import { z } from 'zod';
 import type { RequestSession } from './auth.ts';
@@ -8,7 +9,7 @@ import { mapCashbookRow } from './cashbook-mapping.ts';
 
 const rowSchema = z.record(z.string(), z.unknown());
 const recordSchema = z.object({ transaction: rowSchema, reviewVersion: z.number().int().min(0) });
-const snapshotSchema = z.strictObject({ records: z.array(rowSchema).max(50), unresolvedImportRowCount: z.number().int().min(0) });
+const snapshotSchema = z.strictObject({ records: z.array(rowSchema).max(MAX_WORKSPACE_TRANSACTIONS), unresolvedImportRowCount: z.number().int().min(0) });
 function databaseError(error: { code?: string }): BackendError {
   if (error.code === 'P0002') return new BackendError('NOT_FOUND', 'Transaction not found.');
   if (error.code === 'PT409' || error.code === '40001') return new BackendError('CONFLICT', 'This transaction changed. Reload it before saving your review.');

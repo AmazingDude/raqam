@@ -1,4 +1,5 @@
 'use client';
+import { MAX_PDF_BYTES, MAX_PDF_PAGES, MAX_IMPORT_ROWS } from '../../lib/contracts/limits.ts';
 import { useRef, useState } from 'react';
 import type { z } from 'zod';
 import { cashRowSchema, type ImportConfirmation, type importResolutionStateSchema } from '../../lib/contracts/imports.ts';
@@ -19,6 +20,7 @@ function initialDraft(row: Row, header: ImportBatch['preview']['header']): Draft
 }
 export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void> }) {
   const run = usePrivateRequests(), locked = useRef(false);
+  const [page, setPage] = useState(0);
   const [batch, setBatch] = useState<ImportBatch | null>(null), [name, setName] = useState('');
   const [drafts, setDrafts] = useState<Record<number, Draft>>({}), [outcomes, setOutcomes] = useState<Outcomes | null>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
@@ -37,15 +39,18 @@ export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void>
   }
   async function upload(file: File) {
     await exclusive(async () => {
-      if (!/\.(csv|tsv|xls|xlsx|pdf)$/i.test(file.name) || !file.size || file.size > 1024 * 1024) throw new Error('Choose a .csv, .tsv, .xls, .xlsx, or text-based .pdf file up to 1 MiB, with up to 50 rows.');
+      if (!/\.(csv|tsv|xls|xlsx|pdf)$/i.test(file.name) || !file.size || file.size > (/\.pdf$/i.test(file.name) ? MAX_PDF_BYTES : 1024 * 1024)) throw new Error('Choose a .csv, .tsv, .xls, .xlsx, or text-based .pdf file PDFs allow 20 MiB and 20,000 rows; other formats allow 1 MiB and 50 rows.');
       const next = await run(signal => api.registerImport(file, signal));
-      setBatch(next); setName(file.name); setOutcomes(null); setAttempt(null); setAcknowledged(false);
+      setPage(0); setBatch(next); setName(file.name); setOutcomes(null); setAttempt(null); setAcknowledged(false);
       setDrafts(Object.fromEntries(next.preview.rows.map(row => [row.rowNumber, initialDraft(row, next.preview.header)])));
       setNotice(next.duplicate ? 'Existing import reopened. No duplicate cash records were created.' : 'Original transaction file saved. Review the preview before adding cash records.');
       if (next.status === 'confirmed') setOutcomes(await run(signal => api.importOutcomes(next.importId, signal)));
     });
   }
-  const available = batch?.preview.rows.filter(row => batch.status === 'pending' || outcomes?.rows.some(item => item.rowNumber === row.rowNumber && item.outcome === 'unresolved')) ?? [];
+  const byOutcome = new Map(outcomes?.rows.map(row => [row.rowNumber, row.outcome]) ?? []);
+  const available = batch?.preview.rows.filter(row => batch.status === 'pending' || byOutcome.get(row.rowNumber) === 'unresolved') ?? [];
+  const pageCount = Math.ceil((batch?.preview.rows.length ?? 0) / 50);
+  const currentPage = Math.min(page, Math.max(0, pageCount - 1));
   function makeAttempt(): Attempt {
     if (!batch) throw new Error('Upload a transaction file first.');
     const rows: ImportConfirmation['rows'] = available.flatMap<ImportConfirmation['rows'][number]>(row => {
@@ -87,13 +92,18 @@ export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void>
       <div className={s.panelHeading}><div><h2>{name || 'Stored transaction file'} · {batch.status === 'pending' ? 'Preview' : 'Confirmed import'}</h2><p className={s.small}>Original: {batch.preview.validCount} valid / {batch.preview.invalidCount} needing review</p></div><button className={s.secondary} disabled={busy} onClick={() => void exclusive(async () => { await loadState(batch.importId); await onChanged(); setNotice('Current import status loaded. Check your row choices before confirming.'); })}>Refresh import status</button></div>
       {outcomes && <p className={s.proposal} role="status">Current outcomes: {outcomes.importedCount} imported / {outcomes.rejectedCount} rejected / {outcomes.unresolvedCount} unresolved. Unresolved rows stay out of cash totals.</p>}
       {batch.status === 'confirmed' && !outcomes && <p className={`${s.proposal} ${s.error}`}>Current row outcomes are unavailable. Refresh import status before making further decisions.</p>}
-      {batch.preview.rows.map(row => {
+      <nav aria-label="Import preview pages" className={s.panelHeading}>
+        <button className={s.secondary} disabled={busy || currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous</button>
+        <p>Page {currentPage + 1} of {pageCount} ? {batch.preview.rows.length.toLocaleString()} rows. Confirmation includes choices across all pages.</p>
+        <button className={s.secondary} disabled={busy || currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}>Next</button>
+      </nav>
+      {batch.preview.rows.slice(currentPage * 50, (currentPage + 1) * 50).map(row => {
         const draft = drafts[row.rowNumber] ?? initialDraft(row, batch.preview.header);
-        const outcome = outcomes?.rows.find(item => item.rowNumber === row.rowNumber)?.outcome;
+        const outcome = byOutcome.get(row.rowNumber);
         const editable = batch.status === 'pending' || outcome === 'unresolved';
         const update = (patch: Partial<Draft>) => { setDrafts(current => ({ ...current, [row.rowNumber]: { ...draft, ...patch } })); setAcknowledged(false); };
         return <article key={row.rowNumber} className={s.proposal} aria-label={`Transaction row ${row.rowNumber}`}>
-          <div className={s.proposalHeading}><h3>Row {row.rowNumber}</h3><span className={`${s.badge} ${outcome === 'imported' ? s.good : s.pending}`}>{outcome ?? (row.transaction ? 'Valid preview' : 'Needs review')}</span></div>
+          <div className={s.proposalHeading}><h3>Row {row.rowNumber}{row.pageNumber ? ` ? PDF page ${row.pageNumber}` : ''}</h3><span className={`${s.badge} ${outcome === 'imported' ? s.good : s.pending}`}>{outcome ?? (row.transaction ? 'Valid preview' : 'Needs review')}</span></div>
           <details><summary>Original source values</summary><dl className={s.details}>{row.original.map((value, index) => <div key={index} style={{display:'contents'}}><dt>{batch.preview.header[index] ?? `Extra field ${index + 1}`}</dt><dd style={{overflowWrap:'anywhere'}}>{value || '(blank)'}</dd></div>)}</dl></details>
           {row.transaction && <p>{row.transaction.date} · {row.transaction.description} · {row.transaction.direction === 'in' ? 'Cash in' : 'Cash out'} · PKR {money(row.transaction.amountMinor)}</p>}
           {row.errors.length > 0 && <ul>{row.errors.map((issue, index) => <li key={index}>{issue.field}: {issue.message}</li>)}</ul>}

@@ -1,3 +1,4 @@
+import { MAX_WORKSPACE_TRANSACTIONS } from '../../contracts/limits.ts';
 import { z } from 'zod';
 import { assistantToolSchemas, transactionSchema } from '../../contracts/schemas.ts';
 import { BackendError } from '../errors.ts';
@@ -10,7 +11,7 @@ type Options = {
   signal?: AbortSignal;
 };
 const snapshotSchema = z.strictObject({
-  records: z.array(transactionSchema).max(50),
+  records: z.array(transactionSchema).max(MAX_WORKSPACE_TRANSACTIONS),
   unresolvedImportRowCount: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
 });
 
@@ -66,6 +67,8 @@ export function createCashbookTools(options: Options) {
     return value;
   }
   return {
+    // Internal scoped accessor. Never exposed as a model tool or bulk prompt.
+    async allRecords() { const { records } = await load(); return structuredClone(records); },
     async list_transactions(input: unknown) {
       const parsed = assistantToolSchemas.list_transactions.safeParse(input);
       if (!parsed.success) throw new BackendError('INVALID_INPUT', 'Provide valid bounded transaction filters.');

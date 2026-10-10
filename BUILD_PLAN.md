@@ -179,3 +179,5 @@ After manual 007 application, BA-04 hosted checks pass **11/11 two-account synth
 Local automated/backend checks are recorded separately in `docs/raqam/VALIDATION.md`; no complete product journey, live AI evaluation or deployment has passed.
 
 Do not mark implementation tasks done because these planning documents exist.
+
+- **RQ-04 long statements / runtime repair - 10 October, in review:** replaced the 10-page PDF limit with 1,000 pages/20 MiB/20,000 rows, integrated Apache-2.0 pdf-parse ruled-table extraction and PDF.js borderless fallback, corrected the compiled worker path and deployment tracing, and paginated row review. Migration 009 expands persistence to 50,000 workspace records, indexes source arrays during confirmation/resolution and keeps complete totals. Eve is an optional structured router for existing read-only assistant tools; it never parses PDF files or computes amounts. Local checks and manual setup are tracked in docs/raqam/LONG_STATEMENTS.md. Hosted migration 009, live model access, representative bank layouts and signed-in browser verification remain open; RQ-04 stays in_progress.
