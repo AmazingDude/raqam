@@ -39,7 +39,7 @@ Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo
 | RQ-01 | Bootstrap and deploy authenticated persisted workspace | RQ-00 setup readiness; cutoff may remain pending | User (A); B workspace UI | in_progress |
 | RQ-02 | Prove live Groq OCR on 3 fresh English images | RQ-00 setup readiness; cutoff may remain pending | C | todo |
 | RQ-03 | Independently label dev/evaluation cases | None; follow confirmed PRD | A prepares; B independently checks | todo |
-| RQ-04 | Import/review CSV into persisted cashbook | RQ-01 | B coordinates; A import/persistence | in_progress |
+| RQ-04 | Import/review CSV, TSV and Excel transactions into persisted cashbook | RQ-01 | B coordinates; A import/persistence | in_progress |
 | RQ-05 | Upload/OCR/review a private supporting document | RQ-01, RQ-02 | C coordinates; A storage/routes; B review UI | todo |
 | RQ-06 | Propose/review categories; display exact cash summaries | RQ-04 | B coordinates; C proposals; A totals/reviews | in_progress |
 | RQ-07 | Propose/review one-to-one reconciliation | RQ-04, RQ-05 | C coordinates; A approval constraints; B review UI | todo |
@@ -93,6 +93,8 @@ Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo
 - [ ] Gold answers remain outside app/model context; do not use ShiftProof cases.
 
 ### RQ-04 through RQ-09 - Complete core slices
+
+- **RQ-04 format expansion — implementation checked:** user requested Excel workbook support after the current CSV-only picker rejected an `.xlsx`/`.xls`. The importer now accepts `.csv`, `.tsv`, `.xls` and `.xlsx`, maps common bank headings/date/amount notation, preserves the original bytes and row values, and rejects formulas only in imported fields. **15/15 focused importer tests, 93/93 backend/security tests and production build pass.** The user's actual workbook has not been tried yet; the local app is running at `http://localhost:3000`. RQ-04 remains `in_progress` until the signed-in import journey is verified.
 
 - **BA-04 — local review ready, hosted application pending:** migration 007 and GET/POST `/api/reviews` implement audited category/match decisions, exact compatible allocations, singleton indexes, active-document guards, immutable retries/history and persisted cashbook match projection. Corrected matches require transactionVersion. **60/60 tests**, strict types/build, **18/18 signed-out route checks** pass; managed concurrency/signed-in new-route gates remain separate. User-reported 006 has six anonymous denials and **12/12 zero-write authenticated grant/RPC guards** verified. Apply only 007 next. The initial approval quota/spawn blockers were resolved by approved retries after reset.
 
@@ -155,7 +157,7 @@ If any answer is no, stretch stays closed. Core **OCR, Clerk and Supabase are no
 
 ## Latest backend integration evidence
 
-10 October BA-02 integration with latest main `e842802`: **194/194 combined synthetic tests**, strict typecheck, production build, **25 signed-out private route denials**, and B's **3 UI route/9 private GET** HTTP smoke pass. Owner-scoped document list/register/detail/review/history/extraction routes reuse A2's validated service and expose A1's raw evidence/cache context. Migration 008 awaits the user's manual application and read-only SQL grant check. Groq vision OCR is wired to the Qwen vision candidate; local Groq settings are absent, so no new live route call ran. The second account is signed in to its `Dukaan` workspace; the cap runner still requires a separate empty `Raqam cap validation` workspace. Category generation awaits C's step 9 review; signed-in receipt persistence, integrated B/C journeys and deployment remain open.
+10 October BA-02 integration with latest main `8caf2c2`: **199/199 combined synthetic tests**, strict typecheck, production build, **25 signed-out private route denials**, and B's **3 UI route/9 private GET** HTTP smoke pass. Owner-scoped document list/register/detail/review/history/extraction routes reuse A2's validated service and expose A1's raw evidence/cache context. Excel transaction import from the latest main commit is included in those checks. Migration 008 awaits the user's manual application and read-only SQL grant check. Groq vision OCR is wired to the Qwen vision candidate; local Groq settings are absent, so no new live route call ran. The second account is signed in to its `Dukaan` workspace; the cap runner still requires a separate empty `Raqam cap validation` workspace. Category generation awaits C's step 9 review; signed-in receipt persistence, integrated B/C journeys and deployment remain open.
 
 BA-06/07 after bringing published main `09c1007` into backend: **77/77 backend/security tests, 4/4 client contract checks and production build pass**. Platform smoke passes **18 signed-out private requests** and B HTTP smoke **3 UI routes/9 private GET denials**. **6/6 read-only native API session groups pass**, including interleaved owners, malformed/signature-invalid/expired tokens, fresh-token recovery and no-session requests. This does not validate browser cookies, explicit sign-out or client-state switching. The managed import-cap runner is prepared and syntax-checked; it needs a dedicated empty Raqam workspace and has not run live. Full product/AI/deployment gates remain open.
 

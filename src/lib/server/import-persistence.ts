@@ -31,8 +31,10 @@ export async function getImport(session: RequestSession, workspace: Workspace, i
 export async function registerImport(session: RequestSession, workspace: Workspace, request: Request) {
   const upload = await readCsvUpload(request);
   const path = `${workspace.id}/${upload.preview.contentHash}.csv`;
-  const stored = await session.database.storage.from('raqam-sources').upload(path, upload.bytes, { contentType: 'text/csv', upsert: false });
-  if (!await uploadStored(stored.error, () => session.database.storage.from('raqam-sources').info(path))) throw new BackendError('UNAVAILABLE', 'Original CSV could not be stored. Retry the upload.');
+  const contentType = upload.extension === 'csv' ? 'text/csv' : upload.extension === 'tsv' ? 'text/tab-separated-values'
+    : upload.extension === 'xls' ? 'application/vnd.ms-excel' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const stored = await session.database.storage.from('raqam-sources').upload(path, upload.bytes, { contentType, upsert: false });
+  if (!await uploadStored(stored.error, () => session.database.storage.from('raqam-sources').info(path))) throw new BackendError('UNAVAILABLE', 'Original transaction file could not be stored. Retry the upload.');
   const result = await session.database.rpc('register_csv_import', {
     p_workspace_id: workspace.id, p_hash: upload.preview.contentHash, p_name: upload.originalName, p_preview: upload.preview,
   });

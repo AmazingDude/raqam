@@ -60,7 +60,7 @@ Engineering size targets: up to **50 transactions and 10 receipt images per work
 | Core | Beyond core |
 | --- | --- |
 | Clerk sign-in; cloud records and private source images in Supabase | Organizations, roles, invitations, subscription billing |
-| One supported transaction CSV template with preview and row errors | Universal bank-statement parsing, live bank connections |
+| CSV/TSV and Excel `.xls`/`.xlsx` transaction imports with preview, common bank-column mapping and row errors | PDF/image bank statements, universal parsing of unknown schemas, live bank connections |
 | English printed receipt/invoice images, JPEG/PNG, OCR and correction | Handwriting, Urdu/Roman Urdu, multi-page PDF and layout guarantees |
 | AI category proposals; reviewed transaction records | Automatic accounting treatment, tax categories, unattended posting |
 | One-to-one transaction/document matching with review | Split payments, many-to-many allocations, FX, refunds/netting workflows |
@@ -96,7 +96,7 @@ Every feature below is required for the agreed core. Completion is measured by o
 
 ### F02 - Transaction import and cashbook foundation
 
-- Provide a downloadable template with `date`, `description`, `direction` (`in`/`out`), `amount` and optional `reference`; PKR is explicit. Dates use an unambiguous format.
+- Provide a downloadable CSV template with `date`, `description`, `direction` (`in`/`out`), `amount` and optional `reference`; also accept CSV/TSV and Excel `.xls`/`.xlsx` with recognized date/description/amount-direction or debit/credit columns. Import PKR only; map common date and amount notation into a preview, keep ambiguous or foreign-currency values unresolved, and require formula-based imported cells to be saved as values first.
 - Preserve the original file and row references. Preview valid rows, invalid rows and counts before confirmation; never silently drop a row.
 - Validate amount, direction, date and currency. Unknown/unparseable amounts stay unresolved, never zero.
 - Confirmed valid rows create transaction records; corrections retain original source values and the user's decision.
