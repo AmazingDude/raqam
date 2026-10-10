@@ -230,14 +230,21 @@ export function createGroqProvider(dependencies: ProviderDependencies = {}): Gro
     let configuration;
     try { configuration = readProviderConfiguration((dependencies.environment ?? (() => process.env))()); } catch { return fail('configuration_missing'); }
     if (!configuration) return fail('configuration_missing');
+    if(configuration.providerVersion) metadata.providerVersion=configuration.providerVersion;
     if (versions.prompt.includes(configuration.apiKey) || versions.schema.includes(configuration.apiKey)) { metadata.promptVersion = null; metadata.schemaVersion = null; return fail('invalid_request'); }
     metadata.model = mode === 'image' ? configuration.visionModel : configuration.textModel;
     let body: ChatCompletionCreateParamsNonStreaming;
     try { body = prepare(metadata.model); } catch { return fail('invalid_request'); }
     if (JSON.stringify(body).includes(configuration.apiKey)) return fail('invalid_request');
     const allowedTools = body.tool_choice === 'none' ? [] : (body.tools ?? []).map(tool => tool.function?.name).filter((name): name is ToolName => typeof name === 'string' && isToolName(name));
-    const client = new Groq({ apiKey: configuration.apiKey, baseURL: 'https://api.groq.com', maxRetries: 0, timeout: LIMITS.attemptTimeoutMs,
-      logLevel: 'off', dangerouslyAllowBrowser: false, ...(dependencies.fetch ? { fetch: dependencies.fetch } : {}) });
+    const fetcher=dependencies.fetch??globalThis.fetch;
+    const compatibleFetch=configuration.providerVersion==='openai-provider-v1'?async(input:RequestInfo|URL,init?:RequestInit)=>{
+      const raw=input instanceof Request?input.url:String(input),url=new URL(raw);
+      url.pathname=url.pathname.replace('/openai/v1/','/v1/');
+      return fetcher(url,init);
+    }:fetcher;
+    const client = new Groq({ apiKey: configuration.apiKey, baseURL: configuration.baseURL ?? 'https://api.groq.com', maxRetries: 0, timeout: LIMITS.attemptTimeoutMs,
+      logLevel: 'off', dangerouslyAllowBrowser: false, fetch:compatibleFetch });
     if (context.signal?.aborted) return fail('cancelled');
     if (clock.now() >= context.deadlineAtMs) return fail('deadline_exceeded', true);
     const operation = scope(context.signal, context.deadlineAtMs - clock.now(), 'deadline_exceeded', clock);

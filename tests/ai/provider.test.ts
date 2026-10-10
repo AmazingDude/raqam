@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { documentFieldsSchema, categorySuggestionSchema } from '../../src/lib/contracts/schemas.ts';
 import { spawnSync } from 'node:child_process';
 import { z } from 'zod';
-import { createGroqProvider } from '../../src/lib/ai/index.ts';
+import { createAIProvider, createGroqProvider } from '../../src/lib/ai/index.ts';
 import type { ProviderClock, ProviderResult, ProviderTelemetry, ToolConversationRequest } from '../../src/lib/ai/index.ts';
 
 const env = { GROQ_API_KEY: 'synthetic-provider-test-key', GROQ_VISION_MODEL: 'qwen/qwen3.8-27b', GROQ_TEXT_MODEL: 'openai/gpt-oss-20b' };
@@ -20,6 +20,17 @@ function completion(value: unknown, status = 200, headers: Record<string, string
     usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
   } : { error: { message: 'private provider error', type: 'synthetic' } }), { status, headers: { 'content-type': 'application/json', ...headers } });
 }
+
+test('OpenAI BYOK uses the authenticated OpenAI chat endpoint and validates the structured result',async()=>{
+  const env={AI_PROVIDER:'openai',OPENAI_API_KEY:'synthetic-openai-key',OPENAI_TEXT_MODEL:'gpt-test',OPENAI_VISION_MODEL:'gpt-vision-test'};
+  let sentUrl='',sentHeaders=new Headers();
+  const provider=createAIProvider({environment:()=>env,fetch:async(input,init)=>{sentUrl=String(input);sentHeaders=new Headers(init?.headers);const body=JSON.parse(String(init?.body)) as {model:string};assert.equal(body.model,'gpt-test');return completion({status:'ok'});}});
+  const schema=z.strictObject({status:z.literal('ok')});
+  const result=await provider.requestTextProposal({prompt:'Return {status: ok}.',versions,schema},context());
+  assert.equal(result.ok,true);assert.match(sentUrl,/^https:\/\/api\.openai\.com\/v1\/chat\/completions/);
+  assert.equal(sentHeaders.get('authorization'),'Bearer synthetic-openai-key');
+  assert.equal(JSON.stringify(result).includes(env.OPENAI_API_KEY),false);
+});
 
 test('image extraction preserves unknowns with safe provenance and lazy configuration', async () => {
   let reads = 0;

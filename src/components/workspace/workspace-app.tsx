@@ -22,15 +22,17 @@ import type { PrivateLink, UploadedSource } from './documents-screen.tsx';
 import { ReviewScreen } from './review-screen.tsx';
 import type { ReviewableCategoryProposal, ReviewableMatchProposal } from './review-screen.tsx';
 import { AssistantScreen } from './assistant-screen.tsx';
+import { AIProviderSettings } from './ai-provider-settings.tsx';
 import { InvoicesScreen } from './invoices/invoices-screen.tsx';
 import s from '../ui/theme.module.css';
-type View = 'cashbook' | 'invoices' | 'import' | 'documents' | 'review' | 'assistant';
+type View = 'cashbook' | 'invoices' | 'import' | 'documents' | 'review' | 'assistant' | 'settings';
 const views: {id:View;label:string;icon:IconName}[] = [
   {id:'cashbook',label:'Cashbook',icon:'book'},
   {id:'invoices',label:'Invoices',icon:'file'},
   {id:'documents',label:'Documents',icon:'file'},
   {id:'review',label:'Review queue',icon:'review'},
-  {id:'assistant',label:'Ask Raqam',icon:'spark'}
+  {id:'assistant',label:'Ask Raqam',icon:'spark'},
+  {id:'settings',label:'AI provider',icon:'settings'}
 ];
 const EMPTY_DOCUMENTS: DocumentRecord[] = [];
 const EMPTY_PROPOSALS: ProposalRecord[] = [];
@@ -58,6 +60,7 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
   const [exporting,setExporting]=useState(false),[exportError,setExportError]=useState('');
   const [view,setView]=useState<View>('cashbook'),[demoRecords,setDemoRecords]=useState(liveRecords),[demoDocuments,setDemoDocuments]=useState(demo?exampleDocuments():[]),[demoProposals,setDemoProposals]=useState(demo?exampleProposals():[]),[liveDocuments,setLiveDocuments]=useState(initialDocuments),[liveProposalRecords,setLiveProposalRecords]=useState(initialProposals),[liveMatchProposals,setLiveMatchProposals]=useState(initialMatchProposals);
   const [matches,setMatches]=useState<{documentId:string;transactionId:string}[]>([]),[rejectedMatches,setRejectedMatches]=useState<string[]>([]),[sources,setSources]=useState<UploadedSource[]>([]),[loadingMatchPage,setLoadingMatchPage]=useState(false);
+  const [matchScans,setMatchScans]=useState<Record<string,Awaited<ReturnType<typeof api.generateMatchProposals>>['snapshot']>>({});
   const [record,setRecord]=useState<Transaction|null>(null),[exportOpen,setExportOpen]=useState(false),[historyOpen,setHistoryOpen]=useState(false),[history,setHistory]=useState<ReviewDecision[]>([]),[notice,setNotice]=useState(''),[failure,setFailure]=useState(''),[imported,setImported]=useState(false),[unresolved,setUnresolved]=useState(0),[reset,setReset]=useState(0),[extractingDocumentId,setExtractingDocumentId]=useState<string|null>(null),[generatingCategories,setGeneratingCategories]=useState(false),[categoryError,setCategoryError]=useState(''),[generatingMatchDocumentId,setGeneratingMatchDocumentId]=useState<string|null>(null),[matchesError,setMatchesError]=useState(initialMatchesError);
   const records=demo?demoRecords:liveRecords;
   const documents=demo?demoDocuments:liveDocuments.map(item=>item.document);
@@ -98,6 +101,7 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
   }
   async function saveDocument(id:string,fields:DocumentFields,accepted:boolean,requestId:string) {
     const prior=documents.find(d=>d.id===id);if(!prior)return;
+    setMatchScans(current=>{const next={...current};delete next[id];return next;});
     if(!demo) {
       const current=liveDocuments.find(item=>item.document.id===id);
       if(!current)throw new Error('Document state is unavailable. Reload the documents list.');
@@ -163,11 +167,13 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
   async function generateMatchCandidates(documentId:string) {
     if(generatingMatchDocumentId)return;
     setGeneratingMatchDocumentId(documentId);setMatchesError('');
+    setMatchScans(current=>{const next={...current};delete next[documentId];return next;});
     try {
       const result=await run(signal=>api.generateMatchProposals({requestId:crypto.randomUUID(),documentId},signal));
+      setMatchScans(current=>({...current,[documentId]:result.snapshot}));
       setNotice(result.snapshot.createdCount
-        ? `${result.snapshot.createdCount} evidence-ranked candidate${result.snapshot.createdCount===1?'':'s'} saved from a complete scan of ${result.snapshot.transactionCount} transactions.${result.snapshot.omittedCount?` ${result.snapshot.omittedCount} more candidates remain for another scan.`:' Compare each source before reviewing.'}`
-        : 'The complete cashbook scan found no new compatible candidates. Existing review decisions were preserved.');
+        ? `${result.snapshot.createdCount} evidence-ranked candidate${result.snapshot.createdCount===1?'':'s'} saved from ${result.snapshot.eligibleCount} of ${result.snapshot.transactionCount} eligible transactions.${result.snapshot.complete?' Scan complete.':` ${result.snapshot.omittedCount} candidates remain outside this batch.`} Compare each source before reviewing.`
+        : result.snapshot.complete?'The scan found no new compatible candidates. Existing review decisions were preserved.':'No new candidates were saved; additional candidates remain outside this batch. Existing review decisions were preserved.');
       await onChanged();
       setLiveMatchProposals(current=>[...current.filter(item=>!result.items.some(saved=>saved.id===item.id)),...result.items]);
     } catch(error) {setMatchesError(error instanceof Error?error.message:'Match candidates could not be prepared. Existing decisions are unchanged.');}
@@ -205,8 +211,9 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
         {view==='import'&&!demo&&<LiveImportScreen onChanged={onChanged}/>}
         {view==='import'&&demo&&<ImportScreen demo={demo} workspaceId={workspace.id} imported={imported} onConfirm={(next,remaining)=>{if(!demo||imported)return;setDemoRecords(current=>[...current,...next]);setUnresolved(remaining);setImported(true);decision('example-import-csv','accept',null,{validRows:next.length,unresolvedRows:remaining});setNotice(`${next.length} example rows imported; ${remaining} unresolved rows excluded from totals.`);}}/>}
         {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} liveRecords={liveDocuments} documentError={documentsError} extractingDocumentId={extractingDocumentId} onExtractDocument={demo?undefined:extractDocument} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink}/>}
-        {view==='review'&&<ReviewScreen demo={demo} records={records} documents={documents} proposals={proposals} matchProposals={demo?[]:liveMatchProposals.filter((item):item is ReviewableMatchProposal=>item.suggestion.kind==='match')} hasMoreMatchProposals={matchProposalsCursor!==null} onLoadMoreMatchProposals={loadMoreMatchProposals?async()=>{if(loadingMatchPage)return;setLoadingMatchPage(true);try{await loadMoreMatchProposals();}catch(error){setMatchesError(error instanceof Error?error.message:'Saved match decisions could not be loaded.');}finally{setLoadingMatchPage(false);}}:undefined} onMatchPageLoading={loadingMatchPage} matchesError={matchesError} generatingMatchDocumentId={generatingMatchDocumentId} onGenerateMatch={generateMatchCandidates} onReviewMatch={reviewMatch} matchedDocumentIds={demo?matches.map(m=>m.documentId):liveMatchProposals.filter(item=>item.status==='accepted'&&item.suggestion.kind==='match').map(item=>item.suggestion.kind==='match'?item.suggestion.documentId:'')} rejectedDocumentIds={rejectedMatches} onCategory={reviewCategory} onGenerateCategories={demo?undefined:generateCategories} generatingCategories={generatingCategories} categoryError={categoryError} proposalsError={proposalsError} onMatch={match} onRejectMatch={id=>{setRejectedMatches(current=>[...current,id]);const affected=matches.find(m=>m.documentId===id);if(affected)setDemoRecords(current=>current.map(r=>r.id===affected.transactionId?{...r,matchStatus:'unmatched'}:r));else if(id==='example-doc-1')setDemoRecords(current=>current.map(r=>r.id==='example-2'?{...r,matchStatus:'unmatched'}:r));decision(id,'reject',null,null);setNotice('Example match suggestion rejected. Unmatched records remain visible.');}} onDocuments={()=>navigate('documents')} onRecord={setRecord}/>}
+        {view==='review'&&<ReviewScreen demo={demo} records={records} documents={documents} proposals={proposals} matchProposals={demo?[]:liveMatchProposals.filter((item):item is ReviewableMatchProposal=>item.suggestion.kind==='match')} matchScans={matchScans} hasMoreMatchProposals={matchProposalsCursor!==null} onLoadMoreMatchProposals={loadMoreMatchProposals?async()=>{if(loadingMatchPage)return;setLoadingMatchPage(true);try{await loadMoreMatchProposals();}catch(error){setMatchesError(error instanceof Error?error.message:'Saved match decisions could not be loaded.');}finally{setLoadingMatchPage(false);}}:undefined} onMatchPageLoading={loadingMatchPage} matchesError={matchesError} generatingMatchDocumentId={generatingMatchDocumentId} onGenerateMatch={generateMatchCandidates} onReviewMatch={reviewMatch} matchedDocumentIds={demo?matches.map(m=>m.documentId):liveMatchProposals.filter(item=>item.status==='accepted'&&item.suggestion.kind==='match').map(item=>item.suggestion.kind==='match'?item.suggestion.documentId:'')} rejectedDocumentIds={rejectedMatches} onCategory={reviewCategory} onGenerateCategories={demo?undefined:generateCategories} generatingCategories={generatingCategories} categoryError={categoryError} proposalsError={proposalsError} onMatch={match} onRejectMatch={id=>{setRejectedMatches(current=>[...current,id]);const affected=matches.find(m=>m.documentId===id);if(affected)setDemoRecords(current=>current.map(r=>r.id===affected.transactionId?{...r,matchStatus:'unmatched'}:r));else if(id==='example-doc-1')setDemoRecords(current=>current.map(r=>r.id==='example-2'?{...r,matchStatus:'unmatched'}:r));decision(id,'reject',null,null);setNotice('Example match suggestion rejected. Unmatched records remain visible.');}} onDocuments={()=>navigate('documents')} onRecord={setRecord}/>}
         {view==='assistant'&&<AssistantScreen key={workspace.id} demo={demo} records={records} workspaceId={workspace.id} onRecord={setRecord}/>}
+        {view==='settings'&&<AIProviderSettings demo={demo}/>}
       </div>
       {record&&!demo&&<LiveRecordDetail key={record.id} record={record} onClose={()=>setRecord(null)} onChanged={onChanged}/>}
       {record&&demo&&<RecordDetail key={record.id} record={record} demo={demo} onClose={()=>setRecord(null)} onSave={(description,category)=>{if(!demo)return;setDemoRecords(current=>current.map(r=>r.id===record.id?{...r,description,category,categoryStatus:category?'accepted':category!==record.category?'needs_review':record.categoryStatus}:r));if(category!==record.category)setDemoProposals(current=>current.map(p=>p.transactionId===record.id?{...p,status:category?'accepted':'needs_review'}:p));decision(record.id,'correct',{description:record.description,category:record.category},{description,category});setRecord(null);setNotice('Example record reviewed. Original source text is preserved.');}}/>}

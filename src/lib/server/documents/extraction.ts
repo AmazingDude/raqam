@@ -33,6 +33,7 @@ export async function extractDocument(session: RequestSession, workspace: Worksp
   const current=await readDocument(session,workspace,id);
   const environment=runtime.environment?.() ?? process.env;
   const provider=environment.AI_PROVIDER ?? 'groq';
+  if(provider!=='groq'&&provider!=='gemini') throw new BackendError('UNAVAILABLE','Receipt extraction currently supports Groq or Gemini. Select a supported provider for receipt OCR.');
   const readConfiguration=(settings:Record<string,string|undefined>)=>provider==='gemini'
     ? readGeminiConfiguration(settings)
     : provider==='groq' ? readProviderConfiguration(settings) : null;
