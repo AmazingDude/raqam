@@ -1,7 +1,7 @@
 # C1 handoff — provider, OCR and categories
 
 **Owner:** user / C1. **Shared branch:** `codex/ai-two-person`. **Updated:** 10 October 2026, PKT.
-Read [split/ownership](TWO_PERSON_EXECUTION.md), [original steps](IMPLEMENTATION_STEPS.md), [plan](PERSON_C_PLAN.md), [combined status](handoff.md), [contracts](contracts.md) and [feasibility](feasibility.md). C1 edits this file; C2 records requests in its own handoff.
+Read [split/ownership](TWO_PERSON_EXECUTION.md), [original steps](IMPLEMENTATION_STEPS.md), [plan](PERSON_C_PLAN.md), [combined status](handoff.md), [contracts](contracts.md) and [feasibility](GROQ_FEASIBILITY.md). C1 edits this file; C2 records requests in its own handoff.
 
 ## Assigned work
 

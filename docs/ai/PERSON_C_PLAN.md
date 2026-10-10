@@ -181,7 +181,7 @@ C can prove Groq capability on C-local synthetic inputs while contracts are pend
 3. Try the PRD vision candidate `qwen/qwen3.8-27b` on three fresh supported images: clean receipt, different layout, unreadable required field.
 4. Try the PRD text/tool candidate `openai/gpt-oss-20b` with schema output and a minimal allowlisted read-only tool call separately.
 5. Record actual model IDs, request settings, schema/prompt versions, request outcomes, critical-field errors and elapsed time. Verify missing values survive validation.
-6. Select the working supported mode and publish the evidence in `docs/ai/feasibility.md` when implementation begins. A approves pinned dependencies and environment names.
+6. Select the working supported mode and publish the evidence in `docs/ai/GROQ_FEASIBILITY.md` when implementation begins. A approves pinned dependencies and environment names.
 
 **Stop condition:** no working vision access, unusable extraction, or unsuitable request limits. Raise the concrete failure immediately. OCR remains core; do not substitute static outputs, a text-only model, another paid provider or a different scope without the user's decision.
 
@@ -503,7 +503,7 @@ All times are active-work estimates, not a confirmed calendar or promise. Check 
 | ID | Est. time / cumulative | Maps to | Dependencies | C deliverable/files | Exit criterion |
 | --- | --- | --- | --- | --- | --- |
 | C-00 | 0.5h / 0.5h | RQ-00 | A/B contract discussion | This plan's agreement record; future `docs/ai/contracts.md` if needed | Shapes, tools, ownership and paths agreed; unresolved choices explicit |
-| C-01 | 1h / 1.5h | RQ-02 | Secure provider access; can run while A bootstraps | `docs/ai/feasibility.md`, C-local smoke runner | Three fresh images + separate tool/schema capability proof; limits logged |
+| C-01 | 1h / 1.5h | RQ-02 | Secure provider access; can run while A bootstraps | `docs/ai/GROQ_FEASIBILITY.md`, C-local smoke runner | Three fresh images + separate tool/schema capability proof; limits logged |
 | C-02 | 1h / 2.5h | RQ-02/05 | C-00, C-01; A approved packages | `src/lib/ai/provider.ts`, `config.ts`, `validation.ts`; `tests/ai/provider.test.ts` | Server-only modes, bounds, redacted errors, injected live/scripted adapter |
 | C-03 | 2h / 4.5h | RQ-05/F03 | C-02; A source/cache interface; B receipt panel | `extraction.ts`, `prompts/extraction.ts`; extraction tests | Usable/partial OCR, exact normalizers, cache identity; integrated correction/reload |
 | C-04 | 1h / 5.5h | RQ-06/F04 | Valid imported records, frozen guide, C-02 | `categories.ts`, `prompts/categories.ts`; category tests | Guide-constrained proposals, abstention, accepted-category protection |
@@ -566,7 +566,7 @@ tests/ai/
 docs/ai/
   PERSON_C_PLAN.md
   handoff.md
-  feasibility.md          # later, actual observations
+  GROQ_FEASIBILITY.md     # later, actual observations
   integration.md          # later, tested contracts/journeys
   evaluation.md           # later, scored results and frozen config
 ```
