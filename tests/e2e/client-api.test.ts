@@ -56,3 +56,53 @@ test('export only downloads verified CSV successes and surfaces failures without
   }
   await assert.rejects(exportResponse(Response.json({ data: null, error: { code: 'UNAUTHENTICATED', message: 'Sign in again.' } }, { status: 401 })), error => error instanceof ClientError && error.code === 'UNAUTHENTICATED');
 });
+
+test('receipt client routes register, extract, and persist review with bounded same-origin requests', async t => {
+  const workspaceId='30000000-0000-4000-8000-000000000002',sourceId='30000000-0000-4000-8000-000000000003';
+  const fields={counterparty:null,date:null,totalMinor:null,currency:null,reference:null};
+  const pending={document:{id,workspaceId,source:{sourceId,rowNumber:null},extractedFields:fields,correctedFields:null,extractionStatus:'pending',reviewStatus:'needs_review',modelVersion:null,promptVersion:null},reviewVersion:0,schemaVersion:null,extractionFailure:null};
+  const failed={...pending,document:{...pending.document,extractionStatus:'failed' as const},reviewVersion:1,schemaVersion:null,extractionFailure:'provider_timeout' as const};
+  const reviewedFields={counterparty:null,date:'2026-10-10',totalMinor:'10005',currency:'PKR',reference:null} as const;
+  const reviewed={document:{...pending.document,extractedFields:reviewedFields,correctedFields:reviewedFields,extractionStatus:'complete' as const,reviewStatus:'accepted' as const,modelVersion:'synthetic-model',promptVersion:'receipt-v1'},reviewVersion:2,schemaVersion:'receipt-schema-v1',extractionFailure:null};
+  const calls:{path:string;init:RequestInit}[]=[];
+  const responses=[
+    {record:pending,duplicate:false},
+    {requestId:id,cacheHit:false,state:'failed',record:failed,currentRecord:failed},
+    {requestId:id,record:reviewed,duplicate:false,currentRecord:reviewed},
+  ];
+  t.mock.method(globalThis,'fetch',async(path:string|URL|Request,init:RequestInit)=>{
+    calls.push({path:String(path),init});return envelope(responses[calls.length-1]);
+  });
+  const signal=new AbortController().signal;
+  assert.equal((await api.registerDocument(sourceId,signal)).record.document.id,id);
+  assert.equal((await api.extractDocument(id,{requestId:id,expectedVersion:0},signal)).currentRecord.document.extractionStatus,'failed');
+  assert.equal((await api.reviewDocument(id,{requestId:id,expectedVersion:1,action:'accept',fields:reviewedFields},signal)).currentRecord.document.reviewStatus,'accepted');
+  assert.deepEqual(calls.map(call=>call.path),['/api/documents',`/api/documents/${id}/extraction`,`/api/documents/${id}`]);
+  assert.deepEqual(JSON.parse(String(calls[0]!.init.body)),{sourceId});
+  assert.deepEqual(JSON.parse(String(calls[1]!.init.body)),{requestId:id,expectedVersion:0});
+  assert.equal(JSON.parse(String(calls[2]!.init.body)).fields.counterparty,null,'merchant remains optional for acceptance');
+  assert.ok(calls.every(call=>call.init.cache==='no-store'&&call.init.credentials==='same-origin'&&call.init.signal===signal));
+  assert.throws(()=>api.reviewDocument(id,{requestId:id,expectedVersion:2,action:'accept',fields} as never,signal));
+});
+
+test('category proposal client supports list, empty no-op reruns and versioned review decisions', async t => {
+  const proposal={id:'30000000-0000-4000-8000-000000000004',workspaceId:id,transactionId:'30000000-0000-4000-8000-000000000005',transactionVersion:1,reviewVersion:0,rationale:'The row names a software subscription.',status:'accepted',provenance:{modelVersion:'synthetic-model',promptVersion:'categories-v1',schemaVersion:'categories-schema-v1'},suggestion:{kind:'category',category:'software_services'}};
+  const calls:{path:string;init:RequestInit}[]=[];
+  const responses=[
+    {items:[],nextCursor:null},
+    {requestId:id,items:[],duplicate:true},
+    {requestId:id,proposal,reviewDecisionId:'30000000-0000-4000-8000-000000000006',affectedTransactionIds:[proposal.transactionId],match:null,duplicate:false},
+  ];
+  t.mock.method(globalThis,'fetch',async(path:string|URL|Request,init:RequestInit)=>{
+    calls.push({path:String(path),init});return envelope(responses[calls.length-1]);
+  });
+  const signal=new AbortController().signal;
+  assert.equal((await api.categoryProposals(signal,'pending')).items.length,0);
+  assert.equal((await api.generateCategoryProposals({requestId:id,transactionIds:[proposal.transactionId]},signal)).duplicate,true);
+  const result=await api.reviewProposal({requestId:id,proposalId:proposal.id,expectedVersion:0,decision:'accept'},signal);
+  assert.equal(result.proposal.status,'accepted');
+  assert.deepEqual(calls.map(call=>call.path),['/api/category-proposals?limit=50&status=pending','/api/category-proposals','/api/reviews']);
+  assert.deepEqual(JSON.parse(String(calls[1]!.init.body)),{requestId:id,transactionIds:[proposal.transactionId]});
+  assert.deepEqual(JSON.parse(String(calls[2]!.init.body)),{requestId:id,proposalId:proposal.id,expectedVersion:0,decision:'accept'});
+  assert.ok(calls.every(call=>call.init.cache==='no-store'&&call.init.credentials==='same-origin'&&call.init.signal===signal));
+});
