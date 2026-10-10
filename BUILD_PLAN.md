@@ -35,7 +35,7 @@ Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo
 
 ### Current integration checkpoint — 10 October 2026
 
-Latest published main is `c591939`. It includes the expense, supplier-bill and Books screens, a gated business/tax profile view, and paginated receipt loading. The upstream handoff reports strict typecheck, 45/45 backend/security tests and 1/1 client API test; its production build still fails on an unresolved provider-module import. This checkout merged that tip and preserves the local migration 010 edit. The focused ledger suites pass 23/23; full app typecheck/build cannot be rerun until the ignored dependency tree is restored. Live provider quality, signed-in account-isolation checks, hosted BYOK migration 013 and ledger migration 014, and production release checks remain open. No hosted write or deployment is claimed.
+Latest published main is `2580836923efb3ddca7b63b05a1dab434ab8fe7e`. It includes the expense, supplier-bill and Books screens, a gated business/tax profile view, paginated receipt loading and the unique ledger migration 014 sequence. The upstream UI handoff reports strict typecheck, 45/45 backend/security tests and 1/1 client API test; its production build still fails on an unresolved provider-module import. This checkout preserves the local migration 010 edit. The focused ledger suites pass 23/23; full app typecheck/build cannot be rerun until the ignored dependency tree is restored. Live provider quality, signed-in account-isolation checks, hosted BYOK migration 013 and ledger migration 014, and production release checks remain open. No hosted write or deployment is claimed.
 
 ### Earlier integration checkpoint — 10 October 2026
 
