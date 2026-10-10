@@ -4,6 +4,8 @@
 
 **Latest assignment:** backend A is split between A1 (this agent + user: schema/reviews/platform/integration) and A2 (teammate's agent: document/proposal services/scoped assistant). Read [BACKEND_TASKS.md](BACKEND_TASKS.md) before backend edits. A2 uses a separate checkout/branch; B/C modules remain reserved.
 
+**C1 step 3 update:** A1 supplies only the pinned Groq SDK/Zod/native Node dependency baseline. C1 owns the feasibility runner, secure environment loading, bounded timeouts and synthetic inputs. The previous A1 tsx/proof implementation is superseded and removed; see `docs/ai/FEASIBILITY.md` for the tested native command and C1's intended runner command.
+
 ## Current state
 
 - Product name confirmed: **Raqam**.
@@ -81,6 +83,8 @@ The two large organizer PDFs are also excluded from Git; share originals separat
 - Default `python` points to MSYS Python without PDF packages. PDF-capable Python: `C:/Users/Rehan/AppData/Local/Programs/Python/Python312/python.exe`.
 
 ## Session log
+
+- 10 October, A-AI-BASELINE/C1 ownership correction: user explicitly requested Groq pin/runtime confirmation only, without tsx, database, routes or UI. Kept Groq SDK **1.6.0**, Zod **4.6.5**, TypeScript **5.9.3**, Node **25.9.0** and npm **11.12.1**; uninstalled tsx/esbuild and removed A's earlier proof/helper/tests/npm script from `aad6ab4` (recoverable in Git). Preserved ignored env/input files. Added one dependency-only native TypeScript test: `node tests/backend/ai-runtime.test.ts` passes with the real SDK's mocked fetch and Zod, no network/real keys. **38/38 current tests**, strict types, package pin checks and whitespace pass; uninstall reports zero vulnerabilities. A default isolated `node --test` invocation hit sandbox process restrictions; direct native execution and the existing nonisolated test command pass. Updated split/build/setup docs. Next: C1 creates `tests/ai/live/feasibility.ts` and runs `node --env-file=.env.local tests/ai/live/feasibility.ts`, implementing secure loading/timeouts/synthetic proof; live access/accuracy remain unverified. No product build, hosted changes, migration, database/routes/UI edits or deployment in this slice.
 
 - 10 October, A-AI-RUNNER setup: user requested the remaining feasibility prerequisites. Pinned Groq SDK 1.6.0 and tsx 4.23.15, retained exact Zod 4.6.5/TypeScript 5.9.3, recorded Node 25.9.0/npm 11.12.1. Added explicit `npm run test:ai:live` command, standalone proof/helper, five offline tests, ignored input/report folders and `docs/ai/FEASIBILITY.md`; aligned backend split/build plan. Runner loads ignored `.env.local`, uses one attempt per image with 30-second deadlines (max three), disables SDK logging, validates output against shared DocumentFields, preserves unknowns and sanitizes errors. Existing local env values preserved; added missing blank Groq placeholders. Verification: **42/42 tests**, strict types, actual tsx help, synthetic 1-pixel dry-run (zero requests), missing-key/model exit 1, ignore/whitespace checks; dependency installs report zero vulnerabilities. tsx requires a local esbuild process and was verified outside the restricted process sandbox. No new product build or live provider/accuracy run in this slice; Groq key/vision model remain blank. Next: C fills the two local values and runs three fresh non-private receipt cases with independent expected answers/account-limit/latency reporting. C retains production AI ownership; A1/A2 backend plan continues separately. No migration, financial write, main merge or deployment.
 

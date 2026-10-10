@@ -1,42 +1,33 @@
-# Vision feasibility runner
+# C1 step 3: native Node dependency baseline
 
-A1 completed the user-requested toolchain/proof-runner setup on 10 October. C still owns production AI adapters/prompts and the measured RQ-02 evaluation. This standalone runner neither writes financial records nor approves anything.
+The latest user instruction assigns A only the dependency/runtime baseline. **C1 owns the feasibility runner, secure environment loading, bounded timeouts and synthetic inputs.** This supersedes A's proof implementation in `aad6ab4`; those files are removed from the current baseline and remain recoverable in Git history. No tsx dependency or proof npm script remains. Database, routes and UI are outside this slice.
 
-## Pinned toolchain
+## Confirmed versions
 
-Validated locally: Node **25.9.0** (`.node-version`), npm **11.12.1** (`packageManager`), TypeScript **5.9.3**, Groq SDK **1.6.0**, Zod **4.6.5**, tsx **4.23.15**. Dependencies use exact versions and `package-lock.json`; use `npm ci`. The existing Node engine minimum remains 22.18.0; this change does not establish deployment-runtime compatibility.
+- Node **25.9.0**, recorded in `.node-version`; npm **11.12.1**, recorded in `packageManager`.
+- Groq SDK **1.6.0**, Zod **4.6.5**, TypeScript **5.9.3**, pinned exactly in package/lock files. Restore with `npm ci`.
+- The existing Node engine minimum is 22.18.0; the tested local baseline is specifically 25.9.0.
 
-## Local configuration
-
-Put these values in ignored `.env.local`; never paste keys into chat or commit them:
-
-```dotenv
-GROQ_API_KEY=your_groq_project_key
-GROQ_VISION_MODEL=your_account_enabled_vision_model_id
-```
-
-The command uses Node's native `--env-file-if-exists=.env.local`; inherited environment variables take precedence. Live mode fails closed when either required value is blank. `GROQ_TEXT_MODEL` is needed for later text work, not this vision proof. No browser, Clerk session, Supabase credential or dotenv dependency is needed.
-
-Groq's [current vision documentation](https://console.groq.com/docs/vision) lists `qwen/qwen3.8-27b` with image inputs and JSON mode. Verify access/limits in your own Groq project before selecting it; the runner does not silently pick a model. The [SDK documentation](https://github.com/groq/groq-typescript#retries) describes retry and timeout controls; this proof overrides both at client and request level.
-
-## Commands
-
-From the repository root, place **fresh synthetic/non-private** printed receipt images in ignored `tests/ai/live/inputs/`. Only paths explicitly supplied on the command line are transmitted. Gold answers remain separate and are never sent to the model.
+## Tested command
 
 ```powershell
-npm run test:ai:live -- --help
-npm run test:ai:live -- --dry-run tests/ai/live/inputs/clean.png
-npm run test:ai:live -- --save tests/ai/live/inputs/clean.png tests/ai/live/inputs/changed-layout.jpg tests/ai/live/inputs/unclear.png
+node tests/backend/ai-runtime.test.ts
 ```
 
-This runs `tests/ai/live/feasibility.ts` through tsx. Preflight checks all inputs before making a request: 1–3 files, PNG/JPEG signatures, maximum **4 MiB per file** (a conservative proof cap, not a new product requirement). Dry-run needs no provider credentials and sends no requests. tsx starts a local esbuild process; a restricted process sandbox may require running the command in an ordinary terminal.
+This executes actual `.ts` type annotations with native Node, imports the pinned Groq SDK and Zod, makes one SDK completion against an in-memory synthetic fetch, and validates its JSON using Zod. It uses no network, real credentials, database, routes or UI. It demonstrates dependency/runtime compatibility, not live Groq account access or OCR accuracy.
 
-Live mode makes one serial request per image, **30 seconds per request**, **zero automatic or manual retries**, maximum 1,024 output tokens and no tool calls. At most three requests gives a 90-second request budget. Timeout, access/rate/provider errors, truncated output and invalid JSON/schema remain failed cases; the process exits 1 if any case fails. SDK logging is explicitly disabled, including when inherited `GROQ_LOG` requests debug output. Client errors are sanitized without printing provider messages, keys, image contents or extracted financial details.
+Once C1 creates `tests/ai/live/feasibility.ts`, the intended native command from the repo root is:
 
-`--save` writes model/prompt version, timestamp, per-case latency/outcome and extracted fields to ignored `artifacts/ai-live/feasibility.json`, overwriting the previous report. Treat it as local private data; the POSIX file mode is not a substitute for Windows folder permissions. Without this flag, no extracted fields are saved. Console output contains only ordinal case IDs, timing, outcomes and counts.
+```powershell
+node --env-file=.env.local tests/ai/live/feasibility.ts
+```
 
-## Evidence and next action
+That path is reserved for C1 and is not an executable proof in this baseline. `--env-file` deliberately requires the ignored local file; C1 must validate required values and sanitize logs. Existing ignored `.env.local` placeholders and `.env.example` contain `GROQ_API_KEY`, `GROQ_VISION_MODEL` and `GROQ_TEXT_MODEL`. The vision-only proof needs the first two. Keep keys and private financial records out of Git and output.
 
-Offline tests exercise the real pinned SDK against synthetic responses: nullable fields, malformed/invented fields, truncation, single attempts for 408/409/429/500/503, abort deadlines and sanitized errors. They do not establish live account access or OCR accuracy.
+[Node's native TypeScript documentation](https://nodejs.org/api/typescript.html#type-stripping) explains the lightweight runtime: use erasable syntax, explicit `.ts` relative imports and `import type`. Avoid tsconfig path aliases, enums, parameter properties and `.tsx` in this standalone proof. Native execution strips types; it does not typecheck. Keep `npm run typecheck` as the separate strict check.
 
-For RQ-02, C runs the three fresh cases (clean, changed layout, unclear required fields), compares the local results with independently checked answers, and records model access/account limits, latency and extraction errors **with denominators**. An all-null schema-valid response is not successful extraction. Verify that an unreadable required field stays null. Keep RQ-02 open until this measured proof passes; do not label dry-run or mock results as live OCR evidence.
+## C1 boundary
+
+C1 implements step 3 without another TypeScript runner dependency: securely load/validate local configuration, disable Groq's default retries explicitly, set bounded request/run deadlines, prevent SDK debug logs from leaking payloads, validate output with Zod and prepare independently checked synthetic inputs. Preserve unknowns as null and label simulated results honestly. Gold answers must stay outside model context.
+
+Local proof inputs/results remain ignored under `tests/ai/live/inputs/` and `artifacts/ai-live/`. The old ignored 1-pixel runner smoke image is not a receipt or OCR evaluation case. Live model availability/account limits and measured three-receipt OCR feasibility remain C1's pending proof.
