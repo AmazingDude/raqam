@@ -22,7 +22,7 @@
 
 Apply `202610100010_long_statement_imports.sql` manually after migrations 001-009. Restart Next after dependencies/configuration change. The host must support the upload size and processing time; the import route requests a 300-second duration. These bounds are not a measured hosting capacity guarantee.
 
-Password-locked PDFs need an unlocked copy. Image-only/empty pages require OCR or another bank export; mixed selectable/scanned files fail rather than return silently incomplete totals. Account tables with changing column meanings must be imported separately. Wrapped descriptions, unknown headers and unfamiliar bank layouts can need correction. A representative bank statement has not been evaluated, and universal bank-format accuracy is not claimed.
+Password-locked PDFs need an unlocked copy. Image-only/empty pages require OCR or another bank export; mixed selectable/scanned files fail rather than return silently incomplete totals. Account tables with changing column meanings must be imported separately. A private UBL sample was inspected locally: cash fields agree with an independent extraction and running balances reconcile, but wrapped narration and page text produce false review rows. Logical row reconstruction, balance checks and saved-preview recovery are planned in [STATEMENT_IMPORT_PLAN.md](STATEMENT_IMPORT_PLAN.md); those repairs are not implemented yet. Other real bank layouts and universal bank-format accuracy remain unmeasured.
 
 ## Eve
 
