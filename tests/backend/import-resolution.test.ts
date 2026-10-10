@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { importResolutionSchema, importResolutionResultSchema, importResolutionStateSchema } from '../../src/lib/contracts/imports.ts';
+import { MAX_IMPORT_ROWS } from '../../src/lib/contracts/limits.ts';
 
 const requestId = '20000000-0000-4000-8000-000000000001';
 const transaction = { date: '2026-10-10', description: 'Reviewed unknown row', direction: 'out', amountMinor: '1005', currency: 'PKR', reference: null };
@@ -10,7 +11,7 @@ test('resolution commands require explicit bounded decisions and cannot carry ow
     { rows: [{ rowNumber: 3, action: 'reject' }] }, { requestId, rows: [] },
     { requestId, ownerSubject: 'forged', rows: [{ rowNumber: 3, action: 'reject' }] },
     { requestId, rows: [{ rowNumber: 3, action: 'reject' }, { rowNumber: 3, action: 'reject' }] },
-    { requestId, rows: Array.from({ length: 51 }, (_, index) => ({ rowNumber: index + 2, action: 'reject' })) },
+    { requestId, rows: Array.from({ length: MAX_IMPORT_ROWS + 1 }, (_, index) => ({ rowNumber: index + 2, action: 'reject' })) },
     { requestId, rows: [{ rowNumber: 3, action: 'import', transaction }] },
     { requestId, rows: [{ rowNumber: 3, action: 'reject', transaction }] },
   ]) assert.equal(importResolutionSchema.safeParse(body).success, false);

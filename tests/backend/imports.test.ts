@@ -6,6 +6,7 @@ import { previewCsv } from '../../src/lib/server/csv.ts';
 import { buildImportPlan, readCsvUpload } from '../../src/lib/server/imports.ts';
 import { importConfirmationSchema } from '../../src/lib/contracts/imports.ts';
 import { previewPdf } from '../../src/lib/server/pdf.ts';
+import { statementPdf } from '../helpers/pdf-fixture.ts';
 
 const csv = 'date,description,direction,amount\n2026-10-10,A,out,10.05\n2026-10-10,A,out,10.05\n2026-10-10,,out,?\n';
 const corrected = { date: '2026-10-10', description: 'Corrected', direction: 'out', amountMinor: '9007199254740993', currency: 'PKR', reference: null };
@@ -40,38 +41,6 @@ function upload(bytes: Uint8Array, name = 'sample.csv', extra = false): Request 
   form.set('file', new Blob([new Uint8Array(bytes)], { type: 'text/csv' }), name);
   if (extra) form.set('owner', 'forged');
   return new Request('http://localhost/api/imports', { method: 'POST', body: form });
-}
-
-function statementPdf(pages: string[][][]): Buffer {
-  const objectCount = 3 + pages.length * 2;
-  const fontId = objectCount;
-  const objects: string[] = [
-    `<< /Type /Catalog /Pages 2 0 R >>`,
-    `<< /Type /Pages /Kids [${pages.map((_, index) => `${3 + index * 2} 0 R`).join(' ')}] /Count ${pages.length} >>`,
-  ];
-  const columnX = [30, 120, 330, 430, 530];
-  const escapeText = (value: string) => value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-  pages.forEach((rows, pageIndex) => {
-    const pageId = 3 + pageIndex * 2, contentId = pageId + 1;
-    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
-    const lines = rows.map((row, rowIndex) => {
-      const y = rowIndex === 0 ? 740 : 710 - (rowIndex - 1) * 30;
-      return row.map((cell, column) => cell ? `1 0 0 1 ${columnX[column]} ${y} Tm (${escapeText(cell)}) Tj` : '').filter(Boolean).join(' ');
-    });
-    const stream = Buffer.from(`BT /F1 10 Tf ${lines.join(' ')} ET`, 'ascii');
-    objects.push(`<< /Length ${stream.length} >>\nstream\n${stream.toString('ascii')}\nendstream`);
-  });
-  objects.push(`<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>`);
-  const parts: Buffer[] = [Buffer.from('%PDF-1.4\n', 'ascii')];
-  const offsets = [0];
-  objects.forEach((object, index) => {
-    offsets.push(Buffer.concat(parts).length);
-    parts.push(Buffer.from(`${index + 1} 0 obj\n${object}\nendobj\n`, 'ascii'));
-  });
-  const xrefOffset = Buffer.concat(parts).length;
-  const xref = [`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`, ...offsets.slice(1).map(offset => `${String(offset).padStart(10, '0')} 00000 n \n`)].join('');
-  parts.push(Buffer.from(`${xref}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`, 'ascii'));
-  return Buffer.concat(parts);
 }
 
 const statementHeader = ['Date', 'Description', 'Debit', 'Credit', 'Currency'];
@@ -152,4 +121,35 @@ test('preview inconsistencies fail rather than dropping a row during confirmatio
   const preview = previewCsv(csv);
   assert.throws(() => buildImportPlan({ ...preview, validCount: 99 }, {}));
   assert.throws(() => buildImportPlan({ ...preview, rows: [...preview.rows, preview.rows[0]] }, {}));
+});
+
+
+test('long PDF imports extract 8000/8000 synthetic transactions across 400 pages, beyond 1 MiB', async () => {
+  const pages = Array.from({length:400}, (_, p) => [statementHeader,
+    ...Array.from({length:20}, (_, r) => statementRow(`Synthetic pg${p + 1} row${r + 1} bank activity`, r % 2 ? '' : '25.50', r % 2 ? '100.00' : ''))]);
+  const bytes = statementPdf(pages);
+  assert.ok(bytes.length > 1024 * 1024);
+  const result = await readCsvUpload(upload(bytes, 'long-synthetic.pdf'));
+  assert.equal(result.preview.rows.length,8000);
+  assert.equal(result.preview.validCount,8000);
+  assert.equal(result.preview.invalidCount,0);
+  assert.equal(result.preview.rows[0]?.pageNumber,1);
+  assert.equal(result.preview.rows.at(-1)?.pageNumber,400);
+  assert.equal(result.preview.rows.at(-1)?.rowNumber,8001);
+  assert.equal(result.preview.contentHash,createHash('sha256').update(bytes).digest('hex'));
+  assert.equal(result.preview.rows.filter(r => r.transaction?.direction === 'out').reduce((sum,r) => sum + BigInt(r.transaction!.amountMinor),0n),10200000n);
+  assert.equal(result.preview.rows.filter(r => r.transaction?.direction === 'in').reduce((sum,r) => sum + BigInt(r.transaction!.amountMinor),0n),40000000n);
+});
+
+test('native ruled-table parser preserves empty debit/credit cells and exact values', async () => {
+  const result = await previewPdf(statementPdf([[statementHeader,statementRow('Ruled fee','25.50',''),statementRow('Ruled deposit','','100.00')]],true));
+  assert.deepEqual(result.rows.map(r => [r.transaction?.direction,r.transaction?.amountMinor]),[['out','2550'],['in','10000']]);
+  assert.deepEqual(result.rows.map(r => r.pageNumber),[1,1]);
+});
+
+test('PDF processing rejects cancellation, over-page documents, and mixed scanned pages', async () => {
+  const cancelled = new AbortController(); cancelled.abort();
+  await assert.rejects(() => previewPdf(statementPdf([[statementHeader,statementRow('Fee','1','')]]),cancelled.signal),/cancelled/);
+  await assert.rejects(() => previewPdf(statementPdf(Array.from({length:1001}, () => []))),/1-1000 pages/);
+  await assert.rejects(() => previewPdf(statementPdf([[statementHeader,statementRow('Fee','1','')],[]])),/Page 2.*no selectable/i);
 });

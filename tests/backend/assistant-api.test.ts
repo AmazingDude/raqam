@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runAssistant } from '../../src/lib/server/assistant/engine.ts';
 import { createAssistantTools } from '../../src/lib/server/assistant/full-tools.ts';
-import { assistantRequestSchema } from '../../src/lib/contracts/assistant.ts';
+import { assistantRequestSchema, assistantResponseSchema } from '../../src/lib/contracts/assistant.ts';
 import type { ProviderResult, ToolConversationRequest, ProviderContext } from '../../src/lib/ai/provider.ts';
 import { createAssistantRequestBudget } from '../../src/lib/server/assistant/request-budget.ts';
 import { transaction } from './fixtures.ts';
@@ -34,8 +34,26 @@ test('assistant uses exact code-rendered money, scoped citations and actual tool
   assert.deepEqual(result.records.map(r => r.id), ['t1']);
   assert.equal(result.actionTrail[0]?.tool, 'get_cash_summary');
   assert.equal(result.citations[0]?.source.rowNumber, 2);
+  assert.equal(result.metadata.snapshot?.workspaceId, 'w1');
+  assert.deepEqual(result.metadata.snapshot?.sources, ['cashbook']);
+  assert.match(result.metadata.snapshot?.token ?? '', /^[a-f0-9]{64}$/);
+  assert.equal(result.metadata.provider.providerVersion, 'test-v1');
+  assert.ok(result.metadata.facts.some(fact => fact.metric === 'net_movement_minor' && fact.value === '9007199254740993'));
+  assert.equal(result.actionTrail[0]?.factRefs.every(id => result.metadata.facts.some(fact => fact.id === id)), true);
+  assert.equal(assistantResponseSchema.safeParse(result).success, true);
+  assert.equal(assistantResponseSchema.safeParse({ ...result, metadata: { ...result.metadata, snapshot: { ...result.metadata.snapshot!, workspaceId: 'foreign' } } }).success, false);
+  assert.equal(assistantResponseSchema.safeParse({ ...result, actionTrail: [{ ...result.actionTrail[0]!, factRefs: ['00000000-0000-4000-8000-999999999999'] }] }).success, false);
   assert.equal(provider.requests.length, 2);
   assert.ok(!JSON.stringify(provider.requests).includes(record.originalDescription));
+});
+
+test('assistant refuses provider result metadata outside the bounded validated contract', async () => {
+  const provider = sequence([call('a'), final([0])]);
+  provider.requestToolConversation = async (input, context) => {
+    assert.equal(context.budget?.take(), true);
+    return { ...success(call('a')), metadata: { ...success(call('a')).metadata, attempts: 99 } } as ProviderResult;
+  };
+  await assert.rejects(runAssistant(input(provider)), /metadata could not be verified/);
 });
 test('greetings work without fetching workspace records', async () => {
   const provider = sequence([{ content: '{"kind":"greeting","observationIds":[]}', toolCalls: [] }]);

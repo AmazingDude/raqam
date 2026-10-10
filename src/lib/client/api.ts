@@ -1,6 +1,7 @@
+import { MAX_WORKSPACE_TRANSACTIONS } from '../contracts/limits.ts';
 import { z } from 'zod';
 import { categorySchema, transactionSchema } from '../contracts/schemas.ts';
-import { csvPreviewSchema, importConfirmationSchema, importConfirmationResultSchema, importResolutionSchema, importResolutionResultSchema, importResolutionStateSchema } from '../contracts/imports.ts';
+import { csvPreviewSchema, importRecoverySchema, importConfirmationSchema, importConfirmationResultSchema, importResolutionSchema, importResolutionResultSchema, importResolutionStateSchema } from '../contracts/imports.ts';
 import { transactionReviewSchema } from '../contracts/cashbook.ts';
 import type { ImportConfirmation } from '../contracts/imports.ts';
 import type { TransactionReview } from '../contracts/cashbook.ts';
@@ -10,7 +11,8 @@ import {
   receiptExtractionResponseSchema, documentReviewSchema,
 } from '../contracts/documents.ts';
 import {
-  categoryGenerationRequestSchema, proposalBatchResultSchema, proposalRecordSchema, proposalReviewSchema, proposalReviewResultSchema,
+  categoryGenerationRequestSchema, matchGenerationRequestSchema, matchGenerationResultSchema,
+  proposalBatchResultSchema, proposalRecordSchema, proposalReviewSchema, proposalReviewResultSchema,
 } from '../contracts/proposals.ts';
 
 export class ClientError extends Error {
@@ -24,8 +26,20 @@ const sourceLinkSchema = z.object({ sourceId: z.string(), signedUrl: z.url(), ex
 export const importBatchSchema = z.object({
   importId: z.uuid(), preview: csvPreviewSchema, status: z.enum(['pending', 'confirmed']),
   confirmation: importConfirmationResultSchema.omit({ duplicate: true }).nullable(),
-}).refine(batch => (batch.status === 'confirmed') === (batch.confirmation !== null) &&
-  (!batch.confirmation || batch.confirmation.importId === batch.importId), 'Import receipt does not match the batch');
+  recovery: importRecoverySchema.optional(),
+}).refine(batch => {
+  if ((batch.status === 'confirmed') !== (batch.confirmation !== null) ||
+    (batch.confirmation && batch.confirmation.importId !== batch.importId)) return false;
+  if (!batch.recovery) return true;
+  const original = new Map(batch.preview.rows.map(row => [row.rowNumber, row]));
+  const recovered = new Map(batch.recovery.preview.rows.map(row => [row.rowNumber, row]));
+  return batch.recovery.preview.contentHash === batch.preview.contentHash &&
+    batch.recovery.preview.rows.every(row => original.has(row.rowNumber)) && batch.recovery.decisions.every(decision => {
+      const prior = original.get(decision.rowNumber);
+      return !!prior && (decision.action === 'reject' ? prior.transaction === null :
+        JSON.stringify(decision.transaction) === JSON.stringify(recovered.get(decision.rowNumber)?.transaction));
+    });
+}, 'Import receipt or recovery does not match the batch');
 export type ImportBatch = z.infer<typeof importBatchSchema>;
 const transactionDetailSchema = z.object({ transaction: transactionSchema, reviewVersion: z.number().int().nonnegative() });
 const documentPageSchema = z.strictObject({ items: z.array(documentRecordSchema).max(50), nextCursor: z.uuid().nullable() });
@@ -39,7 +53,7 @@ const signedMinor = z.string().regex(/^-?(0|[1-9][0-9]*)$/);
 const positiveMinor = z.string().regex(/^(0|[1-9][0-9]*)$/);
 const bucketSchema = z.object({ inflowMinor: positiveMinor, outflowMinor: positiveMinor, netMovementMinor: signedMinor });
 export const cashSummarySchema = bucketSchema.extend({
-  currency: z.literal('PKR'), transactionCount: z.number().int().min(0).max(50), transactionIds: z.array(z.string()).max(50),
+  currency: z.literal('PKR'), transactionCount: z.number().int().min(0).max(MAX_WORKSPACE_TRANSACTIONS), transactionIds: z.array(z.string()).max(MAX_WORKSPACE_TRANSACTIONS),
   unresolvedImportRowCount: z.number().int().nonnegative(), categories: z.partialRecord(categorySchema, bucketSchema), unreviewed: bucketSchema,
 }).refine(summary => {
   const buckets = [...Object.values(summary.categories), summary.unreviewed];
@@ -125,5 +139,11 @@ export const api = {
   reviewProposal: (input: z.infer<typeof proposalReviewSchema>, signal: AbortSignal) => request('/api/reviews', proposalReviewResultSchema, signal, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(proposalReviewSchema.parse(input)),
   }),
+  matchProposals: (signal: AbortSignal, status: 'all' | 'pending' = 'all', cursor: string | null = null) => request(
+    `/api/match-proposals?limit=50&status=${status}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, proposalPageSchema, signal),
+  generateMatchProposals: (input: z.infer<typeof matchGenerationRequestSchema>, signal: AbortSignal) => request(
+    '/api/match-proposals', matchGenerationResultSchema, signal, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(matchGenerationRequestSchema.parse(input)),
+    }),
   export: async (signal: AbortSignal) => exportResponse(await fetch('/api/export', { signal, cache: 'no-store', credentials: 'same-origin' })),
 };

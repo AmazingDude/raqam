@@ -5,8 +5,10 @@ import type { RequestSession } from '../auth.ts';
 import type { Workspace } from '../../contracts/index.ts';
 import { documentExtractionRequestSchema, documentRecordSchema, receiptExtractionResponseSchema } from '../../contracts/documents.ts';
 import { receiptIdentitySchema } from '../../contracts/receipt-extraction.ts';
-import { createGroqProvider } from '../../ai/provider.ts';
+import { createAIProvider } from '../../ai/factory.ts';
 import { readProviderConfiguration, PROVIDER_VERSION } from '../../ai/config.ts';
+import { GEMINI_PROVIDER_VERSION } from '../../ai/gemini.ts';
+import { readGeminiConfiguration } from '../../ai/gemini-config.ts';
 import { extractReceipt, createExtractionCacheIdentity } from '../../ai/extraction.ts';
 import { RECEIPT_EXTRACTION_PROMPT_VERSION, RECEIPT_EXTRACTION_SCHEMA_VERSION } from '../../ai/prompts/extraction.ts';
 import { readScopedReceiptInput } from './source.ts';
@@ -30,12 +32,18 @@ export async function extractDocument(session: RequestSession, workspace: Worksp
   if (workspace.ownerSubject!==session.subject) throw new BackendError('NOT_FOUND','Workspace not found.');
   const current=await readDocument(session,workspace,id);
   const environment=runtime.environment?.() ?? process.env;
-  const liveConfiguration=readProviderConfiguration(environment);
+  const provider=environment.AI_PROVIDER ?? 'groq';
+  const readConfiguration=(settings:Record<string,string|undefined>)=>provider==='gemini'
+    ? readGeminiConfiguration(settings)
+    : provider==='groq' ? readProviderConfiguration(settings) : null;
+  const liveConfiguration=readConfiguration(environment);
   // Cache lookup needs versions, not credentials. A cache miss still requires
   // verified runtime configuration before allowance/source reads or inference.
-  const configuration=liveConfiguration ?? readProviderConfiguration({...environment,GROQ_API_KEY:'cache-only'});
-  if (!configuration || (environment.AI_PROVIDER && environment.AI_PROVIDER!=='groq'))
-    throw new BackendError('UNAVAILABLE','Receipt extraction is not configured. Ask the team to configure the verified Groq runtime.');
+  const configuration=liveConfiguration ?? readConfiguration(provider==='gemini'
+    ? {...environment,GEMINI_API_KEY:'cache-only'}
+    : {...environment,GROQ_API_KEY:'cache-only'});
+  if (!configuration)
+    throw new BackendError('UNAVAILABLE','Receipt extraction is not configured for the selected provider.');
   const { requestId,expectedVersion }=input.data;
   if(Date.now()>=deadlineAtMs)throw new BackendError('UNAVAILABLE','Receipt extraction deadline expired.');
   const controller=new AbortController();
@@ -53,9 +61,10 @@ export async function extractDocument(session: RequestSession, workspace: Worksp
     if(metadata.error) throw documentDatabaseError(metadata.error);
     const sourceHash=z.string().regex(/^[a-f0-9]{64}$/).safeParse(metadata.data?.content_hash);
     if(!sourceHash.success) throw new BackendError('NOT_FOUND','Receipt source not found.');
+    const providerVersion=provider==='gemini'?GEMINI_PROVIDER_VERSION:PROVIDER_VERSION;
     const provenance={modelVersion:configuration.visionModel,promptVersion:RECEIPT_EXTRACTION_PROMPT_VERSION,schemaVersion:RECEIPT_EXTRACTION_SCHEMA_VERSION};
-    const processing={ownerId:session.subject,workspaceId:workspace.id,sourceHash:sourceHash.data,provider:'groq' as const,
-      providerVersion:PROVIDER_VERSION,modelId:configuration.visionModel,promptVersion:provenance.promptVersion,schemaVersion:provenance.schemaVersion,
+    const processing={ownerId:session.subject,workspaceId:workspace.id,sourceHash:sourceHash.data,provider:provider as 'groq'|'gemini',
+      providerVersion,modelId:configuration.visionModel,promptVersion:provenance.promptVersion,schemaVersion:provenance.schemaVersion,
       preprocessingVersion:'receipt-image-bytes-v1'};
     const identity=receiptIdentitySchema.parse({...processing,cacheKey:createExtractionCacheIdentity(processing)});
     const reservation=reservationSchema.parse(await rpc('reserve_receipt_extraction',{
@@ -80,9 +89,11 @@ export async function extractDocument(session: RequestSession, workspace: Worksp
         const image=await readScopedReceiptInput(session,workspace,sourceId,{deadlineAt:deadlineAtMs,signal:controller.signal});
         stage='provider';
         let remaining=2;
+        const selectedEnvironment=provider==='gemini'
+          ? {AI_PROVIDER:provider,GEMINI_API_KEY:configuration.apiKey,GEMINI_VISION_MODEL:configuration.visionModel,GEMINI_TEXT_MODEL:configuration.textModel}
+          : {AI_PROVIDER:provider,GROQ_API_KEY:configuration.apiKey,GROQ_VISION_MODEL:configuration.visionModel,GROQ_TEXT_MODEL:configuration.textModel};
         const result=await extractReceipt({source:{sourceId,rowNumber:null},sourceVersion:sourceHash.data,mime:image.mime,bytes:image.bytes},
-          createGroqProvider({environment:()=>({GROQ_API_KEY:configuration.apiKey,GROQ_VISION_MODEL:configuration.visionModel,GROQ_TEXT_MODEL:configuration.textModel}),
-            ...(runtime.fetch?{fetch:runtime.fetch}:{})}),
+          createAIProvider({environment:()=>selectedEnvironment,...(runtime.fetch?{fetch:runtime.fetch}:{})}),
           {requestId,deadlineAtMs,signal:controller.signal,budget:{take:()=>remaining-- > 0}});
         outcome=mapReceiptExtraction(result,sourceId,sourceHash.data,provenance);
       }

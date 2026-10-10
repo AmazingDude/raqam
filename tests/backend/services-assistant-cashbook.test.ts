@@ -26,14 +26,14 @@ test('A2 cashbook tools filter and page one request snapshot while whole-scope t
   assert.deepEqual((await tools.list_transactions({ category: 'software_services', categoryStatus: 'accepted' })).items.map(record => record.id), [ids[1]]);
   assert.deepEqual((await tools.list_transactions({ categoryStatus: 'needs_review' })).items.map(record => record.id), [ids[0], ids[2]]);
   const summary = await tools.get_cash_summary({ scope: 'valid_imported_cash' });
-  assert.equal(summary.inflowMinor, '9007199254740993');
-  assert.equal(summary.outflowMinor, '10');
-  assert.equal(summary.netMovementMinor, '9007199254740983');
-  assert.equal(summary.transactionCount, 4);
-  assert.equal(summary.unresolvedImportRowCount, 2);
-  assert.equal(summary.categories.software_services?.outflowMinor, '3');
-  assert.equal(summary.categories.customer_receipts?.inflowMinor, '0');
-  assert.equal(summary.unreviewed.outflowMinor, '7');
+  assert.equal(summary.summary.inflowMinor, '9007199254740993');
+  assert.equal(summary.summary.outflowMinor, '10');
+  assert.equal(summary.summary.netMovementMinor, '9007199254740983');
+  assert.equal(summary.summary.transactionCount, 4);
+  assert.equal(summary.summary.unresolvedImportRowCount, 2);
+  assert.equal(summary.summary.categories.software_services?.outflowMinor, '3');
+  assert.equal(summary.summary.categories.customer_receipts?.inflowMinor, '0');
+  assert.equal(summary.summary.unreviewed.outflowMinor, '7');
   assert.equal(reads, 1);
 });
 test('A2 snapshots are detached from returned pages and isolated between requests', async () => {
@@ -45,19 +45,21 @@ test('A2 snapshots are detached from returned pages and isolated between request
   page.items[0]!.amountMinor = '1';
   page.items[0]!.source.rowNumber = 999;
   source[0]!.amountMinor = '2';
-  assert.equal((await tools.get_cash_summary({ scope: 'valid_imported_cash' })).inflowMinor, '9007199254740993');
-  assert.equal((await createCashbookTools(options).get_cash_summary({ scope: 'valid_imported_cash' })).inflowMinor, '2');
+  assert.equal((await tools.get_cash_summary({ scope: 'valid_imported_cash' })).summary.inflowMinor, '9007199254740993');
+  assert.equal((await createCashbookTools(options).get_cash_summary({ scope: 'valid_imported_cash' })).summary.inflowMinor, '2');
 });
 test('A2 verified empty cashbooks retain unresolved counts and exact zero totals', async () => {
   const tools = createCashbookTools({ workspaceId: 'w1', deadlineAt: Date.now() + 10_000,
     readSnapshot: async () => ({ records: [], unresolvedImportRowCount: 3 }) });
-  assert.deepEqual(await tools.list_transactions({}), { items: [], nextCursor: null });
+  const emptyPage = await tools.list_transactions({});
+  assert.deepEqual(emptyPage.items, []);
+  assert.equal(emptyPage.nextCursor, null);
   const summary = await tools.get_cash_summary({ scope: 'valid_imported_cash' });
-  assert.equal(summary.inflowMinor, '0');
-  assert.equal(summary.outflowMinor, '0');
-  assert.equal(summary.netMovementMinor, '0');
-  assert.equal(summary.transactionCount, 0);
-  assert.equal(summary.unresolvedImportRowCount, 3);
+  assert.equal(summary.summary.inflowMinor, '0');
+  assert.equal(summary.summary.outflowMinor, '0');
+  assert.equal(summary.summary.netMovementMinor, '0');
+  assert.equal(summary.summary.transactionCount, 0);
+  assert.equal(summary.summary.unresolvedImportRowCount, 3);
 });
 
 test('assistant date totals cover every matching row and persisted match filters work', async () => {
@@ -65,9 +67,9 @@ test('assistant date totals cover every matching row and persisted match filters
   const tools = createCashbookTools({ workspaceId: 'w1', deadlineAt: Date.now() + 10_000,
     readSnapshot: async () => ({ records: data, unresolvedImportRowCount: 7 }) });
   const summary = await tools.get_cash_summary({ scope: 'valid_imported_cash', dateFrom: '2026-10-02', dateTo: '2026-10-03' });
-  assert.equal(summary.netMovementMinor, '-10');
-  assert.equal(summary.transactionCount, 2);
-  assert.equal(summary.unresolvedImportRowCount, 7);
+  assert.equal(summary.summary.netMovementMinor, '-10');
+  assert.equal(summary.summary.transactionCount, 2);
+  assert.equal(summary.summary.unresolvedImportRowCount, 7);
   assert.deepEqual((await tools.list_transactions({ matchStatus: 'accepted' })).items.map(r => r.id), [ids[1]]);
   assert.deepEqual((await tools.list_transactions({ matchStatus: 'proposed' })).items.map(r => r.id), [ids[2]]);
 });

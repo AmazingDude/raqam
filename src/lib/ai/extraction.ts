@@ -62,6 +62,7 @@ export interface ExtractionCacheIdentityInput {
   workspaceId: string;
   sourceHash: string;
   provider: 'groq' | 'gemini';
+  providerVersion: string;
   modelId: string;
   promptVersion: string;
   schemaVersion: string;
@@ -195,11 +196,12 @@ function normalizeOutput(raw: z.infer<typeof rawExtractionSchema>, input: Receip
 
 export function createExtractionCacheIdentity(input: ExtractionCacheIdentityInput): string {
   if (!input.ownerId.trim() || !input.workspaceId.trim() || !/^[a-f0-9]{64}$/.test(input.sourceHash)
-    || !input.modelId.trim() || !VERSION_PATTERN.test(input.promptVersion) || !VERSION_PATTERN.test(input.schemaVersion)
+    || !VERSION_PATTERN.test(input.providerVersion) || !input.modelId.trim()
+    || !VERSION_PATTERN.test(input.promptVersion) || !VERSION_PATTERN.test(input.schemaVersion)
     || !VERSION_PATTERN.test(input.preprocessingVersion)) throw new Error('Invalid extraction cache identity inputs');
   const canonical = JSON.stringify([
-    'receipt-extraction-cache-v1', input.ownerId, input.workspaceId, input.sourceHash, input.provider,
-    input.modelId, input.promptVersion, input.schemaVersion, input.preprocessingVersion,
+    'receipt-extraction-cache-v2', input.ownerId, input.workspaceId, input.sourceHash, input.provider,
+    input.providerVersion, input.modelId, input.promptVersion, input.schemaVersion, input.preprocessingVersion,
   ]);
   return createHash('sha256').update(canonical, 'utf8').digest('hex');
 }

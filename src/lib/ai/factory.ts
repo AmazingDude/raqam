@@ -2,6 +2,7 @@ import 'server-only';
 import type { GroqProvider, ProviderContext, ProviderDependencies, ProviderResult, ImageExtractionRequest, TextProposalRequest, ToolConversationRequest } from './provider.ts';
 import { createGroqProvider } from './provider.ts';
 import { createGeminiProvider } from './gemini.ts';
+import { createEveAssistant } from './eve.ts';
 
 export type AIProvider = GroqProvider;
 
@@ -18,6 +19,12 @@ export function createAIProvider(dependencies: ProviderDependencies = {}): AIPro
   return {
     requestImageExtraction: (input: ImageExtractionRequest, context: ProviderContext): Promise<ProviderResult> => selected().requestImageExtraction(input, context),
     requestTextProposal: (input: TextProposalRequest, context: ProviderContext): Promise<ProviderResult> => selected().requestTextProposal(input, context),
-    requestToolConversation: (input: ToolConversationRequest, context: ProviderContext): Promise<ProviderResult> => selected().requestToolConversation(input, context),
+    requestToolConversation: (input: ToolConversationRequest, context: ProviderContext): Promise<ProviderResult> => {
+      let settings: Record<string, string | undefined>;
+      try { settings = environment(); } catch { settings = {}; }
+      return settings.ASSISTANT_PROVIDER === 'eve'
+        ? createEveAssistant({ ...dependencies, environment: () => settings }).requestToolConversation(input, context)
+        : selected().requestToolConversation(input, context);
+    },
   };
 }

@@ -1,3 +1,4 @@
+import { MAX_IMPORT_DECISION_BYTES } from '../../../../../lib/contracts/limits.ts';
 import { z } from 'zod';
 import { requireSession } from '../../../../../lib/server/auth.ts';
 import { requireWorkspace } from '../../../../../lib/server/workspace.ts';
@@ -12,7 +13,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     requireSameOrigin(request, session.configuration.APP_URL);
     const id = z.uuid().safeParse((await context.params).id);
     if (!id.success) throw new BackendError('NOT_FOUND', 'Import not found.');
-    const body = await readJson(request, 256 * 1024);
+    const body = await readJson(request, MAX_IMPORT_DECISION_BYTES);
     return confirmImport(session, await requireWorkspace(session), id.data, body);
   });
 }

@@ -13,14 +13,14 @@ const dto={document:{id:doc,workspaceId:workspace.id,source:{sourceId:source,row
  extractionStatus:'pending',reviewStatus:'needs_review',modelVersion:null,promptVersion:null},reviewVersion:0,schemaVersion:null,extractionFailure:null,extractionContext:null};
 type TestRuntime={environment:()=>Record<string,string|undefined>;fetch:typeof globalThis.fetch};
 async function fixture(mode:'live'|'cached'|'busy'|'rate_limit'|'malformed'|'budget_denied'|'budget_unavailable'|'cancelled',run:(session:RequestSession,request:Request,
- counters:{inference:number;save:number;source:number;outcome:any},runtime:TestRuntime)=>Promise<void>) {
- const counters={inference:0,save:0,source:0,outcome:null as any}; let identity:any;
+ counters:{inference:number;save:number;source:number;outcome:any;identity:any},runtime:TestRuntime)=>Promise<void>,provider:'groq'|'gemini'='groq') {
+ const counters={inference:0,save:0,source:0,outcome:null as any,identity:null as any}; let identity:any;
  const caller=new AbortController();
  const json=(value:unknown,status=200,headers:Record<string,string>={})=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json',...headers}});
  const scriptedFetch:typeof globalThis.fetch=async(input,init)=>{
    const url=new URL(typeof input==='string'?input:input instanceof URL?input.href:input.url);
    if(init?.signal?.aborted)throw new DOMException('Scripted cancellation','AbortError');
-   if(url.hostname==='api.groq.com') {
+   if(url.hostname==='api.groq.com'||url.hostname==='generativelanguage.googleapis.com') {
     counters.inference++;
     if(mode==='cancelled')return new Promise((_resolve,reject)=>{
       init?.signal?.addEventListener('abort',()=>reject(new DOMException('Scripted cancellation','AbortError')),{once:true});
@@ -29,15 +29,17 @@ async function fixture(mode:'live'|'cached'|'busy'|'rate_limit'|'malformed'|'bud
     if(mode==='rate_limit')return json({error:{message:'Synthetic rate limit'}},429,{'retry-after':'120'});
     const raw=mode==='malformed'?{unexpected:'Synthetic malformed output'}:{counterpartyText:'Synthetic merchant',dateText:'2026-10-10',totalText:'100.05',
       totalCandidates:['100.05'],currencyText:'PKR',referenceText:null,unreadableFields:[]};
-    return json({id:'synthetic-response',object:'chat.completion',created:0,model:'qwen/qwen3.8-27b',choices:[{index:0,finish_reason:'stop',
+    if(url.hostname==='api.groq.com')return json({id:'synthetic-response',object:'chat.completion',created:0,model:'qwen/qwen3.8-27b',choices:[{index:0,finish_reason:'stop',
       message:{role:'assistant',content:JSON.stringify(raw)}}]});
+    return json({candidates:[{finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify(raw)}]}}],
+      usageMetadata:{promptTokenCount:100,candidatesTokenCount:50,totalTokenCount:150}});
    }
    if(url.pathname.includes('/storage/v1/object/')){counters.source++;return new Response(bytes,{headers:{'Content-Type':'image/png'}});}
    if(url.pathname.includes('/rest/v1/rpc/')) {
     const body=JSON.parse(String(init?.body));
     if(url.pathname.endsWith('/reserve_receipt_extraction')) {
       assert.equal(body.p_identity.ownerId,workspace.ownerSubject);assert.equal(body.p_identity.workspaceId,workspace.id);assert.equal(body.p_identity.sourceHash,hash);
-      identity=body.p_identity;
+      identity=body.p_identity;counters.identity=identity;
       if(mode==='cached') {
         const record={...dto,document:{...dto.document,extractionStatus:'failed'},extractionFailure:'provider_timeout'};
         return json({state:'cached',requestId:key,record,currentRecord:record});
@@ -69,8 +71,9 @@ async function fixture(mode:'live'|'cached'|'busy'|'rate_limit'|'malformed'|'bud
   };
  const database=createClient('https://synthetic.supabase.co','synthetic-publishable-key',{accessToken:async()=> 'synthetic-session-token',global:{fetch:scriptedFetch},db:{retry:false},
    auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
- const runtime:TestRuntime={environment:()=>({GROQ_API_KEY:'synthetic-test-key',GROQ_VISION_MODEL:'qwen/qwen3.8-27b',
-   GROQ_TEXT_MODEL:'openai/gpt-oss-20b',AI_PROVIDER:'groq'}),fetch:scriptedFetch};
+ const runtime:TestRuntime={environment:()=>provider==='groq'?({GROQ_API_KEY:'synthetic-test-key',GROQ_VISION_MODEL:'qwen/qwen3.8-27b',
+   GROQ_TEXT_MODEL:'openai/gpt-oss-20b',AI_PROVIDER:'groq'}):({GEMINI_API_KEY:'synthetic-gemini-key',GEMINI_VISION_MODEL:'gemini-test-vision',
+   GEMINI_TEXT_MODEL:'gemini-test-text',AI_PROVIDER:'gemini'}),fetch:scriptedFetch};
   const session:RequestSession={subject:workspace.ownerSubject,database,configuration:{APP_URL:'http://localhost:3000',NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:'synthetic',
    CLERK_SECRET_KEY:'synthetic',NEXT_PUBLIC_SUPABASE_URL:'https://synthetic.supabase.co',NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'synthetic'}};
  await run(session,new Request('http://localhost:3000/api/documents/'+doc+'/extraction',{signal:caller.signal}),counters,runtime);
@@ -82,6 +85,15 @@ test('receipt service validates source, invokes C once, persists raw evidence an
   assert.equal(result.record.extractionContext?.evidence?.fields.total.rawText,'100.05');
   assert.equal(counters.inference,1);assert.equal(counters.save,1);assert.equal(counters.source,1);
  });
+});
+test('receipt service selects Gemini explicitly and persists validated evidence and provider cache identity',async()=>{
+ await fixture('live',async(session,request,counters,runtime)=>{
+  const result=await extractDocument(session,workspace,doc,request,{requestId:key,expectedVersion:0},{},runtime);
+  assert.equal(result.state,'live');assert.equal(result.record.document.extractedFields.totalMinor,'10005');
+  assert.equal(counters.inference,1);assert.equal(counters.save,1);assert.equal(counters.source,1);
+  assert.equal(result.record.document.modelVersion,'gemini-test-vision');
+  assert.equal(counters.identity.provider,'gemini');assert.equal(counters.identity.providerVersion,'gemini-provider-v1');
+ },'gemini');
 });
 test('cached and busy receipt reservations never download bytes or invoke inference',async()=>{
  for(const mode of ['cached','busy'] as const)await fixture(mode,async(session,request,counters,runtime)=>{

@@ -1,3 +1,4 @@
+import { MAX_IMPORT_DECISION_BYTES } from '../../../../../lib/contracts/limits.ts';
 import { z } from 'zod';
 import { requireSession } from '../../../../../lib/server/auth.ts';
 import { requireWorkspace } from '../../../../../lib/server/workspace.ts';
@@ -23,7 +24,7 @@ export async function POST(request: Request, context: Context): Promise<Response
     const session = await requireSession();
     requireSameOrigin(request, session.configuration.APP_URL);
     const id = await importId(context);
-    const body = await readJson(request, 256 * 1024);
+    const body = await readJson(request, MAX_IMPORT_DECISION_BYTES);
     return resolveImport(session, await requireWorkspace(session), id, body);
   });
 }
