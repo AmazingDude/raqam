@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import type { ToolConversationMessage, ToolConversationRequest, ProviderContext, ProviderResult, ToolName } from '../../ai/provider.ts';
 import { assistantRequestSchema, assistantResponseSchema, type AssistantResponse } from '../../contracts/assistant.ts';
+import { AssistantFactRegistry } from '../../ai/fact-registry.ts';
+import { combinedSnapshot } from './snapshot.ts';
 import { assistantToolSchemas } from '../../contracts/schemas.ts';
 import { BackendError } from '../errors.ts';
 import type { AssistantTools, ToolObservation } from './full-tools.ts';
@@ -23,8 +25,12 @@ export async function runAssistant(input: { question: string; workspaceId: strin
   const question = assistantRequestSchema.parse({ question: input.question }).question;
   const messages: ToolConversationMessage[] = [{ role: 'system', content: system + ' When no reporting period is specified, use the whole workspace, not clarification. Net cash movement is supported: call get_cash_summary with scope valid_imported_cash. A financial answer requires at least one observation ID.' }, { role: 'user', content: question }];
   const observations: ToolObservation[] = [], trail: AssistantResponse['actionTrail'] = [];
+  const factRegistry = new AssistantFactRegistry();
   const cache = new Map<string, number>(), callIds = new Set<string>();
   let executions = 0, attempts = 0;
+  let providerSummary: AssistantResponse['metadata']['provider'] = {
+    providerVersion: 'unavailable', model: null, promptVersion: null, schemaVersion: null, attempts: 0, durationMs: 0,
+  };
   function active() { if (input.signal?.aborted || Date.now() >= input.deadlineAt) throw new BackendError('UNAVAILABLE', 'The assistant request expired. Please retry.'); }
   function finish(ids: number[], partial: boolean, kind: string = 'answer') {
     const selected = [...new Set(ids)].map(id => observations[id]).filter((value): value is ToolObservation => !!value);
@@ -39,8 +45,16 @@ export async function runAssistant(input: { question: string; workspaceId: strin
       : 'Please ask about recorded cash movement, unreviewed categories, missing document matches or a specific source. Include an explicit date range when needed.';
     const records = [...new Map(selected.flatMap(o => o.records).map(r => [r.id, r])).values()];
     const citations = [...new Map(selected.flatMap(o => o.citations).map(c => [`${c.kind}:${c.id}`, c])).values()];
-    return assistantResponseSchema.parse({ workspaceId: input.workspaceId, question, text, records: records.slice(0, 50), citations: citations.slice(0, 200),
-      actionTrail: trail, partial: partial || textLimited || records.length > 50 || citations.length > 200 || selected.some(o => o.partial) });
+    const transactionCitationCount = citations.filter(item => item.kind === 'transaction').length;
+    const documentCitationCount = citations.filter(item => item.kind === 'document').length;
+    const incomplete = partial || textLimited || records.length > 50 || citations.length > 200 || transactionCitationCount > 50 || documentCitationCount > 50 || selected.some(o => o.partial);
+    const resultCitations = citations.slice(0, 200);
+    const snapshots = factRegistry.snapshots();
+    const snapshot = snapshots.length ? combinedSnapshot(input.workspaceId, snapshots) : null;
+    return assistantResponseSchema.parse({ workspaceId: input.workspaceId, question, text, records: records.slice(0, 50), citations: resultCitations,
+      actionTrail: trail, partial: incomplete, metadata: { requestId: input.requestId,
+        snapshot,
+        provider: providerSummary, facts: factRegistry.all() } });
   }
   for (let round = 0; round < 3; round++) {
     active();
@@ -49,6 +63,14 @@ export async function runAssistant(input: { question: string; workspaceId: strin
       choice: round === 2 || executions >= 4 ? 'none' : 'auto', versions: { prompt: 'assistant-prompt-v1', schema: 'assistant-answer-v1' },
     }, { requestId: input.requestId, deadlineAtMs: input.deadlineAt, ...(input.signal ? { signal: input.signal } : {}), budget: { take: () => ++attempts <= 3 } });
     active();
+    const metadata = z.object({ providerVersion: z.string().min(1).max(200), model: z.string().min(1).max(200).nullable(),
+      promptVersion: z.string().max(200).nullable(), schemaVersion: z.string().max(200).nullable(), attempts: z.number().int().min(0).max(2),
+      durationMs: z.number().finite().min(0) }).safeParse(result.metadata);
+    if (!metadata.success) throw new BackendError('UNAVAILABLE', 'Assistant provider metadata could not be verified.');
+    if (providerSummary.attempts + metadata.data.attempts > 3) throw new BackendError('UNAVAILABLE', 'Assistant provider exceeded the request attempt budget.');
+    providerSummary = { providerVersion: metadata.data.providerVersion, model: metadata.data.model,
+      promptVersion: metadata.data.promptVersion, schemaVersion: metadata.data.schemaVersion,
+      attempts: Math.min(3, providerSummary.attempts + metadata.data.attempts), durationMs: providerSummary.durationMs + metadata.data.durationMs };
     if (!result.ok) {
       if (observations.length) return finish(observations.map((_, i) => i), true);
       throw new BackendError('UNAVAILABLE', result.error.message);
@@ -77,8 +99,9 @@ export async function runAssistant(input: { question: string; workspaceId: strin
         executions++;
         const observation = await input.tools[call.name](args.data);
         active();
+        const facts = factRegistry.register(call.name, observation);
         id = observations.push(observation) - 1; cache.set(key, id);
-        trail.push({ tool: call.name, recordsConsulted: observation.citations.length, partial: observation.partial });
+        trail.push({ tool: call.name, recordsConsulted: observation.citations.length, partial: observation.partial, factRefs: facts.map(fact => fact.id) });
       }
       const observation = observations[id]!;
       // Keep private originals and potentially large document text out of model context.

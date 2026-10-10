@@ -3,6 +3,7 @@ import { CATEGORIES } from './index.ts';
 import { MAX_WORKSPACE_TRANSACTIONS } from './limits.ts';
 import { dateSchema, minorUnitsSchema, sourceReferenceSchema, transactionSchema } from './schemas.ts';
 import { documentRecordSchema } from './documents.ts';
+import { assistantFactSchema } from '../ai/fact-registry.ts';
 
 export const assistantToolNames = [
   'list_transactions', 'get_cash_summary', 'get_review_queue', 'get_record_evidence',
@@ -11,22 +12,34 @@ export const assistantRequestSchema = z.strictObject({ question: z.string().trim
 export const assistantCitationSchema = z.strictObject({
   kind: z.enum(['transaction', 'document']), id: z.string().min(1), source: sourceReferenceSchema,
 });
+export const assistantSnapshotSchema = z.strictObject({
+  workspaceId: z.string().min(1),
+  token: z.string().regex(/^[a-f0-9]{64}$/),
+  sources: z.array(z.enum(['cashbook', 'documents', 'history'])).min(1).max(3),
+}).refine(snapshot => new Set(snapshot.sources).size === snapshot.sources.length,
+  'Assistant snapshot sources must be unique');
 export const assistantResponseSchema = z.strictObject({
   workspaceId: z.string().min(1), question: z.string().min(1).max(1000), text: z.string().max(12000),
   records: z.array(transactionSchema).max(50), citations: z.array(assistantCitationSchema).max(200),
   actionTrail: z.array(z.strictObject({
     tool: z.enum(assistantToolNames),
-    recordsConsulted: z.number().int().nonnegative(), partial: z.boolean(),
+    recordsConsulted: z.number().int().nonnegative(), partial: z.boolean(), factRefs: z.array(z.uuid()).max(20),
   })).max(4), partial: z.boolean(),
+  metadata: z.strictObject({
+    requestId: z.uuid(),
+    snapshot: assistantSnapshotSchema.nullable(),
+    provider: z.strictObject({ providerVersion: z.string().min(1).max(200), model: z.string().min(1).max(200).nullable(),
+      promptVersion: z.string().max(200).nullable(), schemaVersion: z.string().max(200).nullable(),
+      attempts: z.number().int().min(0).max(3), durationMs: z.number().finite().min(0) }),
+    facts: z.array(assistantFactSchema).max(50),
+  }),
+}).superRefine((result, ctx) => {
+  const factIds = new Set(result.metadata.facts.map(fact => fact.id));
+  if (factIds.size !== result.metadata.facts.length || result.actionTrail.some(action => action.factRefs.some(id => !factIds.has(id))) ||
+      result.metadata.facts.some(fact => fact.snapshot.workspaceId !== result.workspaceId) ||
+      (result.metadata.snapshot !== null && result.metadata.snapshot.workspaceId !== result.workspaceId))
+    ctx.addIssue({ code: 'custom', message: 'Assistant trace fact references must resolve to unique registered facts' });
 });
-
-export const assistantSnapshotSchema = z.strictObject({
-  workspaceId: z.string().min(1),
-  version: z.literal(1),
-  token: z.string().regex(/^[a-f0-9]{64}$/),
-  sources: z.array(z.enum(['cashbook', 'documents', 'history'])).min(1).max(3),
-}).refine(snapshot => new Set(snapshot.sources).size === snapshot.sources.length,
-  'Assistant snapshot sources must be unique');
 const countSchema = z.number().int().nonnegative().max(MAX_WORKSPACE_TRANSACTIONS);
 const completenessFields = {
   returnedCount: countSchema,

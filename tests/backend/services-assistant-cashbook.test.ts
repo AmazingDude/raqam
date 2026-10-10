@@ -23,7 +23,7 @@ test('A2 cashbook tools filter and page one request snapshot while whole-scope t
   assert.equal(first.returnedCount, 2);
   assert.equal(first.totalCount, 4);
   assert.equal(first.snapshot.workspaceId, 'w1');
-  assert.equal(first.snapshot.version, 1);
+  assert.match(first.snapshot.token, /^[a-f0-9]{64}$/);
   const second = await tools.list_transactions({ limit: 2, cursor: first.nextCursor });
   assert.deepEqual(second.items.map(record => record.id), ids.slice(2));
   assert.equal(second.nextCursor, null);

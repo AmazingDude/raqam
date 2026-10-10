@@ -3,7 +3,7 @@ import type { SupportingDocument, Transaction } from '../../contracts/index.ts';
 import { assistantSnapshotSchema, type AssistantHistory, type AssistantSnapshot } from '../../contracts/assistant.ts';
 
 type SnapshotSource = AssistantSnapshot['sources'][number];
-const ASSISTANT_SNAPSHOT_VERSION = 1 as const;
+const ASSISTANT_SNAPSHOT_VERSION = 'raqam-assistant-snapshot-v1' as const;
 
 function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
@@ -25,9 +25,9 @@ export function createAssistantSnapshot(
 ): AssistantSnapshot {
   if (!workspaceId || sources.length === 0) throw new Error('Assistant snapshot requires a workspace and source kind');
   const orderedSources = [...new Set(sources)].sort();
-  const material = { workspaceId, version: ASSISTANT_SNAPSHOT_VERSION, sources: orderedSources, parts };
+  const material = { format: ASSISTANT_SNAPSHOT_VERSION, workspaceId, sources: orderedSources, parts };
   const token = createHash('sha256').update(canonical(material)).digest('hex');
-  return assistantSnapshotSchema.parse({ workspaceId, version: ASSISTANT_SNAPSHOT_VERSION, token, sources: orderedSources });
+  return assistantSnapshotSchema.parse({ workspaceId, token, sources: orderedSources });
 }
 
 export function cashbookSnapshot(workspaceId: string, records: readonly Transaction[], unresolvedImportRowCount: number): AssistantSnapshot {

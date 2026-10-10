@@ -14,7 +14,7 @@ import { combinedSnapshot, documentSnapshot, historySnapshot } from './snapshot.
 export type ToolObservation<Name extends AssistantToolName = AssistantToolName> = {
   text: string; records: Transaction[]; citations: AssistantResponse['citations']; partial: boolean;
   result: AssistantToolResult[Name];
-  details?: unknown;
+  details: { result: AssistantToolResult[Name] };
 };
 type Options = {
   workspaceId: string; deadlineAt: number; signal?: AbortSignal;
@@ -77,16 +77,17 @@ export function createAssistantTools(options: Options) {
   }
   return {
     async list_transactions(input: unknown): Promise<ToolObservation<'list_transactions'>> {
-      const result = await cashbook.list_transactions(input);
+      const result = validatedResult('list_transactions', await cashbook.list_transactions(input));
+      const args = assistantToolSchemas.list_transactions.parse(input);
       return { result, text: `Showing ${result.returnedCount} of ${result.totalCount} matching imported transactions${result.nextCursor ? '; more records are available on the next page' : result.complete ? '; this response completes the lookup' : '; this page does not establish full-scope completeness'}. Amounts and review statuses come from the cashbook.`,
-        records: result.items, citations: citations(result.items), partial: !result.complete, details: result };
+        records: result.items, citations: citations(result.items), partial: !result.complete || args.cursor !== undefined, details: { result } };
     },
     async get_cash_summary(input: unknown): Promise<ToolObservation<'get_cash_summary'>> {
       const args = assistantToolSchemas.get_cash_summary.parse(input);
-      const summary = await cashbook.get_cash_summary(input);
-      const result = await cashbook.list_transactions({ limit: 50, ...(args.dateFrom ? { dateFrom: args.dateFrom } : {}), ...(args.dateTo ? { dateTo: args.dateTo } : {}) });
+      const summary = validatedResult('get_cash_summary', await cashbook.get_cash_summary(input));
+      const listed = await cashbook.list_transactions({ limit: 50, ...(args.dateFrom ? { dateFrom: args.dateFrom } : {}), ...(args.dateTo ? { dateTo: args.dateTo } : {}) });
       return { result: summary, text: `Recorded cash movement${args.dateFrom || args.dateTo ? ` from ${args.dateFrom ?? 'the earliest recorded date'} through ${args.dateTo ?? 'the latest recorded date'}` : ' across the whole workspace'}: PKR ${formatAmount(summary.summary.netMovementMinor)} net, from PKR ${formatAmount(summary.summary.inflowMinor)} cash in minus PKR ${formatAmount(summary.summary.outflowMinor)} cash out, across ${summary.summary.transactionCount} transactions. This is cash movement, not profit or a bank balance. ${summary.summary.unresolvedImportRowCount} unresolved import rows are counted across the whole workspace, regardless of this date range.`,
-        records: result.items, citations: citations(result.items), partial: false, details: summary };
+        records: listed.items, citations: citations(listed.items), partial: false, details: { result: summary } };
     },
     async get_review_queue(input: unknown): Promise<ToolObservation<'get_review_queue'>> {
       const parsed = assistantToolSchemas.get_review_queue.safeParse(input);
@@ -95,26 +96,26 @@ export function createAssistantTools(options: Options) {
       if (args.kind === 'unresolved_document_fields') {
         const allDocuments = await docs();
         const result = page(allDocuments.filter(d => d.reviewStatus !== 'accepted' && d.reviewStatus !== 'rejected'), args.limit, args.cursor);
-        const payload = validatedResult('get_review_queue', {
+        const output = validatedResult('get_review_queue', {
           kind: args.kind, items: [], documents: result.items, returnedCount: result.items.length, totalCount: result.total,
           complete: args.cursor === undefined && result.nextCursor === null, nextCursor: result.nextCursor,
           snapshot: documentSnapshot(workspaceId, allDocuments),
         });
         return { text: `${result.total} supporting documents need field review. Showing ${result.items.length} documents; unknown fields remain unknown and receipts do not create cash movement. ${result.items.map(documentFacts).join(' ')}`,
-          records: [], citations: citations([], result.items), partial: !payload.complete, result: payload, details: payload };
+          records: [], citations: citations([], result.items), partial: !output.complete, result: output, details: { result: output } };
       }
       const { records: all, snapshot } = await cashbook.allRecordsSnapshot();
       const matching = all.filter(r => args.kind === 'unreviewed_categories' ? r.categoryStatus !== 'accepted' : r.matchStatus !== 'accepted');
       const result = page(matching, args.limit, args.cursor);
-      const payload = validatedResult('get_review_queue', {
+      const output = validatedResult('get_review_queue', {
         kind: args.kind, items: result.items, documents: [], returnedCount: result.items.length, totalCount: result.total,
         complete: args.cursor === undefined && result.nextCursor === null, nextCursor: result.nextCursor, snapshot,
       });
       const text = args.kind === 'unreviewed_categories'
         ? `${result.total} of ${all.length} imported transactions have no accepted category. Pending suggestions remain unreviewed.`
         : `${result.total} of ${all.length} imported transactions have no accepted document match, including ${matching.filter(r => r.direction === 'out').length} outflows. A missing match is a review need, not proof of nonpayment.`;
-      return { text: `${text} Showing ${result.items.length} matching records.`, records: result.items, citations: citations(result.items), partial: !payload.complete,
-        result: payload, details: payload };
+      return { text: `${text} Showing ${result.items.length} matching records.`, records: result.items, citations: citations(result.items), partial: !output.complete,
+        result: output, details: { result: output } };
     },
     async get_record_evidence(input: unknown): Promise<ToolObservation<'get_record_evidence'>> {
       const parsed = assistantToolSchemas.get_record_evidence.safeParse(input);
@@ -138,13 +139,13 @@ export function createAssistantTools(options: Options) {
         ...(uniqueDocumentIds.length ? [documentSnapshot(workspaceId, allDocs)] : []),
         historySnapshot(workspaceId, history),
       ];
-      const payload = validatedResult('get_record_evidence', {
+      const output = validatedResult('get_record_evidence', {
         transactions: selected, documents: selectedDocs, history,
         returnedCount: selected.length + selectedDocs.length, totalCount: uniqueTransactionIds.length + uniqueDocumentIds.length,
         complete: !history.partial, nextCursor: null, snapshot: combinedSnapshot(workspaceId, snapshots),
       });
       return { text: `Consulted ${selected.length} imported transactions and ${selectedDocs.length} supporting documents. Original source references and current reviewed values are preserved. Document fields and proposals alone do not prove settlement. Returned ${history.items.reduce((count, item) => count + item.decisions.length, 0)} review history entries, limited to the latest 20 decisions per record. ${selectedDocs.map(documentFacts).join(' ')}`,
-        records: selected, citations: citations(selected, selectedDocs), partial: !payload.complete, result: payload, details: payload };
+        records: selected, citations: citations(selected, selectedDocs), partial: !output.complete, result: output, details: { result: output } };
     },
   };
 }
