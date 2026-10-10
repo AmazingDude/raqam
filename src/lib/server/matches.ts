@@ -10,7 +10,7 @@ import { BackendError } from './errors.ts';
 import { readCashbook } from './cashbook.ts';
 import { readDocument, documentDatabaseError } from './documents/persistence.ts';
 
-const provenance = { modelVersion: 'deterministic-exact-match-v1', promptVersion: 'exact-match-candidate-v1', schemaVersion: 'match-snapshot-v1' };
+const provenance = { modelVersion: 'deterministic-evidence-match-v1', promptVersion: 'evidence-ranked-candidates-v1', schemaVersion: 'match-snapshot-v1' };
 const proposalRowSchema = z.object({
   id: z.uuid(), workspace_id: z.uuid(), transaction_id: z.uuid(), transaction_version: z.number().int().min(0),
   review_version: z.number().int().min(0), rationale: z.string().min(1).max(2000),
@@ -37,13 +37,78 @@ async function readVersions(session: RequestSession, workspace: Workspace, ids: 
   return versions;
 }
 
-export function exactMatchCandidateSnapshot(records: readonly Transaction[], fields: DocumentFields) {
+type RankedCandidate = { record: Transaction; score: number; corroborated: boolean; evidence: string[] };
+
+function normalizeReference(value: string | null) {
+  return value?.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '') ?? '';
+}
+
+function tokens(value: string | null) {
+  return new Set((value ?? '').normalize('NFKC').toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []);
+}
+
+function merchantOverlap(counterparty: string | null, description: string) {
+  const merchant = tokens(counterparty);
+  if (!merchant.size) return 0;
+  const descriptionTokens = tokens(description);
+  const matching = [...merchant].filter(token => descriptionTokens.has(token)).length;
+  return matching / merchant.size;
+}
+
+function scoreCandidate(record: Transaction, fields: DocumentFields): RankedCandidate {
+  const evidence = ['PKR amount agrees exactly'];
+  let score = 10;
+  const documentReference = normalizeReference(fields.reference);
+  const transactionReference = normalizeReference(record.reference);
+  let referenceAgrees = false;
+  let referenceConflicts = false;
+  if (documentReference && transactionReference) {
+    if (documentReference === transactionReference) {
+      score += 100;
+      referenceAgrees = true;
+      evidence.push('reference agrees');
+    } else {
+      score -= 100;
+      referenceConflicts = true;
+      evidence.push('reference conflicts');
+    }
+  } else evidence.push('no comparable reference');
+
+  const dateGapDays = Math.abs(Date.parse(record.date) - Date.parse(fields.date!)) / 86_400_000;
+  if (dateGapDays <= 3) { score += 10; evidence.push(`date is ${dateGapDays} day${dateGapDays === 1 ? '' : 's'} away`); }
+  else if (dateGapDays <= 7) { score += 6; evidence.push(`date is ${dateGapDays} days away`); }
+  else if (dateGapDays <= 30) { score += 2; evidence.push(`date is ${dateGapDays} days away`); }
+  else evidence.push(`date is ${dateGapDays} days away`);
+
+  const overlap = merchantOverlap(fields.counterparty, record.description);
+  if (overlap > 0) {
+    score += Math.round(overlap * 30);
+    evidence.push(`description supports counterparty (${Math.round(overlap * 100)}% of its words match)`);
+  } else evidence.push('description does not repeat the counterparty name');
+  return { record, score, corroborated: !referenceConflicts && (referenceAgrees || (overlap >= 0.5 && dateGapDays <= 7)), evidence };
+}
+
+export function semanticMatchCandidateSnapshot(records: readonly Transaction[], fields: DocumentFields) {
   const eligible = records.filter(record => record.direction === 'out' && record.matchStatus !== 'accepted');
-  const candidates = fields.currency === 'PKR' && fields.totalMinor !== null && fields.date !== null
+  const ranked = fields.currency === 'PKR' && fields.totalMinor !== null && fields.date !== null
     ? eligible.filter(record => record.currency === fields.currency && record.amountMinor === fields.totalMinor)
-      .sort((a, b) => Math.abs(Date.parse(a.date) - Date.parse(fields.date!)) - Math.abs(Date.parse(b.date) - Date.parse(fields.date!)) || a.id.localeCompare(b.id))
+      .map(record => scoreCandidate(record, fields))
+      .sort((a, b) => b.score - a.score || a.record.id.localeCompare(b.record.id))
     : [];
-  return { eligible, candidates };
+  const leader = ranked[0];
+  const competitor = ranked[1];
+  const recommendedId = leader?.corroborated && (!competitor || leader.score > competitor.score) ? leader.record.id : null;
+  const candidates = ranked.map((candidate, index) => {
+    const rank = index + 1;
+    const standing = recommendedId === candidate.record.id
+      ? 'Best-supported candidate; confirm only after checking the original sources.'
+      : candidate.corroborated
+        ? 'Corroborating evidence exists, but another candidate is equally or better supported; review the competing records.'
+        : 'Amount is compatible, but corroborating evidence is insufficient to recommend this candidate.';
+    return { record: candidate.record, rank, recommended: recommendedId === candidate.record.id,
+      rationale: `${standing} Evidence: ${candidate.evidence.join('; ')}.`, score: candidate.score };
+  });
+  return { eligible, candidates, recommendedId };
 }
 
 function mapProposal(raw: unknown, workspaceId: string) {
@@ -97,7 +162,7 @@ export async function generateMatchProposals(session: RequestSession, workspace:
   // fails closed on overflow, so "complete" never describes a truncated page.
   const cashbook = await readCashbook(session, workspace);
   if (cashbook.records.length > MAX_WORKSPACE_TRANSACTIONS) throw new BackendError('UNAVAILABLE', 'This workspace exceeds the complete matching snapshot limit. Narrow the data before retrying.');
-  const { eligible, candidates } = exactMatchCandidateSnapshot(cashbook.records, fields.data);
+  const { eligible, candidates } = semanticMatchCandidateSnapshot(cashbook.records, fields.data);
 
   const open = await session.database.from('ai_proposals').select('transaction_id,transaction_version,document_version')
     .eq('workspace_id', workspace.id).eq('kind', 'match').eq('document_id', documentId)
@@ -106,7 +171,7 @@ export async function generateMatchProposals(session: RequestSession, workspace:
   const openRows = z.array(z.object({ transaction_id: z.uuid(), transaction_version: z.number().int().min(0), document_version: z.number().int().min(0) })).parse(open.data);
   const currentPendingIds = [...new Set(openRows.filter(row => row.document_version === document.reviewVersion).map(row => row.transaction_id))];
   const pendingVersions = await readVersions(session, workspace, currentPendingIds, request.signal);
-  const candidateIds = new Set(candidates.map(record => record.id));
+  const candidateIds = new Set(candidates.map(candidate => candidate.record.id));
   const pendingIds = new Set(openRows.filter(row => row.document_version === document.reviewVersion && candidateIds.has(row.transaction_id) &&
     pendingVersions.get(row.transaction_id) === row.transaction_version).map(row => row.transaction_id));
   const prior = await session.database.from('proposal_batches').select('request_payload').eq('workspace_id', workspace.id)
@@ -123,16 +188,16 @@ export async function generateMatchProposals(session: RequestSession, workspace:
       omittedCount, complete: omittedCount === 0, capturedAt: new Date().toISOString(),
     } });
   }
-  const newCandidates = candidates.filter(record => !pendingIds.has(record.id));
+  const newCandidates = candidates.filter(candidate => !pendingIds.has(candidate.record.id));
   const selected = newCandidates.slice(0, 50);
-  const versionById = await readVersions(session, workspace, selected.map(record => record.id), request.signal);
-  if (versionById.size !== selected.length || selected.some(record => !versionById.has(record.id))) throw unavailable();
+  const versionById = await readVersions(session, workspace, selected.map(candidate => candidate.record.id), request.signal);
+  if (versionById.size !== selected.length || selected.some(candidate => !versionById.has(candidate.record.id))) throw unavailable();
 
   let batch = proposalBatchResultSchema.parse({ requestId, items: [], duplicate: false });
   if (selected.length) {
     const persistence = matchPersistenceSchema.safeParse({ requestId, provenance,
-      proposals: selected.map(transaction => ({ transactionId: transaction.id, transactionVersion: versionById.get(transaction.id),
-        documentId, documentVersion: document.reviewVersion, rationale: 'Exact PKR amount candidate. Compare the receipt date, counterparty, reference and original source before deciding.', status: 'needs_review' })) });
+      proposals: selected.map(candidate => ({ transactionId: candidate.record.id, transactionVersion: versionById.get(candidate.record.id),
+        documentId, documentVersion: document.reviewVersion, rationale: candidate.rationale, status: 'needs_review' })) });
     if (!persistence.success) throw unavailable();
     const saved = await session.database.rpc('register_match_proposals', {
       p_request_id: requestId, p_provenance: persistence.data.provenance, p_proposals: persistence.data.proposals,

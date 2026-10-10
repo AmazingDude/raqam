@@ -159,8 +159,8 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
     try {
       const result=await run(signal=>api.generateMatchProposals({requestId:crypto.randomUUID(),documentId},signal));
       setNotice(result.snapshot.createdCount
-        ? `${result.snapshot.createdCount} exact-amount candidate${result.snapshot.createdCount===1?'':'s'} saved from a complete scan of ${result.snapshot.transactionCount} transactions.${result.snapshot.omittedCount?` ${result.snapshot.omittedCount} more candidates remain for another scan.`:' Compare each source before reviewing.'}`
-        : 'The complete cashbook scan found no new exact-amount candidates. Existing review decisions were preserved.');
+        ? `${result.snapshot.createdCount} evidence-ranked candidate${result.snapshot.createdCount===1?'':'s'} saved from a complete scan of ${result.snapshot.transactionCount} transactions.${result.snapshot.omittedCount?` ${result.snapshot.omittedCount} more candidates remain for another scan.`:' Compare each source before reviewing.'}`
+        : 'The complete cashbook scan found no new compatible candidates. Existing review decisions were preserved.');
       await onChanged();
       setLiveMatchProposals(current=>[...current.filter(item=>!result.items.some(saved=>saved.id===item.id)),...result.items]);
     } catch(error) {setMatchesError(error instanceof Error?error.message:'Match candidates could not be prepared. Existing decisions are unchanged.');}
