@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { categorySchema } from './schemas.ts';
+import { categorySchema, dateSchema } from './schemas.ts';
+
+export const cashSummaryRangeSchema = z.strictObject({
+  dateFrom: dateSchema.optional(),
+  dateTo: dateSchema.optional(),
+}).refine(range => !range.dateFrom || !range.dateTo || range.dateFrom <= range.dateTo, 'Date range is reversed');
+export type CashSummaryRange = z.infer<typeof cashSummaryRangeSchema>;
 
 export const transactionReviewSchema = z.strictObject({
   expectedVersion: z.number().int().min(0).max(2147483646),
