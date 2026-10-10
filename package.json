@@ -15,7 +15,6 @@
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --test --test-isolation=none tests/backend/*.test.ts tests/security/*.test.ts",
-    "test:ai:live": "node --env-file-if-exists=.env.local --import tsx tests/ai/live/feasibility.ts",
     "check:env": "node --env-file-if-exists=.env.local scripts/check-env.mjs",
     "check:services": "node --env-file-if-exists=.env.local scripts/check-services.mjs"
   },
@@ -35,7 +34,6 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "supabase": "2.120.0",
-    "tsx": "4.23.15",
     "typescript": "5.9.3"
   }
 }
