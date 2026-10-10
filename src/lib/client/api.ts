@@ -9,7 +9,7 @@ import type { TransactionReview } from '../contracts/cashbook.ts';
 import { assistantRequestSchema, assistantResponseSchema } from '../contracts/assistant.ts';
 import {
   documentExtractionRequestSchema, documentMutationResultSchema, documentRecordSchema, documentRegistrationResultSchema,
-  receiptExtractionResponseSchema, documentReviewSchema,
+  receiptExtractionResponseSchema, documentReviewSchema, documentHistoryItemSchema,
 } from '../contracts/documents.ts';
 import {
   categoryGenerationRequestSchema, matchGenerationRequestSchema, matchGenerationResultSchema,
@@ -124,6 +124,19 @@ export const api = {
   }),
   transactionReviews: (id: string, signal: AbortSignal, cursor: string | null = null) => request(`/api/transactions/${encodeURIComponent(id)}/reviews?limit=20&cursor=${encodeURIComponent(cursor ?? '0')}`, reviewHistorySchema, signal),
   documents: (signal: AbortSignal) => request('/api/documents?limit=50', documentPageSchema, signal),
+  documentHistory: async (id: string, workspaceId: string, signal: AbortSignal, cursor: string | null = null) => {
+    let previous=Number(cursor??'0');
+    if(!Number.isSafeInteger(previous)||previous<0||previous>2147483647)throw new ClientError('INVALID_INPUT','Invalid document history cursor.');
+    const page=await request(`/api/documents/${encodeURIComponent(id)}/history?limit=20&cursor=${encodeURIComponent(cursor??'0')}`,
+      z.strictObject({items:z.array(documentHistoryItemSchema).max(20),nextCursor:z.string().nullable()}),signal);
+    const ids=new Set<string>();
+    for(const item of page.items){
+      if(item.workspaceId!==workspaceId||item.targetId!==id||item.previous.document.workspaceId!==workspaceId||item.current.document.workspaceId!==workspaceId||item.previous.document.id!==id||item.current.document.id!==id||item.reviewVersion<=previous||ids.has(item.id))throw new ClientError('UNAVAILABLE','Document history could not be verified. Reload the document.');
+      previous=item.reviewVersion;ids.add(item.id);
+    }
+    if(page.nextCursor!==null&&(!page.items.length||page.nextCursor!==String(previous)))throw new ClientError('UNAVAILABLE','Document history cursor could not be verified.');
+    return page;
+  },
   registerDocument: (sourceId: string, signal: AbortSignal) => request('/api/documents', documentRegistrationResultSchema, signal, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sourceId }),
   }),
@@ -133,7 +146,7 @@ export const api = {
   reviewDocument: (id: string, input: z.infer<typeof documentReviewSchema>, signal: AbortSignal) => request(`/api/documents/${encodeURIComponent(id)}`, documentMutationResultSchema.extend({ currentRecord: documentRecordSchema }), signal, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(documentReviewSchema.parse(input)),
   }),
-  categoryProposals: (signal: AbortSignal, status: 'all' | 'pending' = 'all') => request(`/api/category-proposals?limit=50&status=${status}`, proposalPageSchema, signal),
+  categoryProposals: (signal: AbortSignal, status: 'all' | 'pending' = 'all', cursor: string | null = null) => request(`/api/category-proposals?limit=50&status=${status}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, proposalPageSchema, signal),
   generateCategoryProposals: (input: z.infer<typeof categoryGenerationRequestSchema>, signal: AbortSignal) => request('/api/category-proposals', proposalBatchResultSchema, signal, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(categoryGenerationRequestSchema.parse(input)),
   }),

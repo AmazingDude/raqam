@@ -8,6 +8,7 @@ import { displayDate, money } from '../../lib/client/presentation.ts';
 import { exampleReceiptPrint } from '../../lib/client/examples.ts';
 import { Icon } from '../ui/icon.tsx';
 import { ReceiptEvidence } from './receipt-evidence.tsx';
+import { DocumentHistory } from './document-history.tsx';
 import s from '../ui/theme.module.css';
 export type UploadedSource = { sourceId: string; name: string; duplicate: boolean };
 export type PrivateLink = { signedUrl: string; expiresInSeconds: number };
@@ -27,7 +28,7 @@ function DocumentReview({ doc, liveRecord, demo, getLink, onSave, onClose }: { d
     try{await onSave(fields,accepted,requestId);}catch(error){setError(error instanceof Error?error.message:'The review could not be saved. Your cashbook is unchanged.');}finally{setSaving(false);}
   }
   return <div className={s.stack}><div className={s.actions}><button className={s.textButton} onClick={onClose}>Back to documents</button><span className={s.badge}>{demo?'Example field review':liveRecord?`Saved review version ${liveRecord.reviewVersion}`:'Field review'}</span></div><div className={s.reviewGrid}>
-    <aside className={s.sourcePane}><strong>Original source</strong>{demo?<ExampleReceipt doc={doc}/>:getLink?<SourceViewer source={{sourceId:doc.source.sourceId,name:doc.source.sourceId,duplicate:false}} getLink={getLink}/>:<p>Private source preview is unavailable.</p>}<p className={`${s.small} ${s.muted}`}>Source: {doc.source.sourceId}. Original extracted fields stay visible here after correction.</p>{!demo&&liveRecord&&<ReceiptEvidence record={liveRecord}/>}</aside>
+    <aside className={s.sourcePane}><strong>Original source</strong>{demo?<ExampleReceipt doc={doc}/>:getLink?<SourceViewer source={{sourceId:doc.source.sourceId,name:doc.source.sourceId,duplicate:false}} getLink={getLink}/>:<p>Private source preview is unavailable.</p>}<p className={`${s.small} ${s.muted}`}>Source: {doc.source.sourceId}. Original extracted fields stay visible here after correction.</p>{!demo&&liveRecord&&<><ReceiptEvidence record={liveRecord}/><DocumentHistory key={`${liveRecord.document.id}:${liveRecord.reviewVersion}`} record={liveRecord}/></>}</aside>
     <form className={s.formPane} onSubmit={event=>{event.preventDefault();void save(true);}}><h2>Review the proposed fields</h2><p className={`${s.small} ${s.muted}`}>Confirm details against the source. Reviewing a receipt does not add cash to your books.</p>{!demo&&liveRecord?.extractionFailure&&<p className={s.error}>The last extraction needs attention: {liveRecord.extractionFailure.replaceAll('_',' ')}. You can correct fields manually.</p>}
       <label className={s.field}>Counterparty<input value={counterparty} onChange={event=>setCounterparty(event.target.value)} maxLength={2000}/><small>Original: {doc.extractedFields.counterparty ?? 'Unknown'}</small></label>
       <label className={s.field}>Document date<input type="date" value={date} onChange={event=>setDate(event.target.value)}/><small>Original: {doc.extractedFields.date ?? 'Unknown'}</small></label>

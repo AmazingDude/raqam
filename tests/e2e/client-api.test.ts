@@ -106,3 +106,34 @@ test('category proposal client supports list, empty no-op reruns and versioned r
   assert.deepEqual(JSON.parse(String(calls[2]!.init.body)),{requestId:id,proposalId:proposal.id,expectedVersion:0,decision:'accept'});
   assert.ok(calls.every(call=>call.init.cache==='no-store'&&call.init.credentials==='same-origin'&&call.init.signal===signal));
 });
+
+test('category pages retain explicit cursors and use same-origin uncached scoped reads',async t=>{
+  const signal=new AbortController().signal,cursor='30000000-0000-4000-8000-000000000010';
+  const calls:{path:string;init:RequestInit}[]=[];
+  t.mock.method(globalThis,'fetch',async(path:string|URL|Request,init:RequestInit)=>{calls.push({path:String(path),init});return envelope({items:[],nextCursor:cursor});});
+  assert.equal((await api.categoryProposals(signal)).nextCursor,cursor);
+  await api.categoryProposals(signal,'all',cursor);
+  assert.deepEqual(calls.map(call=>call.path),['/api/category-proposals?limit=50&status=all',`/api/category-proposals?limit=50&status=all&cursor=${cursor}`]);
+  assert.ok(calls.every(call=>call.init.signal===signal&&call.init.credentials==='same-origin'&&call.init.cache==='no-store'));
+});
+
+test('document history preserves unknown fields and fences source, owner scope, ordering and cursors',async t=>{
+  const workspaceId='30000000-0000-4000-8000-000000000002',sourceId='30000000-0000-4000-8000-000000000003';
+  const fields={counterparty:null,date:null,totalMinor:null,currency:null,reference:null};
+  const previous={document:{id,workspaceId,source:{sourceId,rowNumber:null},extractedFields:fields,correctedFields:null,extractionStatus:'pending',reviewStatus:'needs_review',modelVersion:null,promptVersion:null},reviewVersion:0,schemaVersion:null,extractionFailure:null};
+  const item={id:'30000000-0000-4000-8000-000000000004',workspaceId,targetId:id,actorSubject:'synthetic-owner',operation:'review',previous,current:{...previous,reviewVersion:1},reviewVersion:1,createdAt:'2026-10-10T00:00:00Z'};
+  const signal=new AbortController().signal,calls:{path:string;init:RequestInit}[]=[];
+  let response:unknown={items:[item],nextCursor:'1'};
+  t.mock.method(globalThis,'fetch',async(path:string|URL|Request,init:RequestInit)=>{calls.push({path:String(path),init});return envelope(response);});
+  assert.equal((await api.documentHistory(id,workspaceId,signal)).items[0]!.current.document.extractedFields.totalMinor,null);
+  response={items:[],nextCursor:null};await api.documentHistory(id,workspaceId,signal,'1');
+  assert.ok(calls[1]!.path.endsWith('?limit=20&cursor=1'));
+  assert.ok(calls.every(call=>call.init.signal===signal&&call.init.credentials==='same-origin'&&call.init.cache==='no-store'));
+  for(const invalid of [
+    {items:[{...item,targetId:sourceId}],nextCursor:null},
+    {items:[{...item,workspaceId:sourceId}],nextCursor:null},
+    {items:[item,item],nextCursor:null},
+    {items:[item],nextCursor:'2'},
+  ]){response=invalid;await assert.rejects(api.documentHistory(id,workspaceId,signal),error=>error instanceof ClientError&&error.code==='UNAVAILABLE');}
+  const callCount=calls.length;await assert.rejects(api.documentHistory(id,workspaceId,signal,'bad'),error=>error instanceof ClientError&&error.code==='INVALID_INPUT');assert.equal(calls.length,callCount,'invalid cursors make no request');
+});
