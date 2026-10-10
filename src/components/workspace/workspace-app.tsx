@@ -9,6 +9,7 @@ import { CATEGORIES } from '../../lib/contracts/index.ts';
 import { exampleDocuments, exampleProposals } from '../../lib/client/examples.ts';
 import { categoryLabels, displayDate, downloadExample, downloadText, money } from '../../lib/client/presentation.ts';
 import { api } from '../../lib/client/api.ts';
+import { mergeDocumentPages } from '../../lib/client/document-pages.ts';
 import { mergeProposalPages } from '../../lib/client/review-pages.ts';
 import { categoryPreparationBatch } from '../../lib/client/proposal-batch.ts';
 import { usePrivateRequests } from '../../lib/client/use-private-requests.ts';
@@ -57,14 +58,15 @@ function RecordDetail({record,demo,onSave,onClose}: {record:Transaction;demo:boo
     <form className={s.stack} onSubmit={event=>{event.preventDefault();if(description.trim())onSave(description.trim(),category);}}><label className={s.field}>Reviewed description<textarea rows={3} maxLength={2000} value={description} onChange={event=>setDescription(event.target.value)} disabled={!demo} required/></label><label className={s.field}>Reviewed category<select value={category??''} disabled={!demo} onChange={event=>setCategory(event.target.value?(event.target.value as Category):null)}><option value="">Leave unreviewed</option>{CATEGORIES.map(c=><option key={c} value={c}>{categoryLabels[c]}</option>)}</select></label>{demo?<><p className={`${s.small} ${s.muted}`}>Saving a selected category confirms your review. Example edits preserve the original source text and create a session review entry.</p><button className={s.button} type="submit" disabled={!description.trim()}>Save reviewed changes</button></>:<p className={`${s.small} ${s.muted}`}>Audited corrections are awaiting the transaction update API.</p>}</form>
   </div></Dialog>;
 }
-export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,loadMore,onUpload,getLink,account,onReload,summary=null,summaryError='',documents:initialDocuments=EMPTY_DOCUMENTS,documentsError='',proposals:initialProposals=EMPTY_PROPOSALS,proposalsError='',categoryProposalsCursor=null,matchProposals:initialMatchProposals=EMPTY_PROPOSALS,matchProposalsCursor=null,loadMoreMatchProposals,matchesError:initialMatchesError='',onChanged=async()=>{throw new Error('Reload the workspace to refresh saved records.');}}: {
+export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,loadMore,onUpload,getLink,account,onReload,summary=null,summaryError='',documents:initialDocuments=EMPTY_DOCUMENTS,documentsCursor:initialDocumentsCursor=null,documentsError='',proposals:initialProposals=EMPTY_PROPOSALS,proposalsError='',categoryProposalsCursor=null,matchProposals:initialMatchProposals=EMPTY_PROPOSALS,matchProposalsCursor=null,loadMoreMatchProposals,matchesError:initialMatchesError='',onChanged=async()=>{throw new Error('Reload the workspace to refresh saved records.');}}: {
   demo:boolean;workspace:Workspace;records:Transaction[];hasMore?:boolean;loadMore?: (()=>Promise<void>) | undefined;
   onUpload?: ((file:File)=>Promise<UploadedSource>) | undefined;getLink?: ((id:string)=>Promise<PrivateLink>) | undefined;
   account?:ReactNode;onReload?: (()=>void) | undefined;
-  documents?:DocumentRecord[];documentsError?:string;proposals?:ProposalRecord[];proposalsError?:string;categoryProposalsCursor?:string|null;matchProposals?:ProposalRecord[];matchesError?:string;matchProposalsCursor?:string|null;loadMoreMatchProposals?:(()=>Promise<void>)|undefined;
+  documents?:DocumentRecord[];documentsCursor?:string|null;documentsError?:string;proposals?:ProposalRecord[];proposalsError?:string;categoryProposalsCursor?:string|null;matchProposals?:ProposalRecord[];matchesError?:string;matchProposalsCursor?:string|null;loadMoreMatchProposals?:(()=>Promise<void>)|undefined;
   summary?:CashSummary|null;summaryError?:string;onChanged?:(()=>Promise<void>)|undefined;
 }) {
-  const run=usePrivateRequests(),exportLock=useRef(false),extractionLock=useRef(false),categoryRequestLock=useRef(false);
+  const run=usePrivateRequests(),exportLock=useRef(false),extractionLock=useRef(false),documentPageLock=useRef(false),categoryRequestLock=useRef(false);
+  const [documentCursor,setDocumentCursor]=useState(initialDocumentsCursor),[loadingDocumentPage,setLoadingDocumentPage]=useState(false);
   const [categoryCursor,setCategoryCursor]=useState(categoryProposalsCursor),[loadingCategoryPage,setLoadingCategoryPage]=useState(false);
   const [exporting,setExporting]=useState(false),[exportError,setExportError]=useState('');
   const [view,setView]=useState<View>('cashbook'),[demoRecords,setDemoRecords]=useState(liveRecords),[demoDocuments,setDemoDocuments]=useState(demo?exampleDocuments():[]),[demoProposals,setDemoProposals]=useState(demo?exampleProposals():[]),[liveDocuments,setLiveDocuments]=useState(initialDocuments),[liveProposalRecords,setLiveProposalRecords]=useState(initialProposals),[liveMatchProposals,setLiveMatchProposals]=useState(initialMatchProposals);
@@ -80,7 +82,7 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
   }));
   // Refreshed parents can supply new array identities for unchanged snapshots.
   // Preserve local state in that case so the prop-sync effects cannot render-loop.
-  useEffect(()=>{if(!demo)setLiveDocuments(current=>sameSnapshot(current,initialDocuments)?current:initialDocuments);},[demo,initialDocuments]);
+  useEffect(()=>{if(!demo){setLiveDocuments(current=>sameSnapshot(current,initialDocuments)?current:mergeDocumentPages(current,initialDocuments,workspace.id));setDocumentCursor(initialDocumentsCursor);}},[demo,initialDocuments,initialDocumentsCursor,workspace.id]);
   useEffect(()=>{if(!demo){setLiveProposalRecords(current=>sameSnapshot(current,initialProposals)?current:initialProposals);setCategoryCursor(categoryProposalsCursor);}},[demo,initialProposals,categoryProposalsCursor]);
   useEffect(()=>{if(!demo)setLiveMatchProposals(current=>sameSnapshot(current,initialMatchProposals)?current:initialMatchProposals);},[demo,initialMatchProposals]);
   const reviewCount=proposals.filter(p=>p.status==='proposed'||p.status==='needs_review').length+documents.filter(d=>!matches.some(m=>m.documentId===d.id)&&!rejectedMatches.includes(d.id)).length;
@@ -173,6 +175,13 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
     } catch(error) {setCategoryError(error instanceof Error?error.message:'Category decisions could not load. Retry.');}
     finally {categoryRequestLock.current=false;setLoadingCategoryPage(false);}
   }
+  async function loadDocumentPage() {
+    if(documentPageLock.current||!documentCursor)return;
+    documentPageLock.current=true;setLoadingDocumentPage(true);setFailure('');
+    try {const page=await run(signal=>api.documents(signal,documentCursor));if(page.nextCursor===documentCursor)throw new Error('Document pagination did not advance. Reload the workspace.');setLiveDocuments(current=>mergeDocumentPages(current,page.items,workspace.id));setDocumentCursor(page.nextCursor);}
+    catch(error){setFailure(error instanceof Error?error.message:'More saved documents could not be loaded. Retry.');}
+    finally{documentPageLock.current=false;setLoadingDocumentPage(false);}
+  }
   async function generateCategories() {
     if(categoryRequestLock.current)return;
     const batch=categoryPreparationBatch(records,liveProposalRecords),transactionIds=batch.transactionIds;
@@ -235,7 +244,7 @@ export function WorkspaceApp({demo,workspace,records:liveRecords,hasMore=false,l
         {view==='books'&&<LedgerScreen key={workspace.id} demo={demo} workspaceId={workspace.id}/>}
         {view==='import'&&!demo&&<LiveImportScreen onChanged={onChanged}/>}
         {view==='import'&&demo&&<ImportScreen demo={demo} workspaceId={workspace.id} imported={imported} onConfirm={(next,remaining)=>{if(!demo||imported)return;setDemoRecords(current=>[...current,...next]);setUnresolved(remaining);setImported(true);decision('example-import-csv','accept',null,{validRows:next.length,unresolvedRows:remaining});setNotice(`${next.length} example rows imported; ${remaining} unresolved rows excluded from totals.`);}}/>}
-        {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} liveRecords={liveDocuments} documentError={documentsError} extractingDocumentId={extractingDocumentId} onExtractDocument={demo?undefined:extractDocument} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink}/>}
+        {view==='documents'&&<DocumentsScreen demo={demo} documents={documents} hasMoreDocuments={documentCursor!==null} loadingMoreDocuments={loadingDocumentPage} onLoadMoreDocuments={loadDocumentPage} liveRecords={liveDocuments} documentError={documentsError} extractingDocumentId={extractingDocumentId} onExtractDocument={demo?undefined:extractDocument} onSave={saveDocument} sources={sources} onUpload={onUpload?upload:undefined} getLink={getLink}/>}
         {view==='review'&&<ReviewScreen demo={demo} records={records} documents={documents} proposals={proposals} hasMoreCategoryProposals={categoryCursor!==null} loadingCategoryPage={loadingCategoryPage} onLoadMoreCategoryProposals={loadCategoryPage} matchProposals={demo?[]:liveMatchProposals.filter((item):item is ReviewableMatchProposal=>item.suggestion.kind==='match')} matchScans={matchScans} hasMoreMatchProposals={matchProposalsCursor!==null} onLoadMoreMatchProposals={loadMoreMatchProposals?async()=>{if(loadingMatchPage)return;setLoadingMatchPage(true);try{await loadMoreMatchProposals();}catch(error){setMatchesError(error instanceof Error?error.message:'Saved match decisions could not be loaded.');}finally{setLoadingMatchPage(false);}}:undefined} onMatchPageLoading={loadingMatchPage} matchesError={matchesError} generatingMatchDocumentId={generatingMatchDocumentId} onGenerateMatch={generateMatchCandidates} onReviewMatch={reviewMatch} matchedDocumentIds={demo?matches.map(m=>m.documentId):liveMatchProposals.filter(item=>item.status==='accepted'&&item.suggestion.kind==='match').map(item=>item.suggestion.kind==='match'?item.suggestion.documentId:'')} rejectedDocumentIds={rejectedMatches} onCategory={reviewCategory} onGenerateCategories={demo?undefined:generateCategories} generatingCategories={generatingCategories} categoryError={categoryError} proposalsError={proposalsError} onMatch={match} onRejectMatch={id=>{setRejectedMatches(current=>[...current,id]);const affected=matches.find(m=>m.documentId===id);if(affected)setDemoRecords(current=>current.map(r=>r.id===affected.transactionId?{...r,matchStatus:'unmatched'}:r));else if(id==='example-doc-1')setDemoRecords(current=>current.map(r=>r.id==='example-2'?{...r,matchStatus:'unmatched'}:r));decision(id,'reject',null,null);setNotice('Example match suggestion rejected. Unmatched records remain visible.');}} onDocuments={()=>navigate('documents')} onRecord={setRecord}/>}
         {view==='assistant'&&<AssistantScreen key={workspace.id} demo={demo} records={records} workspaceId={workspace.id} onRecord={setRecord}/>}
         {view==='settings'&&<AIProviderSettings demo={demo}/>}
