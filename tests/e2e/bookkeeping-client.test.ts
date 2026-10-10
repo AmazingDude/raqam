@@ -21,6 +21,22 @@ test('expense saves and reviews send canonical fields, stable keys, versions and
  assert.equal((await bookkeepingApi.reviewExpense(workspace,id(3),{requestId:id(9),expectedVersion:0,action:'reject',reason:'Synthetic missing evidence'},signal)).draft.status,'rejected');
  t.mock.method(globalThis,'fetch',async()=>envelope({draft:{...expense,id:id(6),status:'rejected'},duplicate:false}));await assert.rejects(bookkeepingApi.reviewExpense(workspace,id(3),{requestId:id(9),expectedVersion:0,action:'reject'},signal));
 });
+test('AI expense proposal is workspace-bound, preserves the exact note as evidence, and keeps unknowns null',async t=>{
+ const note='Synthetic software subscription PKR 125.00 on 2026-10-10';
+ const fields={description:'software subscription',counterparty:null,occurredOn:'2026-10-10',amountMinor:'12500',currency:'PKR'};
+ t.mock.method(globalThis,'fetch',async(path:string|URL|Request,init:RequestInit)=>{
+  assert.equal(String(path),'/api/expense-drafts/ai-propose');assert.equal(init.method,'POST');
+  assert.deepEqual(JSON.parse(String(init.body)),{note});
+  return envelope({workspaceId:workspace,fields,evidenceText:note,provider:'gemini'});
+ });
+ const result=await bookkeepingApi.proposeExpense(workspace,note,signal);
+ assert.deepEqual(result.fields,fields);assert.equal(result.provider,'gemini');
+ for(const bad of [{workspaceId:foreign,fields,evidenceText:note,provider:'gemini'},
+  {workspaceId:workspace,fields,evidenceText:'different source',provider:'gemini'},
+  {workspaceId:workspace,fields:{...fields,amountMinor:'12.500'},evidenceText:note,provider:'gemini'}]){
+  t.mock.method(globalThis,'fetch',async()=>envelope(bad));await assert.rejects(bookkeepingApi.proposeExpense(workspace,note,signal));
+ }
+});
 test('saved bill client independently verifies line multiplication, totals and owner',async t=>{
  t.mock.method(globalThis,'fetch',async()=>envelope({items:[bill]}));assert.equal((await bookkeepingApi.bills(workspace,signal))[0]!.totalMinor,'51');
  for(const bad of [{...bill,workspaceId:foreign},{...bill,totalMinor:'50'},{...bill,lines:[{...line,rateMinor:'100'}]},{...bill,totalMinor:51}]){t.mock.method(globalThis,'fetch',async()=>envelope({items:[bad]}));await assert.rejects(bookkeepingApi.bills(workspace,signal));}

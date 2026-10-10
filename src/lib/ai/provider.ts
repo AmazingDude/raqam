@@ -210,7 +210,7 @@ export function createGroqProvider(dependencies: ProviderDependencies = {}): Gro
     const started = clock.now();
     const metadata: ProviderMetadata = {
       requestId: contextSchema.safeParse(context).success ? context.requestId : null, mode, model: null,
-      providerVersion: PROVIDER_VERSION, promptVersion: versionsSchema.safeParse(versions).success ? versions.prompt : null,
+      providerVersion: 'provider-adapter-v1', promptVersion: versionsSchema.safeParse(versions).success ? versions.prompt : null,
       schemaVersion: versionsSchema.safeParse(versions).success ? versions.schema : null,
       attempts: 0, durationMs: 0, providerRequestIds: [], usage: null,
     };

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { readFileSync } from 'node:fs';
 import { documentFieldsSchema, categorySuggestionSchema, assistantToolSchemas } from '../../src/lib/contracts/schemas.ts';
 import { createAIProvider, createGeminiProvider } from '../../src/lib/ai/index.ts';
+import { expenseNoteModelSchema, expenseNoteVersions } from '../../src/lib/ai/expense-note.ts';
 import { proposeCategories, type CategoryBatchInput } from '../../src/lib/ai/categories.ts';
 import type { ProviderResult, ToolConversationRequest } from '../../src/lib/ai/index.ts';
 
@@ -51,6 +52,26 @@ test('Gemini text request maps supported schema and rechecks canonical Zod outpu
   assert.equal(sentBody?.responseFormat, undefined);
   const bad = createGeminiProvider({ environment: () => env, fetch: async () => response(completion([{ text: JSON.stringify({ ...proposal, status: 'accepted' }) }])) });
   assert.equal(failureReason(await bad.requestTextProposal({ prompt: 'Propose a category.', versions, schema: categorySuggestionSchema }, context())), 'invalid_model_output');
+});
+
+test('Gemini 3 structured requests lower thinking so the bounded output allowance remains usable',async()=>{
+ const provider=createGeminiProvider({environment:()=>({...env,GEMINI_TEXT_MODEL:'gemini-3.5-flash'}),fetch:async(_url,init)=>{
+  const body=JSON.parse(String(init?.body));assert.deepEqual(body.generationConfig.thinkingConfig,{thinkingLevel:'low'});
+  return response(completion([{text:JSON.stringify({ok:true})}]));
+ }});
+ const result=await provider.requestTextProposal({prompt:'Return a synthetic boolean.',versions,schema:z.strictObject({ok:z.boolean()})},context());
+ assert.equal(result.ok,true);
+});
+
+test('Gemini expense schema omits unsupported regex keywords and keeps them in local validation',async()=>{
+ const provider=createGeminiProvider({environment:()=>env,fetch:async(_url,init)=>{
+  const schema=JSON.parse(String(init?.body)).generationConfig.responseJsonSchema;
+  const encoded=JSON.stringify(schema);assert.equal(encoded.includes('pattern'),false);
+  return response(completion([{text:JSON.stringify({description:null,counterparty:null,occurredOn:null,amount:null})}]));
+ }});
+ const result=await provider.requestTextProposal({prompt:'Synthetic expense.',versions:expenseNoteVersions,schema:expenseNoteModelSchema},context());
+ assert.equal(result.ok,true);
+ assert.equal(expenseNoteModelSchema.safeParse({description:null,counterparty:null,occurredOn:null,amount:{decimal:'bad',currency:'PKR',evidence:'x'}}).success,false);
 });
 
 test('Gemini serializes the real category batch with only documented JSON Schema keywords', async () => {

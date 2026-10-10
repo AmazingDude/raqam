@@ -15,6 +15,12 @@ function owner(workspaceId:string,records:{workspaceId:string}[]) {
 function unique(records:{id:string|null}[]){if(new Set(records.map(item=>item.id)).size!==records.length||records.some(item=>item.id===null))throw new ClientError('UNAVAILABLE','The returned records could not be verified. Reload.');}
 const mutation=(body:unknown,method='POST'):RequestInit=>({method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 export const bookkeepingApi={
+ async proposeExpense(workspaceId:string,note:string,signal:AbortSignal){
+  const result=await request('/api/expense-drafts/ai-propose',z.strictObject({workspaceId:z.uuid(),fields:z.strictObject({description:z.string().max(500).nullable(),counterparty:z.string().max(200).nullable(),occurredOn:z.iso.date().nullable(),amountMinor:z.string().regex(/^(0|[1-9]\d*)$/).nullable(),currency:z.literal('PKR').nullable()}),evidenceText:z.string(),provider:z.enum(['gemini','groq','openai','claude'])}),signal,mutation({note}));
+  if(result.evidenceText!==note)throw new ClientError('UNAVAILABLE','The suggestion evidence does not match this note. Keep the original and retry.');
+  if(result.workspaceId!==workspaceId)throw new ClientError('UNAVAILABLE','The suggestion belongs to another workspace. Keep your note and reload.');
+  return result;
+ },
  async ledger(workspaceId:string,signal:AbortSignal){
   const result=await request('/api/ledger',ledgerSnapshotSchema,signal);
   owner(workspaceId,[...result.accounts,...result.journals,result.coverage]);unique(result.accounts);unique(result.journals);

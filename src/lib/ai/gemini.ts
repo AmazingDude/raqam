@@ -38,6 +38,16 @@ const toolRequestSchema = z.strictObject({
 });
 const REPAIR = 'Return the same response in the required format. Do not guess missing values. Return only the requested content.';
 
+// Gemini 3 reasoning tokens count toward maxOutputTokens. A small structured
+// extraction can otherwise spend the entire output cap on default reasoning
+// and return MAX_TOKENS with no candidate text. Keep workflow proposals fast,
+// with deterministic validation remaining in application code.
+function boundedThinking(model: string): Record<string, unknown> {
+  if (/^gemini-3(?:[.-]|$)/i.test(model)) return { thinkingConfig: { thinkingLevel: 'low' } };
+  if (/^gemini-2\.5(?:[.-]|$)/i.test(model)) return { thinkingConfig: { thinkingBudget: 512 } };
+  return {};
+}
+
 function isToolName(value: string): value is ToolName { return Object.hasOwn(assistantToolSchemas, value); }
 function record(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
 function geminiJsonSchema(value: unknown, options: { omitMaxItems?: boolean } = {}): Record<string, unknown> {
@@ -54,7 +64,9 @@ function geminiJsonSchema(value: unknown, options: { omitMaxItems?: boolean } = 
   }
   const result: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value)) {
-    if (key === '$schema' || key === 'default' || key === 'minLength' || key === 'maxLength') continue;
+    // Gemini's documented JSON Schema subset omits `pattern`; server-side Zod
+    // revalidation remains authoritative for those constraints.
+    if (key === '$schema' || key === 'default' || key === 'minLength' || key === 'maxLength' || key === 'pattern') continue;
     if (key === 'const') { result.enum = [item]; continue; }
     if (key === 'properties' && record(item)) {
       result.properties = Object.fromEntries(Object.entries(item).map(([name, schema]) => [name, geminiJsonSchema(schema, options)]));
@@ -275,13 +287,13 @@ export function createGeminiProvider(dependencies: ProviderDependencies = {}): G
   return {
     requestImageExtraction: (input: ImageExtractionRequest, context: ProviderContext) => execute('image', input?.versions, context, model => {
       if (!sourceReferenceSchema.safeParse(input.source).success || input.source.rowNumber !== null || !(input.bytes instanceof Uint8Array) || input.bytes.length === 0 || input.bytes.length > LIMITS.imageBytes || identifyImage(input.bytes)?.mime !== input.mime || !['image/png', 'image/jpeg'].includes(input.mime) || !input.prompt.trim() || input.prompt.length + REPAIR.length > LIMITS.inputCharacters) throw new Error('invalid_request');
-      return { body: { model, contents: [{ role: 'user', parts: [{ text: input.prompt }, { inlineData: { mimeType: input.mime, data: Buffer.from(input.bytes).toString('base64') } }] }], generationConfig: { responseMimeType: 'application/json', ...(input.schema ? { responseJsonSchema: geminiJsonSchema(z.toJSONSchema(input.schema, { io: 'input' })) } : {}), maxOutputTokens: LIMITS.outputTokens, temperature: 0 } }, ...(input.schema ? { schema: input.schema } : {}) };
+      return { body: { model, contents: [{ role: 'user', parts: [{ text: input.prompt }, { inlineData: { mimeType: input.mime, data: Buffer.from(input.bytes).toString('base64') } }] }], generationConfig: { ...boundedThinking(model), responseMimeType: 'application/json', ...(input.schema ? { responseJsonSchema: geminiJsonSchema(z.toJSONSchema(input.schema, { io: 'input' })) } : {}), maxOutputTokens: LIMITS.outputTokens, temperature: 0 } }, ...(input.schema ? { schema: input.schema } : {}) };
     }),
     requestTextProposal: (input: TextProposalRequest, context: ProviderContext) => execute('text', input?.versions, context, model => {
       if (!input.prompt.trim() || input.prompt.length > LIMITS.inputCharacters) throw new Error('invalid_request');
       const schema = geminiJsonSchema(z.toJSONSchema(input.schema, { io: 'input' }), { omitMaxItems: true });
       if (schema.type !== 'object' || schema.additionalProperties !== false || !record(schema.properties) || !Array.isArray(schema.required) || Object.keys(schema.properties).sort().join(',') !== [...schema.required].sort().join(',') || JSON.stringify(schema).length + input.prompt.length + REPAIR.length > LIMITS.inputCharacters) throw new Error('invalid_request');
-      return { body: { model, contents: [{ role: 'user', parts: [{ text: input.prompt }] }], generationConfig: { responseMimeType: 'application/json', responseJsonSchema: schema, maxOutputTokens: LIMITS.outputTokens, temperature: 0 } }, schema: input.schema };
+      return { body: { model, contents: [{ role: 'user', parts: [{ text: input.prompt }] }], generationConfig: { ...boundedThinking(model), responseMimeType: 'application/json', responseJsonSchema: schema, maxOutputTokens: LIMITS.outputTokens, temperature: 0 } }, schema: input.schema };
     }),
     requestToolConversation: (input: ToolConversationRequest, context: ProviderContext) => execute('tool', input?.versions, context, model => {
       const validated = toolRequestSchema.safeParse(input);
@@ -336,7 +348,7 @@ export function createGeminiProvider(dependencies: ProviderDependencies = {}): G
       }
       const functionCallingConfig = validated.data.choice === 'required' ? { mode: 'ANY', allowedFunctionNames: tools.map(tool => tool.name) } : { mode: validated.data.choice === 'none' ? 'NONE' : 'AUTO' };
       const system = messages.filter(message => message.role === 'system').map(message => message.content).join('\n');
-      return { body: { model, contents, ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}), tools: [{ functionDeclarations: declarations }], toolConfig: { functionCallingConfig }, generationConfig: { maxOutputTokens: LIMITS.toolOutputTokens, temperature: 0 } } };
+      return { body: { model, contents, ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}), tools: [{ functionDeclarations: declarations }], toolConfig: { functionCallingConfig }, generationConfig: { ...boundedThinking(model), maxOutputTokens: LIMITS.toolOutputTokens, temperature: 0 } } };
     }),
   };
 }
