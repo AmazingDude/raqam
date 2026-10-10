@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runAssistant } from '../../src/lib/server/assistant/engine.ts';
 import { createAssistantTools } from '../../src/lib/server/assistant/full-tools.ts';
-import { assistantRequestSchema } from '../../src/lib/contracts/assistant.ts';
+import { assistantRequestSchema, assistantResponseSchema, parseAssistantToolResult } from '../../src/lib/contracts/assistant.ts';
 import type { ProviderResult, ToolConversationRequest, ProviderContext } from '../../src/lib/ai/provider.ts';
 import { createAssistantRequestBudget } from '../../src/lib/server/assistant/request-budget.ts';
 import { transaction } from './fixtures.ts';
@@ -34,8 +34,26 @@ test('assistant uses exact code-rendered money, scoped citations and actual tool
   assert.deepEqual(result.records.map(r => r.id), ['t1']);
   assert.equal(result.actionTrail[0]?.tool, 'get_cash_summary');
   assert.equal(result.citations[0]?.source.rowNumber, 2);
+  assert.equal(result.metadata.snapshot?.workspaceId, 'w1');
+  assert.deepEqual(result.metadata.snapshot?.sources, ['cashbook']);
+  assert.match(result.metadata.snapshot?.token ?? '', /^[a-f0-9]{64}$/);
+  assert.equal(result.metadata.provider.providerVersion, 'test-v1');
+  assert.ok(result.metadata.facts.some(fact => fact.metric === 'net_movement_minor' && fact.value === '9007199254740993'));
+  assert.equal(result.actionTrail[0]?.factRefs.every(id => result.metadata.facts.some(fact => fact.id === id)), true);
+  assert.equal(assistantResponseSchema.safeParse(result).success, true);
+  assert.equal(assistantResponseSchema.safeParse({ ...result, metadata: { ...result.metadata, snapshot: { ...result.metadata.snapshot!, workspaceId: 'foreign' } } }).success, false);
+  assert.equal(assistantResponseSchema.safeParse({ ...result, actionTrail: [{ ...result.actionTrail[0]!, factRefs: ['00000000-0000-4000-8000-999999999999'] }] }).success, false);
   assert.equal(provider.requests.length, 2);
   assert.ok(!JSON.stringify(provider.requests).includes(record.originalDescription));
+});
+
+test('assistant refuses provider result metadata outside the bounded validated contract', async () => {
+  const provider = sequence([call('a'), final([0])]);
+  provider.requestToolConversation = async (input, context) => {
+    assert.equal(context.budget?.take(), true);
+    return { ...success(call('a')), metadata: { ...success(call('a')).metadata, attempts: 99 } } as ProviderResult;
+  };
+  await assert.rejects(runAssistant(input(provider)), /metadata could not be verified/);
 });
 test('greetings work without fetching workspace records', async () => {
   const provider = sequence([{ content: '{"kind":"greeting","observationIds":[]}', toolCalls: [] }]);
@@ -68,6 +86,13 @@ test('assistant request schema rejects empty, oversized and client-owned scope',
 test('review queues page explicitly and evidence IDs must belong to the current scope', async () => {
   const queue = await tools().get_review_queue({ kind: 'unmatched_records', limit: 1 });
   assert.match(queue.text, /1 of 1/); assert.equal(queue.partial, false);
+  assert.equal(queue.result.kind, 'unmatched_records');
+  assert.equal(queue.result.returnedCount, 1);
+  assert.equal(queue.result.totalCount, 1);
+  assert.equal(queue.result.complete, true);
+  assert.equal(queue.result.snapshot.workspaceId, 'w1');
+  assert.deepEqual(queue.result.snapshot.sources, ['cashbook']);
+  assert.throws(() => parseAssistantToolResult('get_review_queue', queue.result, 'foreign-workspace'), /snapshot workspace mismatch/);
   await assert.rejects(tools().get_record_evidence({ transactionIds: ['foreign'] }), /not found/);
   await assert.rejects(tools().get_review_queue({ kind: 'unreviewed_categories', workspaceId: 'foreign' }), /valid review queue/);
 });
@@ -85,10 +110,33 @@ test('supporting documents retain unknowns and foreign documents/history fail cl
   assert.match(queue.text, /unknown required fields: date, totalMinor, currency/);
   const evidence = await scoped.get_record_evidence({ documentIds: [document.id] });
   assert.equal(evidence.records.length, 0); assert.equal(evidence.citations[0]?.source.rowNumber, null);
+  assert.equal(evidence.result.returnedCount, 1);
+  assert.equal(evidence.result.totalCount, 1);
+  assert.equal(evidence.result.complete, true);
+  assert.equal(evidence.result.snapshot.workspaceId, workspaceId);
+  assert.deepEqual(evidence.result.snapshot.sources, ['documents', 'history']);
   assert.equal(document.extractedFields.totalMinor, null);
   await assert.rejects(createAssistantTools({ ...options, readDocuments: async () => [{ ...document, reviewStatus: 'accepted' }] }).get_review_queue({ kind: 'unresolved_document_fields' }), /could not be verified/);
   await assert.rejects(createAssistantTools({ ...options, readDocuments: async () => [{ ...document, workspaceId: '10000000-0000-4000-8000-000000000002' }] }).get_review_queue({ kind: 'unresolved_document_fields' }), /could not be verified/);
   await assert.rejects(createAssistantTools({ ...options, readHistory: async () => ({ items: [{ kind: 'document', id: 'foreign', partial: false, decisions: [] }], partial: false }) }).get_record_evidence({ documentIds: [document.id] }), /could not be verified/);
+});
+
+test('evidence history truncation is explicit and makes the result incomplete', async () => {
+  const workspaceId = '10000000-0000-4000-8000-000000000001';
+  const document = { id: '20000000-0000-4000-8000-000000000001', workspaceId,
+    source: { sourceId: '30000000-0000-4000-8000-000000000001', rowNumber: null },
+    extractedFields: { counterparty: null, date: null, totalMinor: null, currency: null, reference: null },
+    correctedFields: null, extractionStatus: 'pending', reviewStatus: 'needs_review', modelVersion: null, promptVersion: null };
+  const tools = createAssistantTools({ workspaceId, deadlineAt: Date.now() + 10_000,
+    readSnapshot: async () => ({ records: [], unresolvedImportRowCount: 0 }), readDocuments: async () => [document],
+    readHistory: async () => ({ items: [{ kind: 'document', id: document.id, partial: true,
+      decisions: Array.from({ length: 20 }, (_, index) => ({ version: 20 - index, created_at: `2026-10-${String(index + 1).padStart(2, '0')}T00:00:00Z` })) }], partial: true }) });
+  const evidence = await tools.get_record_evidence({ documentIds: [document.id] });
+  assert.equal(evidence.result.history.partial, true);
+  assert.equal(evidence.result.complete, false);
+  assert.equal(evidence.result.nextCursor, null);
+  assert.equal(evidence.partial, true);
+  assert.deepEqual(evidence.result.snapshot.sources, ['documents', 'history']);
 });
 test('request budget isolates owners, rejects concurrency and bounds requests per minute', () => {
   let now = 0; const acquire = createAssistantRequestBudget(() => now);

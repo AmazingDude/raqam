@@ -1,10 +1,11 @@
 import type { CSSProperties } from 'react';
-export type IconName = 'book' | 'file' | 'review' | 'spark' | 'arrow' | 'upload' | 'download' | 'search' | 'close' | 'chevron' | 'check' | 'menu' | 'plus' | 'link' | 'reset';
+export type IconName = 'book' | 'file' | 'review' | 'spark' | 'settings' | 'arrow' | 'upload' | 'download' | 'search' | 'close' | 'chevron' | 'check' | 'menu' | 'plus' | 'link' | 'reset';
 const paths: Record<IconName, string> = {
   book: 'M4 4h6a3 3 0 0 1 3 3v14a4 4 0 0 0-4-2H4V4Zm9 3a3 3 0 0 1 3-3h4v15h-3a4 4 0 0 0-4 2',
   file: 'M6 3h8l4 4v14H6V3Zm8 0v5h4M9 12h6M9 16h4',
   review: 'M9 4H5v16h14V4h-4M9 3h6v4H9V3Zm0 11 2 2 4-5',
   spark: 'm12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z',
+  settings: 'M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm0-5v2m0 13v2m9-8h-2m-14 0H3m15.36-6.36-1.42 1.42M7.06 16.94l-1.42 1.42m12.72 0-1.42-1.42M7.06 7.06 5.64 5.64',
   arrow: 'M4 12h15m-6-6 6 6-6 6', upload: 'M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6',
   download: 'M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4', search: 'M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15Zm5.5-2 5 5',
   close: 'm6 6 12 12M6 18 18 6', chevron: 'm9 5 7 7-7 7', check: 'm5 12 4 4L19 6',

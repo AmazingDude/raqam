@@ -1,4 +1,4 @@
-﻿import { requireSession } from '../../../../lib/server/auth.ts';
+import { requireSession } from '../../../../lib/server/auth.ts';
 import { requireWorkspace } from '../../../../lib/server/workspace.ts';
 import { jsonEndpoint, readJson, requireSameOrigin } from '../../../../lib/server/http.ts';
 import { generateInvoiceDraft } from '../../../../lib/server/invoice-ai.ts';

@@ -4,6 +4,7 @@ export { createAIProvider } from './factory.ts';
 export type { AIProvider } from './factory.ts';
 export { createGroqProvider } from './provider.ts';
 export { createGeminiProvider } from './gemini.ts';
+export { createClaudeProvider } from './claude.ts';
 export { extractReceipt, createExtractionCacheIdentity } from './extraction.ts';
 export { proposeCategories } from './categories.ts';
 export { RECEIPT_EXTRACTION_PROMPT, RECEIPT_EXTRACTION_PROMPT_VERSION, RECEIPT_EXTRACTION_SCHEMA_VERSION } from './prompts/extraction.ts';

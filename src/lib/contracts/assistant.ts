@@ -3,6 +3,7 @@ import { CATEGORIES } from './index.ts';
 import { MAX_WORKSPACE_TRANSACTIONS } from './limits.ts';
 import { dateSchema, minorUnitsSchema, sourceReferenceSchema, transactionSchema } from './schemas.ts';
 import { documentRecordSchema } from './documents.ts';
+import { assistantFactSchema } from '../ai/fact-registry.ts';
 
 export const assistantToolNames = [
   'list_transactions', 'get_cash_summary', 'get_review_queue', 'get_record_evidence',
@@ -11,19 +12,33 @@ export const assistantRequestSchema = z.strictObject({ question: z.string().trim
 export const assistantCitationSchema = z.strictObject({
   kind: z.enum(['transaction', 'document']), id: z.string().min(1), source: sourceReferenceSchema,
 });
+export const assistantSnapshotSchema = z.strictObject({
+  workspaceId: z.string().min(1),
+  token: z.string().regex(/^[a-f0-9]{64}$/),
+  sources: z.array(z.enum(['cashbook', 'documents', 'history'])).min(1).max(3),
+}).refine(snapshot => new Set(snapshot.sources).size === snapshot.sources.length,
+  'Assistant snapshot sources must be unique');
 export const assistantResponseSchema = z.strictObject({
   workspaceId: z.string().min(1), question: z.string().min(1).max(1000), text: z.string().max(12000),
   records: z.array(transactionSchema).max(50), citations: z.array(assistantCitationSchema).max(200),
   actionTrail: z.array(z.strictObject({
     tool: z.enum(assistantToolNames),
-    recordsConsulted: z.number().int().nonnegative(), partial: z.boolean(),
+    recordsConsulted: z.number().int().nonnegative(), partial: z.boolean(), factRefs: z.array(z.uuid()).max(20),
   })).max(4), partial: z.boolean(),
-});
-
-export const assistantSnapshotSchema = z.strictObject({
-  workspaceId: z.string().min(1),
-  token: z.string().regex(/^[a-f0-9]{64}$/),
-  sources: z.array(z.enum(['cashbook', 'documents', 'history'])).min(1).max(3),
+  metadata: z.strictObject({
+    requestId: z.uuid(),
+    snapshot: assistantSnapshotSchema.nullable(),
+    provider: z.strictObject({ providerVersion: z.string().min(1).max(200), model: z.string().min(1).max(200).nullable(),
+      promptVersion: z.string().max(200).nullable(), schemaVersion: z.string().max(200).nullable(),
+      attempts: z.number().int().min(0).max(3), durationMs: z.number().finite().min(0) }),
+    facts: z.array(assistantFactSchema).max(50),
+  }),
+}).superRefine((result, ctx) => {
+  const factIds = new Set(result.metadata.facts.map(fact => fact.id));
+  if (factIds.size !== result.metadata.facts.length || result.actionTrail.some(action => action.factRefs.some(id => !factIds.has(id))) ||
+      result.metadata.facts.some(fact => fact.snapshot.workspaceId !== result.workspaceId) ||
+      (result.metadata.snapshot !== null && result.metadata.snapshot.workspaceId !== result.workspaceId))
+    ctx.addIssue({ code: 'custom', message: 'Assistant trace fact references must resolve to unique registered facts' });
 });
 const countSchema = z.number().int().nonnegative().max(MAX_WORKSPACE_TRANSACTIONS);
 const completenessFields = {
@@ -57,13 +72,15 @@ export const assistantHistorySchema = z.strictObject({
     decisions: z.array(z.strictObject({ version: z.number().int().positive(), created_at: z.string() })).max(20),
   })).max(20),
   partial: z.boolean(),
-});
+}).refine(history => history.partial === history.items.some(item => item.partial),
+  'History completeness must reflect every truncated record history');
 
 export const listTransactionsResultSchema = z.strictObject({
   ...completenessFields,
   items: z.array(transactionSchema).max(50),
 }).refine(result => result.returnedCount === result.items.length && result.returnedCount <= result.totalCount &&
-  (!result.complete || result.nextCursor === null), 'A complete list page covers the full filter set and has no further cursor');
+  (!result.complete || result.nextCursor === null) && result.snapshot.sources.length === 1 &&
+  result.snapshot.sources[0] === 'cashbook', 'A list page reports its full cashbook scope and completeness explicitly');
 export const cashSummaryResultSchema = z.strictObject({
   ...completenessFields,
   complete: z.literal(true),
@@ -73,21 +90,34 @@ export const cashSummaryResultSchema = z.strictObject({
   dateTo: dateSchema.nullable(),
   unresolvedImportRowScope: z.literal('workspace'),
 }).refine(result => result.returnedCount === result.totalCount && result.returnedCount === result.summary.transactionCount,
-  'Cash summary completeness covers every matching imported record, never a list page');
+  'Cash summary completeness covers every matching imported record, never a list page')
+  .refine(result => result.snapshot.sources.length === 1 && result.snapshot.sources[0] === 'cashbook',
+    'Cash summary snapshot must identify its cashbook read');
 export const reviewQueueResultSchema = z.strictObject({
   ...completenessFields,
   kind: z.enum(['unreviewed_categories', 'unmatched_records', 'unresolved_document_fields']),
   items: z.array(transactionSchema).max(50),
   documents: z.array(supportingDocumentToolSchema).max(50),
-});
+}).refine(result => result.returnedCount === result.items.length + result.documents.length &&
+  result.returnedCount <= result.totalCount && (!result.complete || result.nextCursor === null),
+  'Review queue counts and completeness must describe the returned page')
+  .refine(result => result.kind === 'unresolved_document_fields'
+    ? result.items.length === 0 && result.snapshot.sources.length === 1 && result.snapshot.sources[0] === 'documents'
+    : result.documents.length === 0 && result.snapshot.sources.length === 1 && result.snapshot.sources[0] === 'cashbook',
+  'Review queue snapshot and payload must match the requested queue');
 export const recordEvidenceResultSchema = z.strictObject({
   ...completenessFields,
   nextCursor: z.null(),
   transactions: z.array(transactionSchema).max(20),
   documents: z.array(supportingDocumentToolSchema).max(20),
   history: assistantHistorySchema,
-}).refine(result => result.returnedCount === result.transactions.length + result.documents.length,
-  'Evidence returnedCount is the number of accessible records actually returned');
+}).refine(result => result.returnedCount === result.transactions.length + result.documents.length &&
+  result.returnedCount === result.totalCount && (!result.history.partial || !result.complete),
+  'Evidence counts cover the requested accessible records and truncated history stays incomplete')
+  .refine(result => result.snapshot.sources.includes('history') &&
+    result.snapshot.sources.includes('cashbook') === (result.transactions.length > 0) &&
+    result.snapshot.sources.includes('documents') === (result.documents.length > 0),
+  'Evidence snapshot must identify exactly the reads that produced its payload');
 
 export const assistantToolResultSchemas = {
   list_transactions: listTransactionsResultSchema,
@@ -98,6 +128,7 @@ export const assistantToolResultSchemas = {
 
 export type AssistantResponse = z.infer<typeof assistantResponseSchema>;
 export type AssistantSnapshot = z.infer<typeof assistantSnapshotSchema>;
+export type AssistantHistory = z.infer<typeof assistantHistorySchema>;
 export type ListTransactionsResult = z.infer<typeof listTransactionsResultSchema>;
 export type CashSummaryResult = z.infer<typeof cashSummaryResultSchema>;
 export type ReviewQueueResult = z.infer<typeof reviewQueueResultSchema>;
@@ -109,3 +140,15 @@ export type AssistantToolResult = {
   get_review_queue: ReviewQueueResult;
   get_record_evidence: RecordEvidenceResult;
 };
+
+export function parseAssistantToolResult<Name extends AssistantToolName>(
+  name: Name,
+  value: unknown,
+  workspaceId: string,
+): AssistantToolResult[Name] {
+  const result = assistantToolResultSchemas[name].parse(value) as AssistantToolResult[Name];
+  if (result.snapshot.workspaceId !== workspaceId) {
+    throw new Error('Assistant result snapshot workspace mismatch');
+  }
+  return result;
+}

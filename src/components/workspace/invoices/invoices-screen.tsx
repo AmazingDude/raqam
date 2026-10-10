@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useEffect, useRef, useState } from 'react';
 import type { Invoice, InvoiceStatus, InvoicesSummary } from '../../../lib/contracts/invoices.ts';
 import { invoiceUpsertInputSchema } from '../../../lib/contracts/invoices.ts';

@@ -1,5 +1,9 @@
 # Track B frontend handoff
 
+## Landing-page review requirement
+
+Before editing `src/components/marketing/**`, read [the landing-page review](FRONTEND_REVIEW.md) for the findings against Alisha's commit `9644cdc`. The marketing component's `AGENTS.md` points to the same review.
+
 Design: [DESIGN.md](../../DESIGN.md). Branch `codex/raqam-frontend`, base `796ce4f`. The user switched this chat to B; another person now continues A. The root landing entry is the only changed A-owned application file: it imports B's `Landing` component. The Clerk root layout, sign-in, middleware, dependencies, schemas, APIs and migrations were preserved. B's CSS module includes a body-margin reset conditional on its own root surface; no root global stylesheet was edited.
 
 Original UI published at `123c642` (implementation `b71c78c`, main sync `e801866`). On 10 October, resumed B in an isolated managed checkout because the original checkout contains uncommitted AI work. Pulled the frontend branch (already current) and synchronized published backend `87aeb1a`; both handoff histories are preserved. B-API-01 connects the existing bookkeeping APIs. A's executable contract remains canonical; C's detailed proposals still need A/B agreement before live wiring. No main merge/push or deployment by B.
