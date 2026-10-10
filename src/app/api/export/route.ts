@@ -7,7 +7,7 @@ import { BackendError } from '../../../lib/server/errors.ts';
 
 export const dynamic = 'force-dynamic';
 export async function GET(request: Request): Promise<Response> {
-  let csv = '', unresolved = 0;
+  let csv = '', unresolved = 0, transactionCount = 0;
   const result = await jsonEndpoint(async () => {
     const session = await requireSession();
     if ([...new URL(request.url).searchParams].length) throw new BackendError('INVALID_INPUT', 'Export currently covers the whole workspace; filters are not supported.');
@@ -15,11 +15,13 @@ export async function GET(request: Request): Promise<Response> {
     const snapshot = await readCashbook(session, workspace);
     csv = exportCashbook(snapshot.records, workspace.id);
     unresolved = snapshot.unresolvedImportRowCount;
+    transactionCount = snapshot.records.length;
     return true;
   });
   if (!result.ok) return result;
   return new Response(csv, { headers: {
     'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="raqam-cashbook.csv"',
-    'Cache-Control': 'no-store', 'X-Raqam-Unresolved-Import-Rows': String(unresolved),
+    'Cache-Control': 'no-store', 'X-Raqam-Transaction-Count': String(transactionCount),
+    'X-Raqam-Unresolved-Import-Rows': String(unresolved),
   } });
 }

@@ -3,6 +3,8 @@ import type { GroqProvider, ProviderContext, ProviderDependencies, ProviderResul
 import { createGroqProvider } from './provider.ts';
 import { createGeminiProvider } from './gemini.ts';
 import { createEveAssistant } from './eve.ts';
+import { createClaudeProvider } from './claude.ts';
+import { withSharedProviderCapacity } from './shared-provider-capacity.ts';
 
 export type AIProvider = GroqProvider;
 
@@ -14,9 +16,11 @@ export function createAIProvider(dependencies: ProviderDependencies = {}): AIPro
     try { settings = environment(); } catch { settings = {}; }
     if (settings.AI_PROVIDER === undefined || settings.AI_PROVIDER === 'groq') return createGroqProvider({ ...dependencies, environment: () => settings });
     if (settings.AI_PROVIDER === 'gemini') return createGeminiProvider({ ...dependencies, environment: () => settings });
+    if (settings.AI_PROVIDER === 'openai') return createGroqProvider({ ...dependencies, environment: () => settings });
+    if (settings.AI_PROVIDER === 'claude') return createClaudeProvider({ ...dependencies, environment: () => settings });
     return createGroqProvider({ ...dependencies, environment: () => ({}) });
   }
-  return {
+  return withSharedProviderCapacity({
     requestImageExtraction: (input: ImageExtractionRequest, context: ProviderContext): Promise<ProviderResult> => selected().requestImageExtraction(input, context),
     requestTextProposal: (input: TextProposalRequest, context: ProviderContext): Promise<ProviderResult> => selected().requestTextProposal(input, context),
     requestToolConversation: (input: ToolConversationRequest, context: ProviderContext): Promise<ProviderResult> => {
@@ -26,5 +30,5 @@ export function createAIProvider(dependencies: ProviderDependencies = {}): AIPro
         ? createEveAssistant({ ...dependencies, environment: () => settings }).requestToolConversation(input, context)
         : selected().requestToolConversation(input, context);
     },
-  };
+  }, dependencies.onTelemetry);
 }

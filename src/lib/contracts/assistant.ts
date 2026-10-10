@@ -60,10 +60,15 @@ export const assistantCashSummarySchema = z.strictObject({
   transactionCount: countSchema,
   transactionIds: z.array(z.string().min(1)).max(MAX_WORKSPACE_TRANSACTIONS),
   unresolvedImportRowCount: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  categoryCoverage: z.strictObject({ acceptedCount: countSchema, notAcceptedCount: countSchema }),
+  matchCoverage: z.strictObject({ matchedCount: countSchema, notMatchedCount: countSchema }),
   categories: z.partialRecord(z.enum(CATEGORIES), cashBucketSchema),
   unreviewed: cashBucketSchema,
 }).refine(summary => summary.transactionCount === summary.transactionIds.length &&
-  new Set(summary.transactionIds).size === summary.transactionCount, 'Cash summary scope must list each contributing record once');
+  new Set(summary.transactionIds).size === summary.transactionCount &&
+  summary.categoryCoverage.acceptedCount + summary.categoryCoverage.notAcceptedCount === summary.transactionCount &&
+  summary.matchCoverage.matchedCount + summary.matchCoverage.notMatchedCount === summary.transactionCount,
+  'Cash summary scope must list each contributing record once and reconcile review coverage');
 
 export const supportingDocumentToolSchema = documentRecordSchema.shape.document;
 export const assistantHistorySchema = z.strictObject({

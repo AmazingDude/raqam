@@ -146,6 +146,10 @@ None. Reuse the existing icon component, theme, and CSS-built data presentation.
 
 The plan keeps Raqam's existing black/white/gray palette, type, controls, spacing and navigation. It avoids generic gradients, repeated decorative cards, ornamental animation, marketing imagery and arbitrary charts. The distinguishing “Books health” strip directly communicates source-history coverage and unresolved financial exceptions, specific to an evidence-led bookkeeping product.
 
+## Main integration note
+
+The latest main revision already contains the Expenses, Supplier bills, and Books and reports screens. Preserve and use those implementations rather than introducing parallel versions. This integration adds the business and tax profile readiness surfaces, document workflow shortcuts, clearer scanned-statement support copy, and the invoice-settlement guard. Tax profile editing and tax calculations remain gated until their persistence and rule services exist.
+
 ## Implementation progress (10 October 2026)
 
 Implemented the books/reports and accounts workspace screen, expense-draft and supplier-bill UI wired to existing APIs, business/tax profile readiness views, document workflow shortcuts, explicit selectable-text PDF/scanned-OCR messaging, and invoice payment-linking guard copy/disabled transition. The demo displays screens without pretending private saves succeeded. Business profile editing/tax profile persistence, tax calculations/workpaper APIs, scanned-statement OCR, canonical payment linkage and server-provided exception API are still prerequisites; their UI remains visibly gated or routes to the existing supported workflow. Verification is recorded in `handoff.md`. Local production build is blocked by the unrelated existing missing `ai-provider-credentials.ts` import in the category proposal route; the development server compiles `/demo` successfully.

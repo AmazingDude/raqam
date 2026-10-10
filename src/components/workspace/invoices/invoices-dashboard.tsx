@@ -14,6 +14,7 @@ interface InvoicesDashboardProps {
   busy?: boolean;
   onCreateNew: () => void;
   onEditInvoice: (invoice: Invoice) => void;
+  onPreviewInvoice?: (invoice: Invoice) => void;
   onUpdateStatus: (id: string, status: InvoiceStatus) => Promise<void>;
   onDeleteInvoice: (id: string) => Promise<void>;
 }
@@ -42,6 +43,7 @@ export function InvoicesDashboard({
   loading = false, busy = false,
   onCreateNew,
   onEditInvoice,
+  onPreviewInvoice,
   onUpdateStatus,
   onDeleteInvoice,
 }: InvoicesDashboardProps) {
@@ -254,7 +256,11 @@ export function InvoicesDashboard({
 
                     {/* Interactive Status Pill */}
                     <td style={{ position: 'relative' }}>
-                      <div
+                      <button
+                        type="button"
+                        disabled={busy}
+                        aria-label={`Change status for ${inv.invoiceNumber}`}
+                        aria-expanded={activeDropdownId === inv.id}
                         className={`${s.statusPill} ${
                           isDraft ? s.statusDraft : isPaid ? s.statusPaid : isSent ? s.statusSent : s.statusOverdue
                         }`}
@@ -286,7 +292,7 @@ export function InvoicesDashboard({
                           </svg>
                         )}
                         <span>{inv.status.charAt(0).toUpperCase() + inv.status.slice(1)} ⌄</span>
-                      </div>
+                      </button>
 
                       {/* Dropdown Menu */}
                       {activeDropdownId === inv.id && (
@@ -310,11 +316,8 @@ export function InvoicesDashboard({
                       )}
                     </td>
 
-                    <td
-                      style={{ fontWeight: 500, cursor: 'pointer' }}
-                      onClick={() => onEditInvoice(inv)}
-                    >
-                      {inv.invoiceNumber}
+                    <td style={{ fontWeight: 500 }}>
+                      <button type="button" className={s.moreButton} disabled={busy} onClick={() => onEditInvoice(inv)} aria-label={`Edit ${inv.invoiceNumber}`}>{inv.invoiceNumber}</button>
                     </td>
 
                     <td>
@@ -355,21 +358,21 @@ export function InvoicesDashboard({
                     <td style={{ fontWeight: 600 }}>{formatMoney(inv.totalMinor, inv.currency)}</td>
 
                     <td>
+                      {onPreviewInvoice && <button type="button" className={s.moreButton} disabled={busy} onClick={() => onPreviewInvoice(inv)} aria-label={`Preview and download ${inv.invoiceNumber}`}>Preview / download</button>}
                       <button
                         className={s.moreButton}
                         type="button"
-                        title="Options"
+                        title={`Delete ${inv.invoiceNumber}`}
+                        aria-label={`Delete ${inv.invoiceNumber}`}
                         disabled={busy}
                         onClick={() => {
-                          const action = confirm(`Delete ${inv.invoiceNumber}? Click OK to delete, Cancel to edit.`);
+                          const action = confirm(`Delete ${inv.invoiceNumber}?`);
                           if (action) {
                             onDeleteInvoice(inv.id);
-                          } else {
-                            onEditInvoice(inv);
                           }
                         }}
                       >
-                        •••
+                        Delete
                       </button>
                     </td>
                   </tr>

@@ -82,7 +82,7 @@ export async function listCategoryProposals(session: RequestSession, workspace: 
   return { items, nextCursor: records.length > input.data.limit ? items.at(-1)!.id : null };
 }
 
-export async function generateCategoryProposals(session: RequestSession, workspace: Workspace, request: Request, body: unknown) {
+export async function generateCategoryProposals(session: RequestSession, workspace: Workspace, request: Request, body: unknown, environment?:Record<string,string|undefined>) {
   if (workspace.ownerSubject !== session.subject) throw new BackendError('NOT_FOUND', 'Workspace not found.');
   const input = categoryGenerationRequestSchema.safeParse(body);
   if (!input.success) throw new BackendError('INVALID_INPUT', 'Provide a request ID and 1–50 unique transaction IDs.');
@@ -111,7 +111,7 @@ export async function generateCategoryProposals(session: RequestSession, workspa
   const timer = setTimeout(() => controller.abort(), 50_000);
   try {
     const snapshots = await Promise.all(eligible.map(transaction => readTransaction(session, workspace, transaction.id, controller.signal)));
-    const generated = await proposeCategories({ workspaceId: workspace.id, records: snapshots }, createAIProvider(), {
+    const generated = await proposeCategories({ workspaceId: workspace.id, records: snapshots }, createAIProvider(environment?{environment:()=>environment}:{}), {
       requestId: input.data.requestId, deadlineAtMs, signal: controller.signal,
     });
     if (!generated.ok) {

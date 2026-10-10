@@ -16,8 +16,13 @@ test('invoice SQL saves/edits/status/deletes atomically with exact money, audit,
       create schema storage; create table storage.buckets(id text primary key,name text not null,public boolean not null);
       create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text not null);
       alter table storage.objects enable row level security; grant usage on schema storage to authenticated,anon; grant select,insert,update,delete on storage.objects to authenticated;`);
-    for(const name of ['202610100001_workspace_spine.sql','202610100011_invoices_spine.sql','202610100012_atomic_invoice_operations.sql'])
+    for(const name of ['202610100001_workspace_spine.sql','202610100011_invoices_spine.sql'])
       await db.exec(await readFile(new URL(`../../supabase/migrations/${name}`,import.meta.url),'utf8'));
+    const atomicInvoiceMigration=await readFile(new URL('../../supabase/migrations/202610100012_atomic_invoice_operations.sql',import.meta.url),'utf8');
+    // Simulate the hosted failure: review_version exists before migration 012.
+    await db.exec('alter table public.invoices add column review_version integer not null default 0 check (review_version >= 0)');
+    await db.exec(atomicInvoiceMigration);
+    await db.exec(atomicInvoiceMigration); // A partial or completed SQL-editor retry stays safe.
     await db.query("insert into public.workspaces(id,owner_subject,business_name) values ($1,'synthetic_A','Synthetic A'),($2,'synthetic_B','Synthetic B')",[workspace,foreign]);
     const owner=async(subject:string)=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({sub:subject})]);await db.exec('set role authenticated');};
     const save=async(data:unknown,version:number|null=null)=>(await db.query<{value:unknown}>('select public.save_workspace_invoice($1,$2::jsonb,$3) as value',[workspace,JSON.stringify(data),version])).rows[0]!.value;
