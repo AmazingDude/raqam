@@ -8,13 +8,15 @@ The active work split uses **three people**, as requested on 10 October. Names, 
 
 The user has claimed A on 10 October; B/C names and availability remain pending. A's work is on `codex/raqam-backend`, following `docs/raqam/CONTRACTS.md` and the local validation record. The user requested backend implementation and stepwise validation; B/C modules remain reserved.
 
+The user now requested **two agents within backend A**. [BACKEND_TASKS.md](BACKEND_TASKS.md) is the active backend ownership/dependency map: A1 (this agent) owns schema/contracts/reviews/platform gates/integration on `codex/raqam-backend`; A2 (teammate's agent) owns dedicated document/proposal/assistant services on `codex/raqam-backend-services`. Use separate clones/worktrees. A2's new route/test paths are explicitly delegated; the sole-editor rule still applies to shared migrations/contracts/dependencies. B/C assignments remain intact.
+
 | Role | Responsibility | Coordination boundary |
 | --- | --- | --- |
 | A: Integrator/platform | Bootstrap, Clerk session middleware, token-aware Supabase clients/ownership policies, shared data contract, financial calculations, merges, deployment | Sole editor of package manifests/lockfile, shared schemas, migrations and infrastructure unless work is handed off |
 | B: Bookkeeping UI | Import preview, records table, corrections, category review, summaries and source viewer | Consumes the agreed contracts; requests changes before editing them |
 | C: AI workflow | Groq adapter, extraction, category/match proposals, evidence-backed assistant | Returns schema-validated proposals; does not directly approve or post books |
 
-Person 1 = A, Person 2 = B, Person 3 = C. A owns evaluation fixtures, security/financial checks and release integration; B independently checks fixture answers, runs the browser journey and owns the deck/demo script; C records live AI measurements and provider failure checks. A/B check C's AI results. There is no fourth-person dependency in the active plan. Do not leave evaluation and presentation until the final hour.
+Person 1 = A, Person 2 = B, Person 3 = C. A1 coordinates A2's backend contributions, evaluation fixtures, financial/security checks and release integration; B independently checks fixture answers, runs the browser journey and owns the deck/demo script; C records live AI measurements and provider failure checks. A/B check C's AI results. Agent assignments do not confirm the event participant roster. Do not leave evaluation and presentation until the final hour.
 
 ## One shared contract before parallel implementation
 
@@ -42,6 +44,8 @@ Do not use force pushes, destructive resets or broad file replacement to resolve
 Use `todo`, `in_progress`, `in_review`, `blocked` and `done`. A task is `done` only when its acceptance criteria and required verification pass. A branch existing or an AI tool producing output does not count as done.
 
 Update only your task row and append a short handoff entry. Integrator owns the summary and next-action sections of `handoff.md` to avoid concurrent rewrites. Coordinate any scope changes in `PRD.md` before implementing them.
+
+A2 records progress in `docs/raqam/worklogs/A2.md`; A1 updates the shared backend task table. Coordinate A2's required root handoff append after syncing and while A1 is not editing that file. Both agents must not simultaneously edit shared planning files. A2 returns its tested branch/commits for A1's sequential integration; PRs remain optional.
 
 ## Groq free-tier coordination
 

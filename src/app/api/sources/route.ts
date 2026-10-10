@@ -4,6 +4,7 @@ import { requireWorkspace } from '../../../lib/server/workspace.ts';
 import { jsonEndpoint, requireSameOrigin } from '../../../lib/server/http.ts';
 import { readImageUpload } from '../../../lib/server/uploads.ts';
 import { BackendError } from '../../../lib/server/errors.ts';
+import { uploadStored } from '../../../lib/server/storage-retry.ts';
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: Request): Promise<Response> {
@@ -17,8 +18,7 @@ export async function POST(request: Request): Promise<Response> {
     if (existing.data?.status === 'complete') return { sourceId: existing.data.id as string, duplicate: true };
     const path = `${workspace.id}/${image.contentHash}.${image.extension}`;
     const upload = await session.database.storage.from('raqam-sources').upload(path, image.bytes, { contentType: image.mime, upsert: false });
-    const alreadyExists = upload.error && 'statusCode' in upload.error && String(upload.error.statusCode) === '409';
-    if (upload.error && !alreadyExists) throw new BackendError('UNAVAILABLE', 'Image could not be stored. Please retry.');
+    if (!await uploadStored(upload.error, () => session.database.storage.from('raqam-sources').info(path))) throw new BackendError('UNAVAILABLE', 'Image could not be stored. Please retry.');
     if (existing.data) {
       const update = await session.database.from('sources').update({ status: 'complete' }).eq('id', existing.data.id).eq('workspace_id', workspace.id);
       if (update.error) throw new BackendError('UNAVAILABLE', 'Source metadata could not be saved. Please retry.');
