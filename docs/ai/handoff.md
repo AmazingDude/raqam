@@ -61,12 +61,16 @@ Step 3: original live clean/layout images and account model list retained with s
 ## Open dependencies and cautions
 
 - Step 3 passed; Qwen remains preview and this local proof does not guarantee future model availability or deployed correctness.
-- A's app/SDK/contracts are present and used by the provider module. A/C2 acknowledgement, host-compatible deadline, route/persistence/cache integration and feature outcome mapping remain pending. Safety stash/snapshot are retained; no other checkout was changed.
-- Local GROQ_API_KEY is present, but GROQ_VISION_MODEL/GROQ_TEXT_MODEL are unset. This task changed no environment values; production adapter requests currently fail safely with configuration_missing.
-- Shared interface details are proposals until A adopts them; B must confirm rendering needs.
+- A's document/category routes and B's live screens are present on main. Migration 008 remains a manual hosted prerequisite; this checkout currently lacks required Clerk/Supabase settings, so no signed-in app journey can run here.
+- Receipt cache identity includes the accepted provider/version inputs. The route owns durable reservation and stale fencing. Local PGlite/service tests are not managed Supabase or deployed-runtime evidence.
+- The category service now constructs its provider through `createAIProvider()`. Default/unset or explicit Groq uses Groq; explicit Gemini selects Gemini; no key-based fallback is introduced. The category/Gemini factory regression suite passed, but a signed-in category route call is still blocked by missing Clerk/Supabase configuration.
 - C1 preserves at least60 daily requests per model for reserved evaluation/two rehearsals. Runner checks actual remaining-request headers and fails closed when absent/insufficient. Other teammates must coordinate live usage with C1; the local reserve is not an atomic organization-wide setting. Reserved labels remain with A/B.
 - Future live probes should use the smallest quota-coordinated budget; don't rerun receipt/schema probes already captured. Keep strict schema output and tool calling in separate requests per current Groq docs.
 - Corrected fields/accepted decisions never get replaced by rerun/cache results. Version checks belong in integration.
+
+## Latest verification — 10 October 2026
+
+After syncing `origin/main` at `8780195`, installing the exact lockfile, and applying the narrow category-provider selection and cache-identity-v2 changes, the focused AI suite passed 38/38 tests, `npm test` passed all 32 test files, `npm run typecheck` passed, and the production build passed outside the sandbox. The sandbox build error came from Next receiving empty stdout from its spawned TypeScript CLI; no application workaround was needed. The fresh synthetic Groq tool probe passed in two calls (1275ms combined, zero automatic retries, 998 requests remaining) with the 60-request reserve intact. `scripts/check-env.mjs --ai` still reports Clerk/Supabase app settings missing, so hosted receipt and signed-in category workflows remain unverified.
 - Assistant fact values come from deterministic authorized tools; model prose is not numerical authority.
 - No runtime framework/tracing/vector store is added solely because a skill suggests one.
 - Stretch is closed until the shared PRD gate passes. The core demo does not depend on stretch.
