@@ -32,6 +32,7 @@ export function exampleProposals(): CategoryProposal[] {
 }
 export const examplePreview: CsvPreview = {
   currency: 'PKR', contentHash: 'synthetic-example-import', validCount: 2, invalidCount: 1,
+  header: ['date', 'description', 'direction', 'amount', 'reference'],
   rows: [
     { rowNumber: 2, lineNumber: 2, original: ['2026-10-11', 'Design retainer · Cedar', 'in', '18000.00', 'CDR-11'], transaction: { date: '2026-10-11', description: 'Design retainer · Cedar', direction: 'in', amountMinor: '1800000', currency: 'PKR', reference: 'CDR-11' }, errors: [] },
     { rowNumber: 3, lineNumber: 3, original: ['2026-10-11', 'Printer supplies', 'out', '1450.00', 'PRINT-11'], transaction: { date: '2026-10-11', description: 'Printer supplies', direction: 'out', amountMinor: '145000', currency: 'PKR', reference: 'PRINT-11' }, errors: [] },
