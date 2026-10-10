@@ -23,7 +23,7 @@
 - Raqam is the current project: bookkeeping is primary, reconciliation is supporting.
 - The earlier ShiftProof plans, root `GLOSSARY.md` and `data/shiftproof/` describe a different candidate. Preserve them; do not implement them as Raqam requirements.
 - The PRD marks proposals and unanswered questions explicitly. Do not silently turn them into accepted requirements. Ask the user about material product choices.
-- The user authorized planning documents and publishing the relevant Raqam files to `https://github.com/AmazingDude/raqam.git`. Application implementation, dependency installation, external issue publication and deployment have not been requested in this planning task.
+- On 10 October the user took role A and requested continued platform/backend implementation against the PRD, with validation at every step and relevant skills research first. Work in A's owned modules on `codex/raqam-backend`. Dependency setup needed for that implementation is authorized. External issue publication and deployment still require the relevant release request; prior planning publication was authorized to `https://github.com/AmazingDude/raqam.git`.
 - Do not add stretch features until the release gate in `BUILD_PLAN.md` is met and the feature is selected by the team.
 
 ## Shared repo
@@ -47,3 +47,13 @@
 ## Handoff discipline
 
 After a completed task or a change in scope, update that task's status and append a short entry to `handoff.md`: changes, verification, known issues and next action. Do not claim unrun checks passed.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

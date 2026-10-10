@@ -1,16 +1,16 @@
 # Raqam: three-person task split
 
-**Updated:** 10 October 2026, PKT. Planning assignment complete; implementation tasks remain `todo`. Person numbers are placeholders for names. This plan does not establish the registered roster or authorize implementation/deployment in this planning session.
+**Updated:** 10 October 2026, PKT. The user has taken Person 1 (A) and authorized platform/backend implementation with stepwise validation. B/C names and registered roster remain pending. Deployment is pending the release request.
 
 ## Ownership at a glance
 
 | Person | Main work | Exclusive file/module ownership once bootstrapped |
 | --- | --- | --- |
-| 1 (A): Platform/backend + integrator | Clerk, Supabase, imports, persistence, exact totals, export, API authorization and integration | `src/lib/contracts/**`, `src/lib/server/**`, `src/app/api/**`, `supabase/**`, `tests/backend/**`, `tests/security/**`, `tests/evaluation/**`; root configuration, package manifest/lockfile, `.env.example`, middleware/proxy, root layout/global CSS |
+| 1 (A), user: Platform/backend + integrator | Clerk, Supabase, imports, persistence, exact totals, export, API authorization and integration | `src/lib/contracts/**`, `src/lib/server/**`, `src/app/api/**`, `supabase/**`, `tests/backend/**`, `tests/security/**`, `tests/evaluation/**`; root configuration, package manifest/lockfile, `.env.example`, middleware/proxy, root layout/global CSS |
 | 2 (B): Product UI + demo | Import preview, cashbook, receipt review, category/match review, summaries, assistant UI and export controls | `src/app/(workspace)/**`, `src/components/**`, `src/lib/client/**`, `tests/e2e/**`, `docs/demo/**` |
 | 3 (C): AI engine | Groq integration, OCR, category proposals, match proposals, grounded assistant and AI measurements | `src/lib/ai/**`, `tests/ai/**`, `docs/ai/**` |
 
-These are proposed paths for the selected Next.js app, not existing application files. A records the actual layout at bootstrap before parallel edits. Page files belong to B; API route files belong to A; AI implementations called by those routes belong to C. Colocate each owner's module tests in their assigned test directory. Nobody edits another person's files without an explicit handoff.
+Platform paths now exist on `codex/raqam-backend`; B/C feature directories remain reserved. A owns the root page/layout and `src/app/sign-in/**` platform shell; B owns workspace page files; A owns API routes; C owns AI implementations called by them. Current interfaces and validation are in `docs/raqam/CONTRACTS.md` and `VALIDATION.md`. Colocate each owner's tests in their assigned directory. Nobody edits another person's files without an explicit handoff.
 
 ## Person 1: platform, backend and integration
 
@@ -48,7 +48,7 @@ These are proposed paths for the selected Next.js app, not existing application 
 ## Integration order and conflict rules
 
 1. A freezes the first contract and file map with B/C. Only then wire the feature code; B can sketch UI and C can prove provider access while setup is pending.
-2. A establishes the baseline revision; each person uses a separate clone/branch. Suggested branches: `codex/platform`, `codex/bookkeeping-ui`, `codex/ai-workflows`. The remote is configured and the planning baseline is published; check handoff and remote main for the assignment update's publication status.
+2. A establishes the baseline revision; each person uses a separate clone/branch. Suggested branches: `codex/raqam-backend`, `codex/bookkeeping-ui`, `codex/ai-workflows`. The remote is configured and the planning baseline is published; check handoff and remote main for the assignment update's publication status.
 3. Integrate small slices in order: auth/save/private source + OCR proof; CSV cashbook; receipt review; categories/summaries; matches; assistant/export. Follow the dependencies and gates in [BUILD_PLAN.md](BUILD_PLAN.md).
 4. A alone changes shared contracts, root configuration, dependencies, migrations, middleware, API routes and global styles. B/C request a change and continue work in their own modules; do not independently redefine types or API responses.
 5. Each slice includes its owner's relevant checks and a review by another person. A runs a combined-flow check after each merge. Evaluation/deck drafting run alongside features, not at the end.
