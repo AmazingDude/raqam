@@ -16,37 +16,45 @@ const snapshotSchema = z.strictObject({
 
 // One factory per authenticated request. No process-wide cache or model-supplied scope.
 export function createCashbookTools(options: Options) {
-  if (!options.workspaceId || !Number.isFinite(options.deadlineAt)) {
+  const { workspaceId, readSnapshot, deadlineAt, signal } = options;
+  if (!workspaceId || !Number.isFinite(deadlineAt)) {
     throw new BackendError('UNAVAILABLE', 'Cashbook tool scope or deadline is unavailable.');
   }
   const expired = () => new BackendError('UNAVAILABLE', 'The assistant request expired. Please retry.');
+  const unverifiable = () => new BackendError('UNAVAILABLE', 'Cashbook tool data could not be verified. Please retry.');
   function assertActive() {
-    if (options.signal?.aborted || Date.now() >= options.deadlineAt) throw expired();
+    if (signal?.aborted || Date.now() >= deadlineAt) throw expired();
   }
   async function readWithinBudget() {
     assertActive();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let onAbort: (() => void) | undefined;
     const stopped = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(expired()), Math.min(options.deadlineAt - Date.now(), 2_147_483_647));
+      timer = setTimeout(() => reject(expired()), Math.min(deadlineAt - Date.now(), 2_147_483_647));
       onAbort = () => reject(expired());
-      options.signal?.addEventListener('abort', onAbort, { once: true });
-      if (options.signal?.aborted) onAbort();
+      signal?.addEventListener('abort', onAbort, { once: true });
+      if (signal?.aborted) onAbort();
     });
     try {
-      const raw = await Promise.race([Promise.resolve().then(options.readSnapshot), stopped]);
+      const read = Promise.resolve().then(async () => {
+        // Cancellation can happen after scheduling but before this read starts.
+        assertActive();
+        try { return await readSnapshot(); }
+        catch { throw unverifiable(); }
+      });
+      const raw = await Promise.race([read, stopped]);
       assertActive();
       const snapshot = snapshotSchema.parse(raw);
       return {
-        records: validateCashbook(snapshot.records, options.workspaceId),
+        records: validateCashbook(snapshot.records, workspaceId),
         unresolvedImportRowCount: snapshot.unresolvedImportRowCount,
       };
     } catch (error) {
       if (error instanceof BackendError) throw error;
-      throw new BackendError('UNAVAILABLE', 'Cashbook tool data could not be verified. Please retry.');
+      throw unverifiable();
     } finally {
       if (timer !== undefined) clearTimeout(timer);
-      if (onAbort) options.signal?.removeEventListener('abort', onAbort);
+      if (onAbort) signal?.removeEventListener('abort', onAbort);
     }
   }
   let snapshot: ReturnType<typeof readWithinBudget> | undefined;
@@ -81,6 +89,7 @@ export function createCashbookTools(options: Options) {
       const remaining = filtered.slice(cursorIndex + 1);
       // Detach returned objects so downstream consumers cannot change the cached summary inputs.
       const items = remaining.slice(0, args.limit).map(record => transactionSchema.parse(record));
+      assertActive();
       return { items, nextCursor: remaining.length > args.limit ? items.at(-1)!.id : null };
     },
     async get_cash_summary(input: unknown) {
@@ -90,7 +99,9 @@ export function createCashbookTools(options: Options) {
         throw new BackendError('UNAVAILABLE', 'Date-filtered summary scope is not available yet.');
       }
       const { records, unresolvedImportRowCount } = await load();
-      return calculateCashSummary(records, options.workspaceId, unresolvedImportRowCount);
+      const summary = calculateCashSummary(records, workspaceId, unresolvedImportRowCount);
+      assertActive();
+      return summary;
     },
   };
 }
