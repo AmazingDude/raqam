@@ -3,22 +3,24 @@
 **Version:** 0.1, 9 October 2026  
 **Team:** edge runners  
 **Domain:** Financial Operations, AICON'26 Build With AI  
-**Status:** core product choices confirmed. Receipt and category routes/review controls, selectable-text statement import and the bounded assistant are implemented in the integrated codebase. Automated verification passes; live OCR/category inference, the complete signed-in browser journey, migration 009/010 hosted status and deployment remain unverified. See [BUILD_PLAN.md](BUILD_PLAN.md) and [handoff.md](handoff.md) for the current checkpoint.
+**Status:** the current integrated product remains the reviewed-cashbook release described below. On 10 October 2026, the user accepted an expanded target MVP: accrual double-entry bookkeeping, accounts/statements, supplier bills, customer invoices, one full payment per invoice, and bounded scanned-statement OCR. The user selected service-delivery/goods-received recognition dates, historical activity import, and a cash-flow statement. These are scope/policy decisions, not implemented behavior. History coverage, pre-history balances, posting/correction rules and canonical contracts remain to be agreed before implementation. Existing receipt/category routes, selectable-text statement import and the bounded assistant are implemented; live OCR/category inference, the complete signed-in browser journey, hosted migration 009/010 state and deployment remain unverified. See the expansion plans and [handoff.md](handoff.md).
 
 ## 1. Product decision
 
 **Raqam is an AI bookkeeping assistant for a small service business. It turns imported transactions and receipt images into a reviewed cashbook, supports reconciliation, and answers questions with evidence from the business's records.**
 
-Bookkeeping is the primary workflow. Reconciliation supports it. The hackathon version is a cashbook with reviewed categories and cash summaries, rather than a complete double-entry accounting system.
+Bookkeeping is the primary workflow and reconciliation supports it. The current integrated release is a reviewed cashbook. The user has accepted a planned expansion to accrual double-entry books; the existing cashbook acceptance criteria describe current behavior until the expansion requirements and contracts are completed.
 
 The user explicitly selected:
 
 - Small service business; English; PKR.
-- Reviewed cashbook as core; P&L, balance sheet, tax, forecasting and bank feeds beyond core.
+- Current integrated release: reviewed cashbook. Accepted target expansion: accrual double-entry with a chart of accounts and financial statements; policy and implementation gates remain open.
 - **OCR in the core**, following a later clarification that supersedes the earlier suggestion to defer it.
 - **Clerk login and Supabase persistence/storage in the core**, rather than a local-only workspace.
 - Groq free tier for runtime AI; stack selection delegated to the implementation recommendation.
 - A tested core before any stretch feature starts.
+
+**Accepted target expansion, not yet implemented:** on 10 October 2026 the user selected accrual double-entry bookkeeping with a chart of accounts and financial statements; service-delivery/goods-received recognition dates; historical activity import; a cash-flow statement; supplier bills and customer invoices with download-only output; one full payment per invoice; and bounded scanned-statement OCR alongside the existing statement formats. The original cashbook remains the current implementation baseline while these requirements are specified and gated. See [the two-person implementation plan](docs/raqam/BOOKKEEPING_MVP_TWO_PERSON_PLAN.md) and [the expansion plan](docs/raqam/BOOKKEEPING_EXPANSION_PLAN.md).
 
 ## 2. Problem and user
 
@@ -67,6 +69,8 @@ Engineering size targets: up to **50,000 transactions and 10 receipt images per 
 | Cash-in/cash-out/net movement and reviewed-category summaries | P&L, balance sheet, double-entry journal, tax filing, forecasting |
 | Bounded assistant using record/summary tools and references | Arbitrary web research, autonomous financial actions or general financial advice |
 | CSV cashbook export and persistent review history | Invoice creation, collections, payments or card issuance |
+
+The table above describes the **current integrated release**, not the newly accepted expansion target. The planned target also includes accrual journals, supplier bills, customer invoices with download-only output, a single full payment per invoice, and OCR for named scanned-statement layouts alongside existing import formats. These features are not implemented or accepted for release until their requirements, contracts, limits and verification gates are complete. Tax workpaper preparation remains conditional on an explicitly confirmed taxpayer profile and practitioner review; filing, payment and compliance claims are excluded.
 
 Unsupported inputs must be identified, not silently forced into a simpler supported case. No application feature initiates, approves, retries or blocks a real payment.
 
@@ -259,7 +263,7 @@ Start **one** stretch only after every core feature works, the release gates pas
 | 4 | Simple invoice generation from explicit confirmed fields | Cashbook remains source of truth; no automatic payment status |
 | 5 | Urdu/Roman Urdu or voice input | Separate labeled tests; never claim English evaluation establishes multilingual accuracy |
 
-**After the hackathon:** live bank feeds, double-entry accounting/P&L/balance sheet, forecasting, taxes, many-to-many matching, payments, organization collaboration and shop/inventory workflows. These need separate requirements and validation and are not spare-time promises.
+**Still deferred:** live bank feeds, forecasting, many-to-many matching, partial/split/refund payment flows, organization collaboration and shop/inventory workflows. Accrual double-entry/P&L/balance sheet, bills/invoices, one-full-payment linking, bounded scanned-statement OCR and a gated tax workpaper have moved into the planned expansion target; they still require detailed requirements and validation and are not implemented by this decision.
 
 ## 11. Five-minute presentation
 
@@ -283,7 +287,7 @@ Prepare signed-in access before the slot; verify sign-in separately during QA. A
 | Groq vision access or OCR reliability insufficient | Test before UI breadth. Narrow supported image conditions transparently; changing OCR out of core requires the user's decision |
 | Free-tier throttling | Small sequential batches, cached completed extraction, retry-after handling and shared request budget |
 | Too much core for available hours | Raise the concrete blocker early. Simplify layout and accepted input breadth; do not remove user-selected OCR/auth/cloud requirements without agreement |
-| Bookkeeping overclaim | Report cash movement and review labels; no P&L, tax, legal or fraud conclusions |
+| Bookkeeping overclaim | Distinguish current cashbook behavior from planned accrual books. Do not claim accounting-standard, tax, legal or fraud conclusions without appropriate review. |
 | Conflicting teammate code | Shared contract, named integrator, small branches, frequent integrated checks |
 | Attractive UI but weak AI | Demonstrate unfamiliar descriptions, actual OCR, bounded tool execution, evidence and ambiguity handling |
 
@@ -292,7 +296,7 @@ Prepare signed-in access before the slot; verify sign-in separately during QA. A
 | ID | Decision | State / evidence |
 | --- | --- | --- |
 | D01 | Name: Raqam; bookkeeping primary, reconciliation supporting | Confirmed by user |
-| D02 | Reviewed cashbook; financial statements beyond core | Confirmed by user |
+| D02 | Current integrated release is a reviewed cashbook | Confirmed by user; later target-scope expansion is recorded under D15–D19 |
 | D03 | Small service business; English; PKR | Confirmed by user |
 | D04 | OCR core | Latest user clarification supersedes earlier stretch suggestion |
 | D05 | Clerk login + Supabase records/private image storage core | Confirmed by user |
@@ -305,6 +309,11 @@ Prepare signed-in access before the slot; verify sign-in separately during QA. A
 | D12 | User owns A; platform/backend implementation with validation at each step | Confirmed on 10 October. Work on codex/raqam-backend; B/C modules reserved. Live accounts/deployment remain pending |
 | D14 | Long selectable-text PDF bank statements; RunAnywhere Eve for structured assistant routing | User requested hundreds of pages and selected Eve on 10 October. Local synthetic validation and setup requirements are in docs/raqam/LONG_STATEMENTS.md; scanned statement OCR and live Eve credit/access remain unverified |
 | D13 | Receipt acceptance requires a valid document date, exact nonnegative total and explicitly confirmed PKR; merchant/reference may remain unknown | Confirmed by user on 10 October during BA-00. Unknown financial fields stay unresolved; currency is never inferred automatically |
+| D15 | Target expansion uses accrual double-entry and a chart of accounts; recognize at service-delivery/goods-received date; import historical activity; include a cash-flow statement; no accounting-standard compliance claim without review | User confirmed on 10 October. History start/coverage, pre-history balance handling, posting triggers, cash-flow method, account template and journal/correction policy remain pending; not implemented |
+| D16 | Include supplier bills and customer invoices; generated invoice output is download-only; one full payment per invoice | User confirmed on 10 October. Required fields/numbering and payment linkage details remain pending; partial/split/refund/overpayment flows are deferred |
+| D17 | Add scanned-statement OCR alongside CSV, Excel and selectable-text PDF, limited to named/tested layouts | User confirmed on 10 October. Initial layouts, sample files and file/page/row limits remain pending |
+| D18 | Tax workpaper may reference the latest applicable official rules, but taxpayer facts remain explicit/unknown and practitioner review is required before compliance claims | User confirmed no compliance claim without review. Never infer filing history, age, residency, registration or eligibility from missing data. Tax scope remains gated; no filing/payment |
+| D19 | Limit application-wide concurrent AI provider requests to two, one by default, using bounded batches | User requested one or two AI requests at a time; this is a concurrency ceiling, not a volume allowance or permission for fan-out/retries |
 
 ## 14. Source documents
 
