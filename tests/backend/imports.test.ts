@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import { previewCsv } from '../../src/lib/server/csv.ts';
 import { buildImportPlan, readCsvUpload } from '../../src/lib/server/imports.ts';
 import { importConfirmationSchema } from '../../src/lib/contracts/imports.ts';
+import { previewPdf } from '../../src/lib/server/pdf.ts';
 
 const csv = 'date,description,direction,amount\n2026-10-10,A,out,10.05\n2026-10-10,A,out,10.05\n2026-10-10,,out,?\n';
 const corrected = { date: '2026-10-10', description: 'Corrected', direction: 'out', amountMinor: '9007199254740993', currency: 'PKR', reference: null };
@@ -40,6 +41,67 @@ function upload(bytes: Uint8Array, name = 'sample.csv', extra = false): Request 
   if (extra) form.set('owner', 'forged');
   return new Request('http://localhost/api/imports', { method: 'POST', body: form });
 }
+
+function statementPdf(pages: string[][][]): Buffer {
+  const objectCount = 3 + pages.length * 2;
+  const fontId = objectCount;
+  const objects: string[] = [
+    `<< /Type /Catalog /Pages 2 0 R >>`,
+    `<< /Type /Pages /Kids [${pages.map((_, index) => `${3 + index * 2} 0 R`).join(' ')}] /Count ${pages.length} >>`,
+  ];
+  const columnX = [30, 120, 330, 430, 530];
+  const escapeText = (value: string) => value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  pages.forEach((rows, pageIndex) => {
+    const pageId = 3 + pageIndex * 2, contentId = pageId + 1;
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
+    const lines = rows.map((row, rowIndex) => {
+      const y = rowIndex === 0 ? 740 : 710 - (rowIndex - 1) * 30;
+      return row.map((cell, column) => cell ? `1 0 0 1 ${columnX[column]} ${y} Tm (${escapeText(cell)}) Tj` : '').filter(Boolean).join(' ');
+    });
+    const stream = Buffer.from(`BT /F1 10 Tf ${lines.join(' ')} ET`, 'ascii');
+    objects.push(`<< /Length ${stream.length} >>\nstream\n${stream.toString('ascii')}\nendstream`);
+  });
+  objects.push(`<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>`);
+  const parts: Buffer[] = [Buffer.from('%PDF-1.4\n', 'ascii')];
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.concat(parts).length);
+    parts.push(Buffer.from(`${index + 1} 0 obj\n${object}\nendobj\n`, 'ascii'));
+  });
+  const xrefOffset = Buffer.concat(parts).length;
+  const xref = [`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`, ...offsets.slice(1).map(offset => `${String(offset).padStart(10, '0')} 00000 n \n`)].join('');
+  parts.push(Buffer.from(`${xref}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`, 'ascii'));
+  return Buffer.concat(parts);
+}
+
+const statementHeader = ['Date', 'Description', 'Debit', 'Credit', 'Currency'];
+const statementRow = (description: string, debit: string, credit: string) => ['2026-10-10', description, debit, credit, 'PKR'];
+
+test('selectable-text PDF statement previews exact rows and keeps its original hash and bytes', async () => {
+  const bytes = statementPdf([[statementHeader, statementRow('Service fee', '25.50', ''), statementRow('Customer payment', '', '1,000.00')]]);
+  const preview = await previewPdf(new Uint8Array(bytes));
+  const result = await readCsvUpload(upload(bytes, 'account-statement.pdf'));
+  assert.equal(result.extension, 'pdf');
+  assert.equal(result.originalName, 'account-statement.pdf');
+  assert.equal(preview.contentHash, createHash('sha256').update(bytes).digest('hex'));
+  assert.equal(result.preview.contentHash, preview.contentHash);
+  assert.deepEqual(result.bytes, new Uint8Array(bytes));
+  assert.deepEqual(result.preview.rows.map(row => [row.original[1], row.transaction?.direction, row.transaction?.amountMinor]), [
+    ['Service fee', 'out', '2550'], ['Customer payment', 'in', '100000'],
+  ]);
+});
+
+test('PDF extraction skips repeated headers across pages and rejects image-only or malformed PDFs', async () => {
+  const bytes = statementPdf([
+    [statementHeader, statementRow('Page one fee', '10.00', '')],
+    [statementHeader, statementRow('Page two deposit', '', '20.00')],
+  ]);
+  const preview = await previewPdf(new Uint8Array(bytes));
+  assert.deepEqual(preview.rows.map(row => row.original[1]), ['Page one fee', 'Page two deposit']);
+  await assert.rejects(() => previewPdf(new Uint8Array(statementPdf([[]]))), /no selectable transaction text/i);
+  await assert.rejects(() => readCsvUpload(upload(Buffer.from('not a PDF'), 'statement.pdf')), /not a readable PDF/i);
+});
+
 test('UTF-8 CSV upload preserves BOM bytes, column order and original fields', async () => {
   const text = '\uFEFFamount,description,date,direction\r\n1.00," A, original ",2026-10-10,out\r\n';
   const bytes = Buffer.from(text);
