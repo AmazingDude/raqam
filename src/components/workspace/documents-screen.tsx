@@ -39,7 +39,7 @@ function DocumentReview({ doc, liveRecord, demo, getLink, onSave, onClose }: { d
     </form>
   </div></div>;
 }
-function SourceViewer({ source, getLink }: { source: UploadedSource; getLink: (id:string)=>Promise<PrivateLink> }) {
+export function SourceViewer({ source, getLink }: { source: UploadedSource; getLink: (id:string)=>Promise<PrivateLink> }) {
   const [link,setLink]=useState<string|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[refresh,setRefresh]=useState(0);
   useEffect(()=> {
     let active=true; let timer: ReturnType<typeof setTimeout> | undefined;

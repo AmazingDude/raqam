@@ -88,7 +88,7 @@ export async function exportResponse(response: Response): Promise<{ csv: string;
   return { csv: await response.text(), unresolved: Number(unresolved), transactionCount: Number(transactionCount) };
 }
 
-async function request<T>(path: string, schema: z.ZodType<T>, signal: AbortSignal, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, schema: z.ZodType<T>, signal: AbortSignal, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...init, signal, cache: 'no-store', credentials: 'same-origin' });
   const body: unknown = await response.json().catch(() => null);
   const envelope = z.object({ data: z.unknown(), error: z.object({ code: z.string(), message: z.string() }).nullable() }).safeParse(body);
