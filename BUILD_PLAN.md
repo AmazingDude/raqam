@@ -194,4 +194,8 @@ Local automated/backend checks are recorded separately in `docs/raqam/VALIDATION
 
 Do not mark implementation tasks done because these planning documents exist.
 
+### Proposed follow-on: Adding a few more features
+
+The user requested a deterministic-first bookkeeping expansion covering written expenses, source-aware OCR, supplier bills, customer invoice creation, explicit payments, no-double-count reconciliation, exception review and bounded AI suggestions. The detailed proposed slices, decision gate, acceptance criteria and model-request policy are in [BOOKKEEPING_EXPANSION_PLAN.md](docs/raqam/BOOKKEEPING_EXPANSION_PLAN.md). This is not yet an accepted PRD change or implementation status. Preserve the user's deferred features and resolve the accounting basis, invoice/payment semantics and scanned-statement limits before adding schemas or changing cash behavior. No runtime code or migration was changed for this plan.
+
 - **RQ-04 long statements / runtime repair - 10 October, in review:** replaced the 10-page PDF limit with 1,000 pages/20 MiB/20,000 rows, integrated Apache-2.0 pdf-parse ruled-table extraction and PDF.js borderless fallback, corrected the compiled worker path and deployment tracing, and paginated row review. Migration 010 expands persistence to 50,000 workspace records, indexes source arrays during confirmation/resolution and keeps complete totals. Eve is an optional structured router for existing read-only assistant tools; it never parses PDF files or computes amounts. Local checks and manual setup are tracked in docs/raqam/LONG_STATEMENTS.md. Hosted migration 010, live model access, representative bank layouts and signed-in browser verification remain open; RQ-04 stays in_progress.
