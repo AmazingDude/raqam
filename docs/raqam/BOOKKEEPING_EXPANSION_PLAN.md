@@ -190,6 +190,8 @@ The original C steps 1–20 are unchanged. These proposed slices receive new IDs
 
 These are role proposals. Confirm actual owners and branch/file ownership before implementation; shared schemas, migrations and UI adapters have one named editor at a time.
 
+For the user's requested two-person MVP execution, use [BOOKKEEPING_MVP_TWO_PERSON_PLAN.md](BOOKKEEPING_MVP_TWO_PERSON_PLAN.md). It assigns exclusive paths and numbered tasks across all EXP slices while preserving the PRD as authority and Gate 0 decisions as blockers.
+
 ## Start condition and next task
 
 This document is a plan, not permission to skip shared contracts or apply migrations. The next implementation task is **EXP-00**: answer Gate 0, confirm current hosted migration state without reapplying 008–010, update the PRD/glossary/contracts/task board, and agree the one cash-movement identity rule. The tax workpaper is a later slice blocked on its separate tax-scope gate and qualified review. Then implement one vertical slice at a time, beginning with a reviewed expense or bill whose payment is linked to a synthetic bank transaction and counted once.

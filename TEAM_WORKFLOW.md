@@ -10,6 +10,8 @@ The user has claimed A on 10 October; B/C names and availability remain pending.
 
 The user now requested **two agents within backend A**. [BACKEND_TASKS.md](BACKEND_TASKS.md) is the active backend ownership/dependency map: A1 (this agent) owns schema/contracts/reviews/platform gates/integration on `codex/raqam-backend`; A2 (teammate's agent) owns dedicated document/proposal/assistant services on `codex/raqam-backend-services`. Use separate clones/worktrees. A2's new route/test paths are explicitly delegated; the sole-editor rule still applies to shared migrations/contracts/dependencies. B/C assignments remain intact.
 
+**Proposed expansion split, 10 October:** the newly requested bookkeeping MVP uses two implementer lanes in [BOOKKEEPING_MVP_TWO_PERSON_PLAN.md](docs/raqam/BOOKKEEPING_MVP_TWO_PERSON_PLAN.md): Person 1 owns contracts/platform/books and Person 2 owns workflow UI/AI. This split applies only to the proposed EXP-00–EXP-13 expansion after Gate 0; it does not silently reassign the current core hackathon A/B/C tasks, and names/availability still need recording. The two-person plan is the source of truth for new-feature file ownership and integration order.
+
 | Role | Responsibility | Coordination boundary |
 | --- | --- | --- |
 | A: Integrator/platform | Bootstrap, Clerk session middleware, token-aware Supabase clients/ownership policies, shared data contract, financial calculations, merges, deployment | Sole editor of package manifests/lockfile, shared schemas, migrations and infrastructure unless work is handed off |
