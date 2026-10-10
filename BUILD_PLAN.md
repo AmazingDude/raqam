@@ -152,6 +152,8 @@ If any answer is no, stretch stays closed. Core **OCR, Clerk and Supabase are no
 
 ## Latest backend integration evidence
 
+After manual 007 application, BA-04 hosted checks pass **11/11 two-account synthetic groups**, including two concurrent competing-approval races, immutable retries/audits, correction rollback, isolation and persisted list/detail matches. Fixed the transaction-list select; **77/77 tests and production build pass** afterward. BA-06 Storage mutation checks pass **4/4 groups**, using fresh unreferenced disposable files only. Import-cap concurrency, expiry/browser switching and integrated A2/B/C product/live AI/deployment gates remain open; do not infer full release readiness.
+
 10 October: BA-04 review/allocation foundation (`601aa08`) and reviewed A2 receipt-input/category-validation/scoped-tool helpers are integrated at `1a4db8d`. Final combined tests pass **77/77**, and the production build passes including strict TypeScript. Migration 006 passes **12/12** authenticated zero-write readiness checks; signed-out smoke passed **18/18** private requests before the helper merge. BA-04 remains in review until manual migration 007 application and hosted decision/isolation/concurrency verification. A2 routes/live adapters, integrated product journeys and deployment remain pending.
 
 ## Current progress

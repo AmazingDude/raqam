@@ -6,7 +6,7 @@ A1's document/proposal foundation is ready for service integration. Pull the pub
 
 The user reports applying `supabase/migrations/202610100006_documents_proposals.sql`. All six tables independently deny anonymous reads (401/42501); **12/12 authenticated read/grant/RPC-guard checks** pass. Do not rerun 001–006 or use an unverified CLI push. `node --env-file=.env.local scripts/check-document-services.mjs` uses an existing named synthetic development session and writes no records; actual hosted mutations/concurrency still need service-level validation.
 
-Next apply **only** `supabase/migrations/202610100007_proposal_reviews_matches.sql` manually, then run `scripts/check-proposal-reviews.sql` for metadata/grant/index/projection checks. No private record values are selected. `scripts/check-document-proposals.sql` remains available to check 006's metadata. New document/proposal routes remain A2's work.
+The user subsequently applied migration 007. Hosted native checks pass **11/11 two-account synthetic groups**: document/proposal mutations, audited reviews/retries/history, bounded competing approvals, correction rollback, list/detail projection and mutual isolation. Do not reapply 001–007. The metadata SQL scripts remain available for independent audits; their exact hosted index-count output is not claimed from API behavior. New document/proposal routes and live C extraction remain A2's work.
 
 ## Service sequence
 
