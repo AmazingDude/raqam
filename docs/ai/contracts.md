@@ -169,3 +169,7 @@ After backend integration, C-owned modules can use relative paths `../contracts/
 ## 11. C provider implementation — explicit steps 4–5 request
 
 The user authorized the C-owned transport module on A's existing runtime. [PROVIDER_CONTRACT.md](PROVIDER_CONTRACT.md) records the actual interface, tests and limitations. A canonical ApiErrorCode, SourceReference, upload guard and tool argument schemas are reused; no replacement financial schema or A configuration was introduced. This is not evidence of A/B/C2 agreement. A supplies trusted ownership/context, a host-compatible absolute deadline and route/lifecycle mapping; cache/reservation and feature outcome/evidence contracts remain integration decisions. C2 must acknowledge the exported seam before dependent wiring.
+
+## 12. New main foundation consumed at publication
+
+Main cd092e4 publishes src/lib/contracts/documents.ts and migration006/007. D13 is now confirmed: document acceptance requires valid date, exact total and explicit PKR; merchant/reference may be null. reserve_document_extraction/save_document_extraction/review_supporting_document and canonical reservation/outcome/review schemas exist, with90s lease and at most60s full extraction operation. C acknowledges this actual A foundation. Detailed raw field observations/issues, expanded provider/preprocessing cache identity and the callable A2 service wrapper remain unadopted. Do not discard C raw evidence or assume an existing SQL function alone completes C step7/8. See A_RECEIPT_INTEGRATION_HANDOFF.md.

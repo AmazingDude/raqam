@@ -6,6 +6,8 @@
 
 ## Ownership at a glance
 
+**Latest role change, 10 October:** the user handed track A to another person and moved this chat to B. B's implementation branch is `codex/raqam-frontend`; see `DESIGN.md` and `docs/demo/FRONTEND_HANDOFF.md`. Earlier "user/A" wording records the foundation phase; A remains the sole backend/integration owner.
+
 | Person | Main work | Exclusive file/module ownership once bootstrapped |
 | --- | --- | --- |
 | 1 (A), user: Platform/backend + integrator | Clerk, Supabase, imports, persistence, exact totals, export, API authorization and integration | `src/lib/contracts/**`, `src/lib/server/**`, `src/app/api/**`, `supabase/**`, `tests/backend/**`, `tests/security/**`, `tests/evaluation/**`; root configuration, package manifest/lockfile, `.env.example`, middleware/proxy, root layout/global CSS |

@@ -32,20 +32,20 @@ Statuses below are assignments, not implementation claims. A1 coordinates this t
 
 | ID | Owner | RQ link | Work | Depends on | Initial status |
 | --- | --- | --- | --- | --- | --- |
-| BA-00 | A1 | RQ-00/05–08 | Freeze missing command/result/RPC contracts and publish the schema interface | Existing PRD/contracts | todo — first A1 task |
-| BA-01 | A1 | RQ-05/06/07 | Document/proposal persistence schema, owner policies and immutable history | BA-00 | todo |
-| BA-02 | A2 | RQ-05 | Document registration, retrieval, extraction orchestration and explicit field review | BA-00; BA-01 for persistence; C OCR for live extraction | todo — first A2 feature |
-| BA-03 | A2 | RQ-06/07 | Category/match generation wrappers and proposal persistence/listing | BA-00/01; C engines for live generation | todo |
-| BA-04 | A1 | RQ-06/07/09 | Atomic category/match accept/change/reject, one-to-one constraints, correct cashbook match projection | BA-00/01; stored proposals/documents for combined checks | todo |
-| BA-05 | A2 | RQ-08 | Four scoped read-only tools and `/api/assistant` wrapper around C's bounded loop | BA-00; existing cashbook now; BA-02/04 for full document/match evidence | todo — unblocked scaffolding now |
-| BA-06 | A1 | RQ-01/04/10 | Remaining Storage mutation, concurrency and session/security gates | Existing backend; new routes as they land | todo — can run alongside BA-02/03/05 |
-| BA-07 | A1, A2 supplies evidence | RQ-10/12 | Sequential integration and full backend-to-B/C checks | Completed slices above | todo |
+| BA-00 | A1 | RQ-00/05–08 | Freeze missing command/result/RPC contracts and publish the schema interface | Existing PRD/contracts | done for document/proposal foundation — executable schemas, canonical RPC/route boundaries and D13 policy published; detailed C assistant result proposals remain unadopted |
+| BA-01 | A1 | RQ-05/06/07 | Document/proposal persistence schema, owner policies and immutable history | BA-00 | in_review — 006 installed; initial six anonymous denials/12 readiness checks plus hosted synthetic document/proposal writes and mutual isolation pass; A2 route/live extraction integration pending |
+| BA-02 | A2 | RQ-05 | Document registration, retrieval, extraction orchestration and explicit field review | BA-00; BA-01 for persistence; C OCR for live extraction | in_progress — scoped private receipt-input preparation integrated; routes, persistence and live extraction pending |
+| BA-03 | A2 | RQ-06/07 | Category/match generation wrappers and proposal persistence/listing | BA-00/01; C engines for live generation | in_progress — category-output validation integrated; generation routes, persistence and C engines pending |
+| BA-04 | A1 | RQ-06/07/09 | Atomic category/match accept/change/reject, one-to-one constraints, correct cashbook match projection | BA-00/01; stored proposals/documents for combined checks | in_review — 007 installed; 11/11 hosted two-account synthetic groups include real competing approvals, corrections/retries/history/isolation and list/detail projection; 77 tests/build pass; integrated B/C journey pending |
+| BA-05 | A2 | RQ-08 | Four scoped read-only tools and `/api/assistant` wrapper around C's bounded loop | BA-00; existing cashbook now; BA-02/04 for full document/match evidence | in_progress — A1 reviewed/integrated A2's whole-workspace summary and transaction lookup; remaining tools/route/C adapter pending |
+| BA-06 | A1 | RQ-01/04/10 | Remaining Storage mutation, concurrency and session/security gates | Existing backend; new routes as they land | in_progress — 4/4 native hosted Storage mutation groups and two bounded competing-match races pass; import-cap concurrency, expiry/browser switching and future route gates pending |
+| BA-07 | A1, A2 supplies evidence | RQ-10/12 | Sequential integration and full backend-to-B/C checks | Completed slices above | in_progress — main/backend foundation plus first A2 tool slice integrated; full product/AI/live/release checks pending |
 
 ### BA-00/01 — A1 publishes the shared foundation first
 
 1. Reuse `SupportingDocument`, `DocumentFields`, proposal shapes and `assistantToolSchemas`. Freeze request/response schemas, RPC names/parameters, review versions, retry keys, required-field acceptance and safe errors in `docs/raqam/CONTRACTS.md` before A2 wires writes. Resolve material unanswered PRD choices with the user.
 2. Publish explicit interfaces for document registration/extraction result/field review, proposal creation/listing and category/match decisions. Decide the date-filter/unresolved-count scope for assistant summaries explicitly; never silently total the first page.
-3. Prepare owner-scoped tables/functions for originals, extracted/corrected fields, proposals and history. Reserve migration 006 for document/proposal persistence and 007 for category/match approval; A1 alone allocates subsequent numbers. These are reservations, not SQL files already created/applied.
+3. Migrations 006/007 are installed per the user and pass scoped hosted behavioral checks. Do not reapply 001–007. A1 alone allocates subsequent numbers; future migrations remain manual.
 4. Validate embedded PostgreSQL RLS, foreign-reference denial, malformed inputs, atomic rollback and retry/version behavior. Use non-retryable `PT409` for application conflicts.
 5. Push the foundation and give A2 its exact commit, migration files and frozen interface. User applies the reviewed SQL; verify hosted behavior afterward. Do not require A2 to wait for all later review features.
 

@@ -177,7 +177,7 @@ Record explicit adoption of these seams in step 2 before applying the TDD skill.
 
 ## Step 3 — prove actual Groq capabilities before breadth
 
-**Read:** plan section 5, PRD RQ-02 acceptance. **Skills:** ecosystem-primer and applicable agent fundamentals/middleware concepts; current official Groq docs. **Allowed changes:** `tests/ai/live/feasibility.ts` (or agreed runner path), development-only synthetic inputs, `docs/ai/feasibility.md`.
+**Read:** plan section 5, PRD RQ-02 acceptance. **Skills:** ecosystem-primer and applicable agent fundamentals/middleware concepts; current official Groq docs. **Allowed changes:** `tests/ai/live/feasibility.ts` (or agreed runner path), development-only synthetic inputs, `docs/ai/GROQ_FEASIBILITY.md`.
 
 1. Use A-approved runtime/dependencies if available. If not, request the minimal approved runner setup; do not create a second manifest/service. Live access is server/local runner only.
 2. Validate that a key is supplied through the agreed secure environment without printing its value. Inspect account-visible model permissions/limits; record only nonsecret settings.

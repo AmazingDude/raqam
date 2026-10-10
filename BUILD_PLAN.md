@@ -51,6 +51,8 @@ Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo
 
 ### RQ-00 - Readiness and contracts
 
+**B-UI-01 — in_review (10 October):** user switched this chat to track B; another person continues A. Approved design/landing + workspace slice implemented on `codex/raqam-frontend`, based on `796ce4f`. Files: `DESIGN.md`, B-owned components/client/workspace pages/e2e/demo docs and minimal root landing wiring. Typecheck, production build, 22/22 existing tests, 18/18 documented synthetic browser scenarios and read-only HTTP smoke passed. Await A's review/integration and pending API slices. Existing backend gate/task statuses remain unchanged; example interactions do not establish F01–F08 completion.
+
 - **Active claim, 10 October:** user/A on `codex/raqam-backend`. Files: `src/lib/contracts/**`, `src/lib/server/**`, `src/app/api/**`, root page/layout/sign-in platform shell, `src/proxy.ts`, `supabase/migrations/**`, `tests/backend/**`, `tests/security/**`, `scripts/{check-env,smoke-platform}.mjs`, package/Next/TypeScript/environment configuration and readiness/skills/handoff documents. Disk cleanup enabled framework installation. B/C product/AI modules remain reserved.
 - **Local progress:** shared contracts/runtime validation, exact financial helpers, schema/RLS and the Next.js/Clerk/Supabase shell implemented. See [validation record](docs/raqam/VALIDATION.md). Live account provisioning, B/C contract acknowledgement and exact cutoff remain pending; RQ-00 is not done.
 - [ ] Assign registered builders and a single integrator; record actual availability.
@@ -91,6 +93,11 @@ Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo
 - [ ] Gold answers remain outside app/model context; do not use ShiftProof cases.
 
 ### RQ-04 through RQ-09 - Complete core slices
+
+- **BA-04 — local review ready, hosted application pending:** migration 007 and GET/POST `/api/reviews` implement audited category/match decisions, exact compatible allocations, singleton indexes, active-document guards, immutable retries/history and persisted cashbook match projection. Corrected matches require transactionVersion. **60/60 tests**, strict types/build, **18/18 signed-out route checks** pass; managed concurrency/signed-in new-route gates remain separate. User-reported 006 has six anonymous denials and **12/12 zero-write authenticated grant/RPC guards** verified. Apply only 007 next. The initial approval quota/spawn blockers were resolved by approved retries after reset.
+
+- **BA-00/01 foundation — local implementation verified, hosted review pending:** canonical document/proposal command/result schemas, D13 required receipt fields, migration 006 owner-readable/write-restricted tables, six scoped RPCs, immutable history/receipts, 90-second extraction reservations and late-write fencing. Initial foundation checks: **48/48 tests** and strict types. User now reports 006 installed; all six tables independently deny anonymous reads. Signed-in readiness/concurrency/live AI/new services remain separate checks. A2 integration instructions are in `docs/raqam/A2_FOUNDATION.md`; only 007 is next for manual application. No new financial totals from receipts.
+- **B-API-01 — in_review, 10 October:** resumed the approved Track B design on `codex/raqam-frontend` in an isolated checkout; pulled the frontend tip and synchronized published backend `87aeb1a`. Connected stored CSV preview/confirmation/current outcomes/resolution, versioned reviewed edits/history, whole-workspace summary and export. Owned files: `src/lib/client/**`, `src/components/workspace/**`, `tests/e2e/**`, `docs/demo/**`, design and append-only handoff updates. Local financial/security suite: 37/37; client contracts/errors: 4/4; 14/14 explicitly synthetic browser groups, with 360/768/1280 screenshot review. Type/build/HTTP evidence is recorded in `tests/e2e/FRONTEND_CHECKS.md`. Native signed-in UI, OCR/proposals/assistant and deployment remain open; no full core gate is marked complete.
 
 - **A-LIVE-IMPORT — done:** user-applied repair is verified through live stale-review 409 denial; six existing live groups pass. Added fixed synthetic resolution fixture and ran `--reviews --resolutions`: **7/7 live one-account groups pass**, including correction/rejection, immutable originals/receipts, duplicate retries, both conflict cases and exact current totals. Script syntax passes. No application, AI, frontend or new migration change. Two-user/concurrency/browser/deployment gates remain separate.
 
@@ -145,6 +152,12 @@ Every answer must be yes:
 - [ ] Team selects one stretch, its owner, acceptance test and <=45-minute timebox.
 
 If any answer is no, stretch stays closed. Core **OCR, Clerk and Supabase are not stretch features**. Use PRD section 10 for the ordered stretch list.
+
+## Latest backend integration evidence
+
+After manual 007 application, BA-04 hosted checks pass **11/11 two-account synthetic groups**, including two concurrent competing-approval races, immutable retries/audits, correction rollback, isolation and persisted list/detail matches. Fixed the transaction-list select; **77/77 tests and production build pass** afterward. BA-06 Storage mutation checks pass **4/4 groups**, using fresh unreferenced disposable files only. Import-cap concurrency, expiry/browser switching and integrated A2/B/C product/live AI/deployment gates remain open; do not infer full release readiness.
+
+10 October: BA-04 review/allocation foundation (`601aa08`) and reviewed A2 receipt-input/category-validation/scoped-tool helpers are integrated at `1a4db8d`. Final combined tests pass **77/77**, and the production build passes including strict TypeScript. Migration 006 passes **12/12** authenticated zero-write readiness checks; signed-out smoke passed **18/18** private requests before the helper merge. BA-04 remains in review until manual migration 007 application and hosted decision/isolation/concurrency verification. A2 routes/live adapters, integrated product journeys and deployment remain pending.
 
 ## Current progress
 

@@ -10,6 +10,10 @@ Integration evidence: `npx --yes npm@11.12.1 ci --no-audit --no-fund` restored65
 
 The remaining sections are the original step1 history, not the current application inventory.
 
+## Publication update — 10 October2026
+
+Reviewed C code19920fb is combined with main cd092e4 for publication. The earlier pending-merge descriptions above are historical records. Latest A/B foundation includes D13/document RPCs and B source UI; remaining receipt integration is listed in A_RECEIPT_INTEGRATION_HANDOFF.md. Current typecheck/build,66 AI module tests,17 offline feasibility,77 backend/security and four client API tests pass. No deployment or new live calls.
+
 ## Git snapshot
 
 - Branch: docs/rules-and-team-split.
