@@ -5,7 +5,7 @@ const base = process.env.SMOKE_BASE_URL ?? 'http://localhost:3187';
 const configured = process.argv.includes('--configured');
 const home = await fetch(base);
 assert.equal(home.status, 200);
-assert.match(await home.text(), configured ? /Sign in/ : /Account setup is pending/);
+assert.match(await home.text(), /Open workspace/);
 assert.equal(home.headers.get('x-content-type-options'), 'nosniff');
 const health = await fetch(`${base}/api/health`);
 assert.deepEqual(await health.json(), { status: configured ? 'configured_unverified' : 'setup_required' });
