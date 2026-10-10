@@ -4,6 +4,8 @@ The active work split uses **three people**, as requested on 10 October. Names, 
 
 ## Ownership
 
+**Latest assignment, 10 October:** another person continues A; the user and this chat now work in B on `codex/raqam-frontend`. Minimal root landing entry wiring is included in the approved frontend slice. All backend, contract, dependency and release boundaries below still apply.
+
 The user has claimed A on 10 October; B/C names and availability remain pending. A's work is on `codex/raqam-backend`, following `docs/raqam/CONTRACTS.md` and the local validation record. The user requested backend implementation and stepwise validation; B/C modules remain reserved.
 
 | Role | Responsibility | Coordination boundary |
