@@ -37,6 +37,8 @@ Set `ASSISTANT_PROVIDER=eve` and server-only `RUNA_CLOUD_KEY` in ignored `.env.l
 - SQL migration checks: 1,000 initial cash rows, native Narration original fields, unresolved-row correction, immutable retries, foreign-owner denials, complete snapshots, and atomic rollback at 50,000 records.
 - Eve tests use scripted responses, not a live model: validated routing, date handling, uncertain/malformed decisions, missing keys, credit/auth denial, bounded responses, cancellation, and summaries/review/evidence beyond the first 50 records.
 
+Final combined revision: 121/121 backend/security tests, 67/67 provider/Gemini/category/client checks and production build with strict TypeScript pass. Production tracing includes worker/fonts. Eve configuration presence is confirmed without exposing the key; account entitlement/balance and a live model response remain unverified.
+
 Hosted migration, signed-in upload/persistence, real bank layouts, scanned-statement OCR and live Eve access remain to be verified.
 
 ## Primary references
