@@ -15,10 +15,15 @@ const configurationSchema = z.object({
   visionModel: z.literal('qwen/qwen3.8-27b'),
   textModel: z.literal('openai/gpt-oss-20b'),
 });
-export type ProviderConfiguration = z.infer<typeof configurationSchema>;
+const compatibleSchema=z.object({apiKey:z.string().trim().min(8).max(512).regex(/^[\x21-\x7e]+$/),visionModel:z.string().min(1).max(128),textModel:z.string().min(1).max(128)});
+export type ProviderConfiguration = z.infer<typeof configurationSchema> & {baseURL?:string;providerVersion?:string};
 
 // Only called when an operation runs. No build/import-time env reads or network.
 export function readProviderConfiguration(environment: Record<string, string | undefined>): ProviderConfiguration | null {
+  if(environment.AI_PROVIDER==='openai') {
+    const parsed=compatibleSchema.safeParse({apiKey:environment.OPENAI_API_KEY,visionModel:environment.OPENAI_VISION_MODEL,textModel:environment.OPENAI_TEXT_MODEL});
+    return parsed.success?{...parsed.data,baseURL:'https://api.openai.com',providerVersion:'openai-provider-v1'} as ProviderConfiguration:null;
+  }
   const parsed = configurationSchema.safeParse({
     apiKey: environment.GROQ_API_KEY,
     visionModel: environment.GROQ_VISION_MODEL,
