@@ -19,6 +19,8 @@
 - Live Groq probe: two rejected schema requests during diagnosis, then one successful synthetic completion (one attempt, 2.59 seconds, 2,998 total tokens). Values/totals were checked in application code; no invoice was persisted. No Eve request was made.
 - Signed-in browser: invoice list loads without the filter crash, blank-client save displays an error while preserving the editor, export is absent on Invoices, and the text-only example request completed. The running Next route returned HTTP 200 for invoice AI after the schema repair. No hosted invoice save, status mutation or deletion was performed by this task.
 
+Final integration through published main `0e6b8eb`: **146/146 backend/security tests**, **9/9 client tests**, strict TypeScript, whitespace and local documentation links pass in the isolated integration checkout. The active app and unsaved editor state were left on the repaired task checkout; integration did not replace the running workspace files. No production build was run against its shared `.next` output.
+
 ## Setup and remaining gate
 
 Apply only pending invoice migrations in order: 011 creates the invoice tables; 012 adds atomic functions and versions. Do not reapply completed migrations. AI-only prompt/UI changes do not require rerunning SQL. Restart/reload the app after code changes if an older response remains visible.
