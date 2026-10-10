@@ -26,15 +26,26 @@ async function fixture(run: (db: PGlite, asOwner: (subject: string, operation: (
       grant select on public.workspaces to authenticated;
       grant usage on schema public, auth to authenticated, anon;
       grant execute on function auth.jwt() to authenticated;`);
-    await db.exec(await readFile(new URL('../../supabase/migrations/202610100015_tax_readiness_profiles.sql', import.meta.url), 'utf8'));
+    // Reproduce the hosted migration's reported 42P07 state: the table exists,
+    // but the remaining policy, RPC, and grants may not have been installed.
+    await db.exec(`create table public.tax_readiness_profiles (
+      workspace_id uuid not null references public.workspaces(id) on delete cascade,
+      tax_year integer not null, answers jsonb not null, version integer not null default 1,
+      updated_at timestamptz not null default now(), primary key (workspace_id, tax_year)
+    );`);
+    const taxReadinessMigration = await readFile(new URL('../../supabase/migrations/202610100015_tax_readiness_profiles.sql', import.meta.url), 'utf8');
+    await db.exec(taxReadinessMigration);
+    // Re-running the migration after the reported duplicate-table failure must
+    // preserve the table and complete/reapply policy and function grants.
+    await db.exec(taxReadinessMigration);
     const checkSql = await readFile(new URL('../../scripts/check-tax-readiness-migration.sql', import.meta.url), 'utf8');
     const installed = await db.query<Record<string, boolean>>(checkSql);
     assert.deepEqual(installed.rows[0], {
-      profile_table_installed: true, forced_rls_enabled: true, owner_read_policy_installed: true,
-      authenticated_read_allowed: true, authenticated_direct_write_allowed: false,
-      anonymous_table_access_allowed: false, save_function_installed: true,
-      authenticated_save_allowed: true, anonymous_save_allowed: false,
-      save_definer_with_empty_search_path: true, owner_row_locked: true, stale_version_rejection_installed: true,
+      profile_table_installed: true, required_profile_columns_present: true, forced_rls_enabled: true, owner_read_policy_installed: true,
+      authenticated_read_allowed: true, authenticated_direct_write_denied: true, anonymous_table_access_denied: true,
+      array_validator_installed: true, answers_validator_installed: true, save_function_installed: true,
+      authenticated_rpc_access: true, anonymous_rpc_access_denied: true,
+      save_definer_with_empty_search_path: true, owner_row_locked: true, stale_version_rejection_installed: true, explicit_confirmation_required: true,
     });
     const asOwner = async (subject: string, operation: () => Promise<void>) => {
       await db.exec('begin; set local role authenticated;');

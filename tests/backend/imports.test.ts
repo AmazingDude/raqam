@@ -4,12 +4,24 @@ import { createHash } from 'node:crypto';
 import * as XLSX from 'xlsx';
 import { previewCsv } from '../../src/lib/server/csv.ts';
 import { buildImportPlan, readCsvUpload } from '../../src/lib/server/imports.ts';
-import { importConfirmationSchema } from '../../src/lib/contracts/imports.ts';
+import {
+  importConfirmationSchema, importUploadIntentRequestSchema, importFinalizeUploadSchema,
+} from '../../src/lib/contracts/imports.ts';
 import { previewPdf } from '../../src/lib/server/pdf.ts';
 import { statementPdf } from '../helpers/pdf-fixture.ts';
 
 const csv = 'date,description,direction,amount\n2026-10-10,A,out,10.05\n2026-10-10,A,out,10.05\n2026-10-10,,out,?\n';
 const corrected = { date: '2026-10-10', description: 'Corrected', direction: 'out', amountMinor: '9007199254740993', currency: 'PKR', reference: null };
+
+test('signed import upload contracts bind supported names, bounded sizes and workspace staging paths', () => {
+  const workspaceId = '10000000-0000-4000-8000-000000000001';
+  const path = `${workspaceId}/imports/20000000-0000-4000-8000-000000000001.pdf`;
+  assert.equal(importUploadIntentRequestSchema.safeParse({ name: 'bank.pdf', size: 20 * 1024 * 1024 }).success, true);
+  assert.equal(importUploadIntentRequestSchema.safeParse({ name: 'bank.pdf', size: 20 * 1024 * 1024 + 1 }).success, false);
+  assert.equal(importUploadIntentRequestSchema.safeParse({ name: '../bank.pdf', size: 10 }).success, false);
+  assert.equal(importFinalizeUploadSchema.safeParse({ path, name: 'bank.pdf' }).success, true);
+  assert.equal(importFinalizeUploadSchema.safeParse({ path: `${workspaceId}/receipts/source.pdf`, name: 'source.pdf' }).success, false);
+});
 
 test('import plans retain every row, equal amounts and unresolved unknowns', () => {
   const plan = buildImportPlan(previewCsv(csv), {});

@@ -64,6 +64,88 @@ test('client commands send exact shared-contract decisions, stable request IDs a
   assert.throws(() => api.reviewTransaction(id, { expectedVersion: 0, amountMinor: '0' } as never, controller.signal));
 });
 
+test('imports upload directly to the verified private Storage URL, then finalize with JSON metadata', async t => {
+  const path = '10000000-0000-4000-8000-000000000001/imports/20000000-0000-4000-8000-000000000001.csv';
+  const signedUrl = `https://project.supabase.co/storage/v1/object/upload/sign/raqam-sources/${path}?token=synthetic-token`;
+  const preview = {
+    currency: 'PKR', contentHash: 'a'.repeat(64), header: ['date', 'description', 'direction', 'amount'],
+    rows: [{ rowNumber: 2, lineNumber: 2, original: ['2026-10-10', 'Synthetic fee', 'out', '10.00'],
+      transaction: { date: '2026-10-10', description: 'Synthetic fee', direction: 'out', amountMinor: '1000', currency: 'PKR', reference: null }, errors: [] }],
+    validCount: 1, invalidCount: 0,
+  };
+  const batch = { importId: id, preview, status: 'pending', confirmation: null, duplicate: false };
+  const calls: { url: string; init: RequestInit }[] = [];
+  const oldUrl = process.env.NEXT_PUBLIC_SUPABASE_URL, oldKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://project.supabase.co';
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_synthetic';
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init: RequestInit) => {
+    const url = String(input); calls.push({ url, init });
+    if (url === '/api/imports/upload-url') return envelope({ path, signedUrl });
+    if (url === signedUrl) return new Response(null, { status: 200 });
+    if (url === '/api/imports') return envelope(batch);
+    throw new Error(`Unexpected request: ${url}`);
+  });
+  try {
+    const signal = new AbortController().signal, file = new File(['synthetic csv'], 'bank.csv', { type: 'text/csv' });
+    assert.equal((await api.registerImport(file, signal)).importId, id);
+    assert.equal(calls.length, 3);
+    assert.deepEqual(JSON.parse(String(calls[0]!.init.body)), { name: 'bank.csv', size: file.size });
+    assert.equal(calls[1]!.init.method, 'PUT');
+    assert.equal(calls[1]!.init.body, file);
+    assert.equal(new Headers(calls[1]!.init.headers).get('apikey'), 'sb_publishable_synthetic');
+    assert.equal(new Headers(calls[1]!.init.headers).get('x-upsert'), 'false');
+    assert.deepEqual(JSON.parse(String(calls[2]!.init.body)), { path, name: 'bank.csv' });
+    assert.ok(String(calls[2]!.init.body).length < 512, 'the finalization request contains metadata, not file bytes');
+  } finally {
+    t.mock.restoreAll();
+    if (oldUrl === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL; else process.env.NEXT_PUBLIC_SUPABASE_URL = oldUrl;
+    if (oldKey === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY; else process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = oldKey;
+  }
+});
+
+test('import upload size failures report the selected byte size', async t => {
+  const path = '10000000-0000-4000-8000-000000000001/imports/20000000-0000-4000-8000-000000000001.pdf';
+  const signedUrl = `https://project.supabase.co/storage/v1/object/upload/sign/raqam-sources/${path}?token=synthetic-token`;
+  const oldUrl = process.env.NEXT_PUBLIC_SUPABASE_URL, oldKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://project.supabase.co';
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_synthetic';
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    calls += 1;
+    return calls === 1 ? envelope({ path, signedUrl }) : new Response(null, { status: 413 });
+  });
+  try {
+    const file = new File([new Uint8Array(5 * 1024 * 1024)], 'bank.pdf', { type: 'application/pdf' });
+    await assert.rejects(api.registerImport(file, new AbortController().signal), error =>
+      error instanceof ClientError && error.code === 'PAYLOAD_TOO_LARGE' && error.message.includes('5.0 MiB'));
+  } finally {
+    t.mock.restoreAll();
+    if (oldUrl === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL; else process.env.NEXT_PUBLIC_SUPABASE_URL = oldUrl;
+    if (oldKey === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY; else process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = oldKey;
+  }
+});
+
+test('import upload rejects signed destinations outside the configured private bucket', async t => {
+  const path = '10000000-0000-4000-8000-000000000001/imports/20000000-0000-4000-8000-000000000001.csv';
+  const oldUrl = process.env.NEXT_PUBLIC_SUPABASE_URL, oldKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://project.supabase.co';
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_synthetic';
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    calls += 1;
+    return envelope({ path, signedUrl: `https://attacker.example/storage/v1/object/upload/sign/raqam-sources/${path}?token=synthetic-token` });
+  });
+  try {
+    await assert.rejects(api.registerImport(new File(['synthetic'], 'bank.csv'), new AbortController().signal),
+      error => error instanceof ClientError && error.message.includes('destination could not be verified'));
+    assert.equal(calls, 1, 'file bytes must never be sent to an unverified host');
+  } finally {
+    t.mock.restoreAll();
+    if (oldUrl === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL; else process.env.NEXT_PUBLIC_SUPABASE_URL = oldUrl;
+    if (oldKey === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY; else process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = oldKey;
+  }
+});
+
 test('export only downloads verified CSV successes and surfaces failures without an error file', async () => {
   const csv = 'date,amount\r\n2026-10-10,100.01\r\n';
   const headers = { 'Content-Type': 'text/csv; charset=utf-8', 'X-Raqam-Transaction-Count': '1', 'X-Raqam-Unresolved-Import-Rows': '2' };

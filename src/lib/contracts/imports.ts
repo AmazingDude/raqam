@@ -1,8 +1,16 @@
 import { z } from 'zod';
 import { dateSchema, minorUnitsSchema } from './schemas.ts';
 
-import { MAX_IMPORT_ROWS, MAX_PDF_PAGES } from './limits.ts';
+import { MAX_IMPORT_ROWS, MAX_PDF_BYTES, MAX_PDF_PAGES } from './limits.ts';
 export { MAX_IMPORT_ROWS } from './limits.ts';
+const uuidPathSegment = '[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
+export const importUploadPathSchema = z.string().regex(new RegExp(`^${uuidPathSegment}/imports/${uuidPathSegment}\\.(?:csv|tsv|xls|xlsx|pdf)$`, 'i'));
+export const importUploadFileNameSchema = z.string().min(1).max(255).refine(name => !/[\\/\\\\\\0]/.test(name));
+export const importUploadIntentRequestSchema = z.strictObject({
+  name: importUploadFileNameSchema, size: z.number().int().min(1).max(MAX_PDF_BYTES),
+});
+export const importUploadIntentSchema = z.strictObject({ path: importUploadPathSchema, signedUrl: z.url() });
+export const importFinalizeUploadSchema = z.strictObject({ path: importUploadPathSchema, name: importUploadFileNameSchema });
 const requiredHeaders = ['date', 'description', 'direction', 'amount'] as const;
 export const pdfSourceLineSchema = z.strictObject({
   rowNumber: z.number().int().min(2), lineNumber: z.number().int().min(2),

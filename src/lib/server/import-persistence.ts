@@ -1,9 +1,15 @@
 import 'server-only';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { RequestSession } from './auth.ts';
 import type { Workspace } from '../contracts/index.ts';
-import { csvPreviewSchema, importConfirmationResultSchema, importResolutionSchema, importResolutionResultSchema, importResolutionStateSchema } from '../contracts/imports.ts';
+import { MAX_PDF_BYTES } from '../contracts/limits.ts';
+import {
+  csvPreviewSchema, importConfirmationResultSchema, importFinalizeUploadSchema, importResolutionSchema,
+  importResolutionResultSchema, importResolutionStateSchema, importUploadIntentRequestSchema, importUploadIntentSchema,
+} from '../contracts/imports.ts';
 import { BackendError } from './errors.ts';
+import { MAX_CSV_BYTES } from './csv.ts';
 import { buildImportPlan, readCsvUpload } from './imports.ts';
 import { uploadStored } from './storage-retry.ts';
 import { recoverStatement } from './statement-rows.ts';
@@ -13,6 +19,27 @@ const batchSchema = z.object({
   source_id: z.uuid(), preview: csvPreviewSchema, status: z.enum(['pending', 'confirmed']),
   confirmation_result: importConfirmationResultSchema.omit({ duplicate: true }).nullable(),
 });
+const importExtensions = new Set(['csv', 'tsv', 'xls', 'xlsx', 'pdf']);
+function formatFileSize(bytes: number) { return `${(bytes / 1024 / 1024).toFixed(1)} MiB`; }
+function importExtension(name: string) { return name.toLowerCase().split('.').at(-1) ?? ''; }
+
+export async function createImportUploadIntent(session: RequestSession, workspace: Workspace, body: unknown) {
+  const input = importUploadIntentRequestSchema.safeParse(body);
+  if (!input.success) throw new BackendError('INVALID_INPUT', 'Choose one supported CSV, TSV, Excel, or PDF transaction file.');
+  const extension = importExtension(input.data.name);
+  if (!importExtensions.has(extension)) throw new BackendError('INVALID_INPUT', 'Choose one .csv, .tsv, .xls, .xlsx, or .pdf transaction file.');
+  const maximum = extension === 'pdf' ? MAX_PDF_BYTES : MAX_CSV_BYTES;
+  if (input.data.size > maximum) {
+    throw new BackendError('INVALID_INPUT', `This file is ${formatFileSize(input.data.size)}; the ${extension.toUpperCase()} limit is ${formatFileSize(maximum)}.`);
+  }
+
+  const path = `${workspace.id}/imports/${randomUUID()}.${extension}`;
+  const signed = await session.database.storage.from('raqam-sources').createSignedUploadUrl(path);
+  if (signed.error || !signed.data || signed.data.path !== path) {
+    throw new BackendError('UNAVAILABLE', 'Private upload could not be prepared. Retry the import.');
+  }
+  return importUploadIntentSchema.parse({ path, signedUrl: signed.data.signedUrl });
+}
 export function importDatabaseError(error: { code?: string }): BackendError {
   if (error.code === 'P0002') return new BackendError('NOT_FOUND', 'Import not found.');
   if (error.code === 'PT409' || error.code === '40001') return new BackendError('CONFLICT', 'This row was already reviewed or the request ID was reused. Reload the import before deciding again.');
@@ -44,6 +71,38 @@ export async function registerImport(session: RequestSession, workspace: Workspa
   if (result.error) throw importDatabaseError(result.error);
   const registration = registrationSchema.parse(result.data);
   return { ...await getImport(session, workspace, registration.importId), duplicate: registration.duplicate };
+}
+
+export async function registerStagedImport(session: RequestSession, workspace: Workspace, body: unknown, signal: AbortSignal) {
+  const input = importFinalizeUploadSchema.safeParse(body);
+  if (!input.success || !input.data.path.startsWith(`${workspace.id}/imports/`)) {
+    throw new BackendError('INVALID_INPUT', 'The private transaction upload could not be verified. Upload the file again.');
+  }
+  const extension = importExtension(input.data.name);
+  const pathExtension = input.data.path.slice(input.data.path.lastIndexOf('.') + 1).toLowerCase();
+  if (!importExtensions.has(extension) || extension !== pathExtension) {
+    throw new BackendError('INVALID_INPUT', 'The uploaded file name does not match its private storage object. Upload it again.');
+  }
+
+  const storage = session.database.storage.from('raqam-sources');
+  try {
+    const downloaded = await storage.download(input.data.path, {}, { signal, cache: 'no-store' });
+    if (downloaded.error || !downloaded.data) {
+      throw new BackendError('UNAVAILABLE', 'The private upload could not be retrieved. Upload the statement again.');
+    }
+    const maximum = extension === 'pdf' ? MAX_PDF_BYTES : MAX_CSV_BYTES;
+    if (!downloaded.data.size || downloaded.data.size > maximum) {
+      throw new BackendError('INVALID_INPUT', `The uploaded file is ${formatFileSize(downloaded.data.size)}; the ${extension.toUpperCase()} limit is ${formatFileSize(maximum)}.`);
+    }
+    const form = new FormData();
+    form.set('file', downloaded.data, input.data.name);
+    const uploadRequest = new Request('https://raqam.internal/api/imports', { method: 'POST', body: form, signal });
+    return await registerImport(session, workspace, uploadRequest);
+  } finally {
+    // Temporary objects are never the registered source of record. Best-effort
+    // cleanup keeps abandoned staging data out of the private source bucket.
+    try { await storage.remove([input.data.path]); } catch { /* preserve the primary result */ }
+  }
 }
 
 export async function confirmImport(session: RequestSession, workspace: Workspace, importId: string, body: unknown) {
