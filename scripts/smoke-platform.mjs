@@ -16,6 +16,7 @@ else {
   assert.equal(new URL(signIn.headers.get('location'), base).pathname, '/');
 }
 const privateRequests = [
+  ['/api/assistant', 'POST'],
   ['/api/reviews', 'POST'], ['/api/reviews?proposalId=10000000-0000-4000-8000-000000000001', 'GET'],
   ['/api/workspace', 'GET'], ['/api/workspace', 'POST'], ['/api/transactions', 'GET'],
   ['/api/sources', 'POST'], ['/api/sources/10000000-0000-4000-8000-000000000001', 'GET'],

@@ -59,3 +59,15 @@ test('A2 verified empty cashbooks retain unresolved counts and exact zero totals
   assert.equal(summary.transactionCount, 0);
   assert.equal(summary.unresolvedImportRowCount, 3);
 });
+
+test('assistant date totals cover every matching row and persisted match filters work', async () => {
+  const data = records(); data[1]!.matchStatus = 'accepted'; data[2]!.matchStatus = 'proposed';
+  const tools = createCashbookTools({ workspaceId: 'w1', deadlineAt: Date.now() + 10_000,
+    readSnapshot: async () => ({ records: data, unresolvedImportRowCount: 7 }) });
+  const summary = await tools.get_cash_summary({ scope: 'valid_imported_cash', dateFrom: '2026-10-02', dateTo: '2026-10-03' });
+  assert.equal(summary.netMovementMinor, '-10');
+  assert.equal(summary.transactionCount, 2);
+  assert.equal(summary.unresolvedImportRowCount, 7);
+  assert.deepEqual((await tools.list_transactions({ matchStatus: 'accepted' })).items.map(r => r.id), [ids[1]]);
+  assert.deepEqual((await tools.list_transactions({ matchStatus: 'proposed' })).items.map(r => r.id), [ids[2]]);
+});

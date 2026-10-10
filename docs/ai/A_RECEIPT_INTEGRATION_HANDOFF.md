@@ -60,3 +60,7 @@ Return to C: accepted export paths/result/evidence mapping, RPC/cache identity p
 ## Publication candidate checks
 
 Combined latest-main/C candidate: typecheck,66 AI module tests,17 offline feasibility regressions,77 backend/security tests, four frontend client API tests and production build with empty AI settings passed. Feasibility child-process tests first hit sandbox EPERM and then passed on the normal subprocess runner. No new live AI, hosted writes, browser journey or deployment was performed. Secret scan found no configured private values in259 tracked candidate files; ignored local env and frontend archive/reference contents were preserved.
+
+## Update after team main c2ffec2
+
+A2 document registration/list/detail/review service routes are now integrated and compile in the combined production build. Reuse these implementations rather than rebuilding them. Section3's remaining route work is extraction and document history, plus completion of the evidence/cache adapter in sections1–2 and joint verification. Existing route presence is not signed-in receipt-flow acceptance. Category generation/listing and B's live OCR/category proposal controls remain pending.

@@ -6,7 +6,7 @@ import { transaction } from '../backend/fixtures.ts';
 
 const code = (expected: string) => (error: unknown) => error instanceof BackendError && error.code === expected;
 const empty = async () => ({ records: [], unresolvedImportRowCount: 0 });
-test('A2 tools reject forged scope, invalid arguments and unavailable semantics before reading', async () => {
+test('A2 tools reject forged scope and invalid arguments before reading', async () => {
   let reads = 0;
   const tools = createCashbookTools({ workspaceId: 'w1', deadlineAt: Date.now() + 10_000,
     readSnapshot: async () => { reads++; return empty(); } });
@@ -15,10 +15,6 @@ test('A2 tools reject forged scope, invalid arguments and unavailable semantics 
     await assert.rejects(tools.list_transactions(input), code('INVALID_INPUT'));
   }
   for (const input of [{}, { scope: 'profit' }]) await assert.rejects(tools.get_cash_summary(input), code('INVALID_INPUT'));
-  await assert.rejects(tools.get_cash_summary({ scope: 'valid_imported_cash', dateFrom: '2026-10-01' }), code('UNAVAILABLE'));
-  for (const matchStatus of ['accepted', 'proposed', 'unmatched']) {
-    await assert.rejects(tools.list_transactions({ matchStatus }), code('UNAVAILABLE'));
-  }
   assert.equal(reads, 0);
 });
 test('A2 cashbook tools fail closed on foreign, duplicate, malformed and over-cap snapshots', async () => {

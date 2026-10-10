@@ -28,20 +28,20 @@ Local scope checks do not authenticate callers. Server handlers must derive work
 
 ## Read-only assistant tools
 
-`assistantToolSchemas` allows exactly these four names. No owner/workspace argument is accepted. List/queue default limit 20, maximum 50; evidence 1–20 IDs in total; date ranges cannot be reversed. Tool execution is pending and must reject inaccessible IDs. C receives scoped read-only executors, never a service-role client. Model loop cap remains three rounds under the PRD guidance.
+`assistantToolSchemas` allows exactly these four names. No owner/workspace argument is accepted. List/queue default limit 20, maximum 50; evidence 1–20 IDs in total; date ranges cannot be reversed. Execution now uses request-local cashbook/document reads and rejects inaccessible IDs. The provider receives read-only results, never a database client. Model loop cap is three rounds and three total provider attempts, with at most four unique tool executions.
 
-| Tool | Arguments | Planned result |
+| Tool | Arguments | Implemented internal evidence |
 | --- | --- | --- |
 | `list_transactions` | Optional date/category/review/match filters, limit/cursor | Scoped records, exact amounts and source references; next cursor |
 | `get_cash_summary` | Optional dates, required scope `valid_imported_cash` | `CashSummary`, contributing IDs and unresolved row count |
 | `get_review_queue` | Required kind, limit/cursor | Outstanding items, reasons/source references; next cursor |
-| `get_record_evidence` | Transaction/document ID lists | Original/corrected fields, decisions and source locators |
+| `get_record_evidence` | Transaction/document ID lists | Original/corrected fields, decision versions/timestamps and source locators; latest 20 decisions per record with explicit truncation |
 
 ## Planned API map for B/C
 
 Implemented now: `GET/POST /api/workspace`, paginated `GET /api/transactions`, `POST /api/sources` (one private JPEG/PNG source file) and `GET /api/sources/{id}` (60-second signed link). Source upload returns `{ sourceId, duplicate }`; it does not create a document extraction or cash transaction. Signature/MIME checks do not establish image readability; C's OCR/review slice must handle unreadable sources. An upload saved before a metadata failure can be recovered on retry using its workspace/hash path. Real cloud behavior is pending provisioning.
 
-CSV, transaction review/history, whole-workspace summary/export and document registration/detail/list/review/history/extraction routes are implemented locally. Category generation awaits C's step 9 guide/version review; match-proposal and assistant wrappers remain planned. JSON responses use `{ data, error: null }` or `{ data: null, error: { code, message } }`. Collections use `{ items, nextCursor }`. Missing/inaccessible records share `NOT_FOUND`; no raw provider/SQL exception or secret reaches clients.
+CSV, transaction review/history, whole-workspace summary/export and assistant routes are implemented locally. Document registration/list/detail/review/history/extraction routes are also integrated with the A2 scoped document service and A1 receipt evidence/cache mapping. Category generation awaits C's step 9 guide/version review; match-proposal wrappers remain planned. JSON responses use `{ data, error: null }` or `{ data: null, error: { code, message } }`. Collections use `{ items, nextCursor }`. Missing/inaccessible records share `NOT_FOUND`; no raw provider/SQL exception or secret reaches clients.
 
 | Route | Responsibility |
 | --- | --- |
@@ -60,6 +60,16 @@ CSV, transaction review/history, whole-workspace summary/export and document reg
 | `GET /api/summary`, `GET /api/export` | Scoped deterministic summaries/export |
 | `GET /api/sources/{id}` | Short-lived private source access after authorization |
 | `POST /api/assistant` | Session-scoped question execution and action trail |
+
+### Assistant request and answer
+
+`POST /api/assistant` accepts only `{ question: string }` (trimmed, 1–1000 characters, JSON body at most 8 KiB). Clerk supplies identity, the server loads that owner's workspace, and the request must have the configured app Origin. No client-supplied scope, conversation history, credentials or tool results are accepted. Responses are private and `no-store`.
+
+The adopted route/UI schema is `src/lib/contracts/assistant.ts`: `{ workspaceId, question, text, records, citations, actionTrail, partial }`. Citations contain accessible transaction/document IDs and source references, never signed URLs. The UI resolves document previews through the existing private source endpoint. Action entries describe actual executed tools and coverage; no hidden reasoning is exposed. Questions survive failures and in-flight requests are cancelled on screen/account changes.
+
+The model chooses tools and then selects observed result IDs using a small validated JSON response. Code renders all returned financial claims, amounts, counts and references. Arbitrary model prose, invented result IDs and mutable/foreign tool arguments never become an answer. Failed finalization, exhausted rounds and paginated/truncated observations produce a labelled partial answer or clarification. Unresolved import counts always cover the whole workspace even when cash dates are filtered. Repeated identical tool requests reuse the same request-local observation.
+
+Each request has a 45-second deadline, three model rounds/total provider attempts, four unique read executions, and bounded model context. A per-instance guard allows one in-flight request and six requests per minute per owner, with a bounded 1000-entry map; this is not a distributed account quota. Document reads fail closed above 200 rows rather than claiming a partial aggregate is complete. This route uses the existing provider factory (Groq by default); it does not implement OCR/category/match route wrappers or close their release gates.
 
 Error/status mapping: UNAUTHENTICATED 401, NOT_FOUND 404, INVALID_INPUT 422, CONFLICT 409, UNAVAILABLE 503. Mutation handlers must reject cross-origin cookie requests. Initial CSV guards are 1 MiB, 1–50 rows and 50 total workspace transactions; these are prototype guards, not measured host capacity. The proposed image cap still awaits its gate.
 

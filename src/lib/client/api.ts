@@ -4,6 +4,7 @@ import { csvPreviewSchema, importConfirmationSchema, importConfirmationResultSch
 import { transactionReviewSchema } from '../contracts/cashbook.ts';
 import type { ImportConfirmation } from '../contracts/imports.ts';
 import type { TransactionReview } from '../contracts/cashbook.ts';
+import { assistantRequestSchema, assistantResponseSchema } from '../contracts/assistant.ts';
 
 export class ClientError extends Error {
   code: string;
@@ -67,6 +68,9 @@ async function request<T>(path: string, schema: z.ZodType<T>, signal: AbortSigna
   return data.data;
 }
 export const api = {
+  assistant: (question: string, signal: AbortSignal) => request('/api/assistant', assistantResponseSchema, signal, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(assistantRequestSchema.parse({ question })),
+  }),
   workspace: (signal: AbortSignal) => request('/api/workspace', workspaceSchema.nullable(), signal),
   createWorkspace: (businessName: string, signal: AbortSignal) => request('/api/workspace', workspaceSchema, signal, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ businessName }),

@@ -1,5 +1,9 @@
 # Role A local validation, 10 October 2026 (PKT)
 
+## Latest main integration and receipt routes
+
+Merged current `origin/main` (`e842802`) with the receipt route/cache work. `node --conditions=react-server --test --test-isolation=none tests/backend/*.test.ts tests/security/*.test.ts tests/e2e/client-api.test.ts tests/ai/*.test.ts tests/ai/live/feasibility.test.ts` passes **194/194** with zero skipped/cancelled. `npm run typecheck` and the production build pass. The configured signed-out platform smoke on port 3187 passes **25 private-route denials** including `/api/assistant`; the frontend smoke passes **3 UI routes and 9 private GET denials**. The separate port avoids interrupting the user's existing port-3000 browser session. These checks are synthetic/signed-out; migration 008 is not applied, no live model call or signed-in receipt mutation was made, and the second account's `Dukaan` workspace is not the isolated cap-test workspace.
+
 ## Combined frontend integration and native API sessions
 
 **Final successful retry:** the user authorized the C-owned Windows test-only fix. The tracked test now imports pathToFileURL from node:url and passes pathToFileURL(preload).href to --import. `node --conditions=react-server --test --test-isolation=none tests/backend/*.test.ts tests/security/*.test.ts tests/e2e/client-api.test.ts tests/ai/*.test.ts tests/ai/live/feasibility.test.ts` passes **164/164**, zero skipped/cancelled: 77 backend/security, 4 client, 66 provider/extraction and 17 offline feasibility tests. Approved process execution is required for deliberate child-process checks in this sandbox. This supersedes the initial failures described below; no live inference was performed. Build and refreshed port-3000 HTTP checks also pass.

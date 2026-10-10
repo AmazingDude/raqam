@@ -15,22 +15,17 @@ async function documentId(context: Context) {
   return parsed.data;
 }
 
-export async function GET(_request: Request, context: Context) {
+export async function GET(request: Request, context: Context): Promise<Response> {
   return jsonEndpoint(async () => {
     const session = await requireSession();
-    return readDocument(session, await requireWorkspace(session), await documentId(context));
+    return readDocument(session, await requireWorkspace(session), await documentId(context), request.signal);
   });
 }
 
-export async function PATCH(request: Request, context: Context) {
+export async function PATCH(request: Request, context: Context): Promise<Response> {
   return jsonEndpoint(async () => {
     const session = await requireSession();
     requireSameOrigin(request, session.configuration.APP_URL);
-    return reviewDocument(
-      session,
-      await requireWorkspace(session),
-      await documentId(context),
-      await readJson(request),
-    );
+    return reviewDocument(session, await requireWorkspace(session), await documentId(context), await readJson(request), request.signal);
   });
 }

@@ -58,7 +58,7 @@ async function fixture(mode:'live'|'cached'|'busy'|'rate_limit'|'malformed'|'bud
     throw new Error('Unexpected scripted RPC');
    }
    assert.equal(url.searchParams.get('workspace_id'),`eq.${workspace.id}`);
-   if(url.pathname.endsWith('/supporting_documents'))return json({id:doc,workspace_id:workspace.id,source_id:source,extracted_fields:empty,corrected_fields:null,
+   if(url.pathname.endsWith('/supporting_documents'))return json({id:doc,workspace_id:workspace.id,source_id:source,source_type:'receipt_image',extracted_fields:empty,corrected_fields:null,
       extraction_status:'pending',review_status:'needs_review',review_version:0,provenance:null,extraction_failure:null});
    if(url.pathname.endsWith('/receipt_extraction_contexts'))return json([]);
    if(url.pathname.endsWith('/sources')) {
