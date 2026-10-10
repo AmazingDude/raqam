@@ -24,6 +24,7 @@ The current database's canonical cash movement is an imported transaction. Recei
 - Explicit invoice payment events, paid/open state rules and reconciliation with imported bank transactions without double-counting.
 - A deterministic-first exception/duplicate queue with AI ranking/explanations only for ambiguous items.
 - One end-to-end surface connecting captured expenses, source documents, invoices, payments, bank activity and exact summaries.
+- A tax-year-specific FBR tax workpaper assembled from reviewed records, with a source-linked rule pack, deterministic calculations, an AI completeness/consistency review and human approval.
 
 ## Product outcome
 
@@ -50,6 +51,7 @@ AI is embedded at the uncertain interpretation and ranking steps. Deterministic 
 - Organizations, team membership, accountant roles, invitations and subscriptions.
 - Automatic accounting decisions, automatic settlement, unattended posting, or model-controlled mutations.
 - Arbitrary web research and general-purpose financial advice.
+- Automatic filing/submission to IRIS, tax payment, or a claim that the generated workpaper is legal/tax advice or a certified return.
 
 The existing PRD also places full double-entry accounting, tax filing, forecasting, multi-currency, refunds/netting and split/many-to-many allocation outside its current core. The user has not yet decided whether this expansion changes those boundaries.
 
@@ -66,8 +68,26 @@ Do not guess these choices in migrations or invoice/payment contracts. The recom
 | Invoice output | Preview and download a generated invoice; keep it as a business document linked to its invoice record. | Is sending/email delivery required? It is excluded by the recommended default. |
 | Scanned statement OCR | Support only a small set of agreed layouts, with page regions and exceptions; unsupported layouts fall back to manual review. | Which statement samples/layouts and maximum file/page limits are approved? |
 | Manual payment source | An owner-entered payment is a visible, separately sourced cashbook movement and can later be linked to a matching bank row without duplication. | Which payment details are mandatory (date, amount, method, reference, account)? |
+| FBR tax preparation | Start with a versioned, reviewable income-tax workpaper for one confirmed taxpayer profile and tax year; consider sales-tax workpapers only if registration/jurisdiction requires them. | Legal form/residency, federal vs provincial obligations, applicable tax types, FBR registrations, tax year, withholding evidence, prior-year wealth/assets, and reviewer/accountant sign-off. |
 
 After Gate 0, update `PRD.md`, `docs/raqam/GLOSSARY.md`, `docs/raqam/CONTRACTS.md`, the task board and migrations plan together. Preserve old acceptance criteria where still valid and mark superseded requirements explicitly.
+
+### FBR tax scope gate (required before EXP-12)
+
+Do not infer a filing obligation or tax treatment from the cashbook's categories. FBR material distinguishes tax years and taxpayer/return forms; its online individual filing guidance includes a wealth statement, and sales-tax returns contain period-specific output/input tax reporting. A ledger alone therefore cannot determine every return line. The applicable regime depends on taxpayer legal form, activity, registration, jurisdiction and tax year. For a service business, explicitly check whether any provincial service-tax obligation exists as well as federal obligations.
+
+The first tax slice should produce a **draft workpaper/statement**, not file or pay tax. It must declare its tax year, taxpayer profile, sources included, missing schedules/documents, rule-pack version and review status. The AI can map evidence to candidate rule references and flag gaps or inconsistencies; exact calculations use reviewed, versioned code rules, and all tax classifications/deductions remain subject to owner/accountant review. Never imply that the model has cloned or exhaustively encoded FBR law.
+
+The initial curated FBR rule pack should link to versioned primary material rather than mirror the entire FBR website. Store rule identifiers, tax type, effective dates, tax-year applicability, official source URL and document version/hash, reviewed interpretation, deterministic formula/mapping (where applicable), test examples and reviewer. Keep prior-year versions immutable and require a deliberate update/review when FBR publishes amendments. The official materials checked for this proposal include:
+
+- [Income Tax Ordinance, 2001 (FBR page lists amendments through 30 June 2026)](https://www.fbr.gov.pk/Categ/Income-Tax-Ordinance/326/1000).
+- [Income-tax period and tax-year definition](https://www.fbr.gov.pk/income-tax/81145/81149).
+- [FBR online income-tax return and wealth-statement guidance](https://fbr.gov.pk/categ/file-income-tax-return/51147/80860/71160).
+- [Withholding-tax rate cards (FBR lists TY2027 updated through 30 June 2026)](https://www.fbr.gov.pk/withholding-taxes-rate-card/174298/174301).
+- [FBR sales-tax return overview](https://www.fbr.gov.pk/categ/file-sales-tax-return/51148/50849/101158).
+- [FBR electronic-invoicing FAQ](https://www.fbr.gov.pk/faqs/173967/173969); the FAQ says the governing Acts/Rules prevail and describes licensed-integrator requirements for FBR-integrated electronic invoicing. A downloadable Raqam invoice must not be represented as an FBR-integrated tax invoice unless that status is separately established.
+
+The cited versions are only the source snapshot checked on 10 October 2026; re-check official publications before using any rule for another tax year. Have a qualified Pakistan tax practitioner validate the selected profile, rule interpretations and draft return mapping before product claims or customer use.
 
 ## Deterministic-first pipeline and AI quota policy
 
@@ -128,7 +148,8 @@ The original C steps 1–20 are unchanged. These proposed slices receive new IDs
 | EXP-09 | Extend existing deterministic match path with exception queue and bounded AI ranking — A rules/data; B review UI; C AI | Existing `/api/match-proposals` candidate flow plus EXP-03/05/06/08 | Preserve current exact candidate generation and review contracts. Hard constraints prune candidates before AI; deterministic exact references and approved rules are labeled separately from AI-ranked ambiguous candidates. No-candidate cases use zero inference. Proposal evidence resolves to accessible source records; user review persists. |
 | EXP-10 | AI enrichment and correction rules — C engine; A versioned storage/API; B review controls | EXP-04/05/09 | Batch only unresolved items; validate every ID/version/category/vendor/evidence reference; accepted decisions survive reruns. Explicit user corrections create owner-scoped rules with explainable precedence, expiry/edit/delete behavior. No model training or rule inferred from an unreviewed suggestion. |
 | EXP-11 | Deterministic anomaly checks and summaries — A exact query/calculation; C optional explanation; B dashboard | EXP-01–10 | Enumerated checks cover duplicate references, line-total mismatch, missing required fields, uncategorized activity, unmatched payments and source gaps. Each check reports scope and coverage. Exact cash totals and document/payment statuses reconcile across UI, exports and assistant facts. AI may explain flagged items but cannot invent totals or certify complete absence of errors. |
-| EXP-12 | Full application and release acceptance — A/B/C jointly | All selected slices; current core release checks | Synthetic clean/ambiguous/failure fixtures, signed-in two-owner security, upload/review/reload, invoice generation, payment reconciliation, duplicate retry, exact before/after cash, quota behavior, provider outage and production build pass. Live-provider quality, hosted schema, browser journey and deployment are reported as separate evidence. |
+| EXP-12 | FBR tax workpaper and source-linked rule pack — A tax/profile/rules; C retrieval/review suggestions; B workpaper UI; qualified reviewer validates | Gate 0 plus tax gate; EXP-01–11; confirmed hosted ledger | A selected tax-year/profile fixture yields a versioned draft with traceable ledger/document sources, deterministic calculations, missing-data checklist and source-linked FBR rules. AI review cites only relevant supplied rules/records and can abstain. Tax practitioner independently validates each supported profile. No filing/payment is executed. |
+| EXP-13 | Full application and release acceptance — A/B/C jointly | All selected slices including EXP-12; current core release checks | Synthetic clean/ambiguous/failure fixtures, signed-in two-owner security, upload/review/reload, invoice generation, payment reconciliation, duplicate retry, exact before/after cash, tax workpaper reconciliation, quota behavior, provider outage and production build pass. Live-provider quality, hosted schema, browser journey, expert tax review and deployment are reported as separate evidence. |
 
 ## Cross-cutting data and safety invariants
 
@@ -141,6 +162,10 @@ The original C steps 1–20 are unchanged. These proposed slices receive new IDs
 - Owner/workspace scope is derived from the authenticated session. Prompt text, model arguments, uploaded document contents and IDs never grant authorization.
 - Invoices marked paid require explicit payment evidence and a valid linked or owner-entered movement. A receipt/invoice OCR result alone cannot mark paid.
 - Hard accounting rules, arithmetic, tax amounts entered by the user, deterministic summaries, database state and access decisions remain code-owned.
+- A tax workpaper names its taxpayer type, applicable tax year, jurisdiction, rule-pack version, included records and unresolved exclusions. It does not equate cash movement with taxable income or assume ledger categories are tax deductions.
+- AI tax review is limited to checking a draft against the curated, versioned official sources and records supplied for that run; it must cite rule IDs/source links, distinguish verified arithmetic from interpretation, and abstain when taxpayer facts or law are unresolved.
+- FBR rule updates never silently rewrite prior-year workpapers. Rule changes require a new effective-dated version, updated deterministic tests and qualified human review.
+- No tax return is auto-filed, no tax is paid, and no FBR-integrated invoice capability is claimed without separate authorization, legal validation and any required licensed integration.
 - Any future confidence tier must be evaluated against independent labels by document/transaction type and show its denominator. Until then, expose evidence/rule signals and human-review states, not probability claims.
 
 ## Verification matrix
@@ -151,19 +176,20 @@ The original C steps 1–20 are unchanged. These proposed slices receive new IDs
 | Database/security | Tenant isolation, RLS, unique/idempotent cash movement, source immutability, review audit, rollback, concurrency and stale writes | Browser usability or production provider availability |
 | Deterministic fixtures | Known statement layout, source coverage, duplicate and balance exceptions; zero model calls on fully resolved data | Universal bank compatibility |
 | Scripted AI | Receipt/bill/invoice/note extraction, ambiguity, prompt injection, malformed output, provider failure, batch bounds and abstention | Live semantic quality or quota limits |
-| Live AI evaluation | Held-out examples for extraction, vendor/category suggestions and match ranking; independent labels, measured precision/recall and request count | User approval correctness unless browser journey also runs |
+| Live AI evaluation | Held-out examples for extraction, vendor/category suggestions, match ranking and tax-source review; independent labels, measured precision/recall and request count | User approval correctness, legal applicability or expert tax correctness unless separately validated |
 | Hosted browser journey | Signed-in upload → review → payment link → reload → statement import → no duplicate cash → exact summaries; two-owner denial | Full legal/accounting compliance or every possible statement format |
 | Release | Production build, migration state, provider secret wiring, request quota, rollback, accessible error states and demo fixtures | Features outside the selected release scope |
 
 ## Proposed ownership boundaries
 
-- **Platform/data integrator (A):** scope/contract coordination, exact money, lifecycle schemas, migrations, authenticated routes, persistence, audit/idempotency, cash projections, export and hosted verification.
+- **Platform/data integrator (A):** scope/contract coordination, exact money, lifecycle schemas, migrations, authenticated routes, persistence, audit/idempotency, cash projections, export, taxpayer profiles, tax-year workpapers/rule versions and hosted verification.
 - **Product interface (B):** intake/review queue, field/source comparison, expense editor, bill/invoice screens, payment-link controls, discrepancy review, summaries, responsive/accessibility and browser evidence.
-- **AI workflow (C):** source-aware extraction, written-expense parsing, deterministic eligibility adapters, batched unresolved classification/vendor/match proposals, confidence/evidence policy, caching/quota budget and live evaluation.
+- **AI workflow (C):** source-aware extraction, written-expense parsing, deterministic eligibility adapters, batched unresolved classification/vendor/match proposals, source-bounded tax-workpaper review, confidence/evidence policy, caching/quota budget and live evaluation.
+- **Qualified tax reviewer:** independently validates supported taxpayer profiles, effective-dated rule interpretations, deterministic tax examples and generated workpaper mapping before any tax-use claim.
 - **Independent reviewer/evaluator:** reserved labels, acceptance matrix and user-flow checks; no owner grades their own AI results alone.
 
 These are role proposals. Confirm actual owners and branch/file ownership before implementation; shared schemas, migrations and UI adapters have one named editor at a time.
 
 ## Start condition and next task
 
-This document is a plan, not permission to skip shared contracts or apply migrations. The next implementation task is **EXP-00**: answer Gate 0, confirm current hosted migration state without reapplying 008–010, update the PRD/glossary/contracts/task board, and agree the one cash-movement identity rule. Then implement one vertical slice at a time, beginning with a reviewed expense or bill whose payment is linked to a synthetic bank transaction and counted once.
+This document is a plan, not permission to skip shared contracts or apply migrations. The next implementation task is **EXP-00**: answer Gate 0, confirm current hosted migration state without reapplying 008–010, update the PRD/glossary/contracts/task board, and agree the one cash-movement identity rule. The tax workpaper is a later slice blocked on its separate tax-scope gate and qualified review. Then implement one vertical slice at a time, beginning with a reviewed expense or bill whose payment is linked to a synthetic bank transaction and counted once.
