@@ -27,6 +27,11 @@ const privateRequests = [
   ['/api/transactions/10000000-0000-4000-8000-000000000001', 'GET'],
   ['/api/transactions/10000000-0000-4000-8000-000000000001', 'PATCH'],
   ['/api/transactions/10000000-0000-4000-8000-000000000001/reviews', 'GET'],
+  ['/api/documents', 'GET'], ['/api/documents', 'POST'],
+  ['/api/documents/10000000-0000-4000-8000-000000000001', 'GET'],
+  ['/api/documents/10000000-0000-4000-8000-000000000001', 'PATCH'],
+  ['/api/documents/10000000-0000-4000-8000-000000000001/history', 'GET'],
+  ['/api/documents/10000000-0000-4000-8000-000000000001/extraction', 'POST'],
   ['/api/summary', 'GET'], ['/api/export', 'GET'],
 ];
 for (const [path, method] of privateRequests) {

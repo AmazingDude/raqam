@@ -14,7 +14,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --test --test-isolation=none tests/backend/*.test.ts tests/security/*.test.ts",
+    "test": "node --conditions=react-server --test --test-isolation=none tests/backend/*.test.ts tests/security/*.test.ts",
     "check:env": "node --env-file-if-exists=.env.local scripts/check-env.mjs",
     "check:services": "node --env-file-if-exists=.env.local scripts/check-services.mjs"
   },
