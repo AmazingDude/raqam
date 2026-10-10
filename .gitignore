@@ -6,6 +6,8 @@ dist/
 coverage/
 *.tsbuildinfo
 .vercel/
+/supabase/.temp/
+/supabase/.branches/
 
 # Credentials and local configuration
 .env

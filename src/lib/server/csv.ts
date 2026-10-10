@@ -10,7 +10,7 @@ export type PreviewRow = {
   rowNumber: number; lineNumber: number; original: string[];
   transaction: ParsedCashRow | null; errors: { field: string; message: string }[];
 };
-export type CsvPreview = { currency: 'PKR'; contentHash: string; rows: PreviewRow[]; validCount: number; invalidCount: number };
+export type CsvPreview = { currency: 'PKR'; contentHash: string; header: string[]; rows: PreviewRow[]; validCount: number; invalidCount: number };
 
 function decodeRecords(text: string): { values: string[]; lineNumber: number }[] {
   const records: { values: string[]; lineNumber: number }[] = [];
@@ -75,7 +75,7 @@ export function previewCsv(text: string): CsvPreview {
     return { rowNumber: index + 2, lineNumber, original: values, transaction, errors };
   });
   return {
-    currency: 'PKR', contentHash: createHash('sha256').update(text, 'utf8').digest('hex'), rows,
+    currency: 'PKR', contentHash: createHash('sha256').update(text, 'utf8').digest('hex'), header, rows,
     validCount: rows.filter(row => row.transaction !== null).length, invalidCount: rows.filter(row => row.transaction === null).length,
   };
 }

@@ -3,7 +3,7 @@ import { requireSession } from '../../../lib/server/auth.ts';
 import { requireWorkspace } from '../../../lib/server/workspace.ts';
 import { jsonEndpoint } from '../../../lib/server/http.ts';
 import { BackendError } from '../../../lib/server/errors.ts';
-import { transactionSchema } from '../../../lib/contracts/schemas.ts';
+import { mapCashbookRow } from '../../../lib/server/cashbook-mapping.ts';
 
 export const dynamic = 'force-dynamic';
 const querySchema = z.strictObject({ limit: z.coerce.number().int().min(1).max(50).default(20), cursor: z.uuid().optional() });
@@ -18,12 +18,7 @@ export async function GET(request: Request): Promise<Response> {
     const result = await query;
     if (result.error) throw new BackendError('UNAVAILABLE', 'Cashbook could not be loaded. Please retry.');
     const rows = result.data ?? [], page = rows.slice(0, params.data.limit);
-    const items = page.map(row => transactionSchema.parse({
-      id: row.id, workspaceId: row.workspace_id, source: { sourceId: row.source_id, rowNumber: row.source_row },
-      date: row.date, originalDescription: row.original_description, description: row.description,
-      direction: row.direction, amountMinor: row.amount_minor, currency: row.currency, reference: row.reference,
-      category: row.category, categoryStatus: row.category_status, matchStatus: 'unmatched',
-    }));
+    const items = page.map(mapCashbookRow);
     return { items, nextCursor: rows.length > params.data.limit ? items.at(-1)?.id ?? null : null };
   });
 }

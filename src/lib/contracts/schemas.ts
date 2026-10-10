@@ -17,7 +17,8 @@ export const workspaceInputSchema = z.strictObject({ businessName: z.string().tr
 export const sourceReferenceSchema = z.strictObject({ sourceId: z.string().min(1), rowNumber: z.number().int().min(2).nullable() });
 export const transactionSchema = z.strictObject({
   id: z.string().min(1), workspaceId: z.string().min(1), source: sourceReferenceSchema,
-  date: dateSchema, originalDescription: z.string().min(1).max(2000), description: z.string().min(1).max(2000),
+  // An invalid blank/long original can be corrected, but the source text must survive.
+  date: dateSchema, originalDescription: z.string().max(1024 * 1024), description: z.string().min(1).max(2000),
   direction: z.enum(['in', 'out']), amountMinor: minorUnitsSchema, currency: z.literal('PKR'),
   reference: z.string().max(500).nullable(), category: categorySchema.nullable(),
   categoryStatus: reviewStatusSchema, matchStatus: z.enum(['unmatched', 'proposed', 'accepted']),
