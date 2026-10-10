@@ -4,6 +4,7 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 
 // Exercise the CLI with only its external fetch replaced. Never load .env.local.
 function runProbe(options: { args?: string; answer?: string; status?: number; remaining?: string; multiple?: boolean; missingId?: boolean; missingCapacity?: boolean } = {}) {
@@ -31,7 +32,7 @@ function runProbe(options: { args?: string; answer?: string; status?: number; re
     };
   `, { mode: 0o600 });
   try {
-    const result = spawnSync(process.execPath, ['--experimental-strip-types', '--import', preload, resolve('tests/ai/live/feasibility.ts'), '--probe=tool'], {
+    const result = spawnSync(process.execPath, ['--experimental-strip-types', '--import', pathToFileURL(preload).href, resolve('tests/ai/live/feasibility.ts'), '--probe=tool'], {
       env: { ...process.env, GROQ_API_KEY: 'synthetic-proof-test-key' }, encoding: 'utf8', timeout: 5000,
     });
     assert.ifError(result.error);
