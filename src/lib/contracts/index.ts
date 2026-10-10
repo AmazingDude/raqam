@@ -49,5 +49,7 @@ export type CashBucket = { inflowMinor: MinorUnits; outflowMinor: MinorUnits; ne
 export type CashSummary = CashBucket & {
   currency: 'PKR'; transactionCount: number; transactionIds: string[];
   unresolvedImportRowCount: number;
+  categoryCoverage: { acceptedCount: number; notAcceptedCount: number };
+  matchCoverage: { matchedCount: number; notMatchedCount: number };
   categories: Partial<Record<Category, CashBucket>>; unreviewed: CashBucket;
 };

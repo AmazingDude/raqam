@@ -1,11 +1,11 @@
 # Adding a few more features: bookkeeping pipeline expansion
 
-**Status:** proposed follow-on plan, not yet an accepted change to the product PRD.
+**Status:** accepted target scope; implementation remains gated by task acceptance evidence.
 **Prepared:** 10 October 2026, PKT.
 **Baseline:** latest local `main` at `5bfe18f`; current PRD, migrations, contracts, routes, UI and C2 handoff inspected.
 **Purpose:** define a deterministic-first, AI-assisted path from statements, receipts, invoices and written expenses to a reviewed, persistent bookkeeping ledger.
 
-This plan extends Raqam's current reviewed cashbook. It does not mark any new feature implemented. The current PRD remains authoritative until the user approves the scope decisions in Gate 0 and updates the relevant requirements.
+This plan extends Raqam's current reviewed cashbook. The user accepted the target scope and ledger operating defaults recorded in PRD D15–D20. It does not mark any new feature implemented. Workspace-specific history cutoffs/evidence and scanned-layout limits remain setup decisions.
 
 ## What the current code already provides
 
@@ -196,4 +196,4 @@ For the user's requested two-person MVP execution, use [BOOKKEEPING_MVP_TWO_PERS
 
 ## Start condition and next task
 
-This document is a plan, not permission to skip shared contracts or apply migrations. The next implementation task is **EXP-00**: answer Gate 0, confirm current hosted migration state without reapplying 008–010, update the PRD/glossary/contracts/task board, and agree the one cash-movement identity rule. The tax workpaper is a later slice blocked on its separate tax-scope gate and qualified review. Then implement one vertical slice at a time, beginning with a reviewed expense or bill whose payment is linked to a synthetic bank transaction and counted once.
+This document is a plan, not permission to skip shared contracts or apply migrations. **EXP-00 remains in progress** for workspace-specific history/evidence inputs, supported scanned layouts and independent journey review. **EXP-01/02/03 have backend implementations**: contracts, ledger migration 014, scoped account/journal/report/expense-draft/supplier-bill routes and deterministic calculations. Focused ledger checks pass 23/23; Person 2 contract review, hosted migration verification and source/report reconciliation remain open. Expense, supplier-bill and Books screens are present on main, but save/reload and accounting acceptance remain open. The BYOK migration is 013 and its table collision needs a read-only completeness check before any retry. Do not replay installed migrations. The tax workpaper is a later slice blocked on its separate tax-scope gate and qualified review. Continue with one vertical slice at a time, including invoice/payment settlement and a reviewed expense/bill linked to a synthetic bank movement exactly once.

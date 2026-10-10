@@ -1,328 +1,50 @@
 'use client';
-
-import { useState } from 'react';
-import { Icon } from '../ui/icon.tsx';
+import Link from 'next/link';
+import { useId, useRef, useState } from 'react';
+import { money } from '../../lib/client/presentation.ts';
+import { Icon, Mark } from '../ui/icon.tsx';
 import s from './landing.module.css';
 
-type Tab = 'cashbook' | 'evidence' | 'assistant';
-type Filter = 'all' | 'reviewed' | 'pending';
-
-const MOCK_ROWS = [
-  {
-    id: 'row-1',
-    title: 'Brand identity · Aster Studio',
-    date: '10 Oct 2026',
-    category: 'Customer receipts',
-    status: 'reviewed',
-    amount: '+64,000.00',
-    type: 'in',
-    proof: 'Bank transfer · Ref 9401',
-  },
-  {
-    id: 'row-2',
-    title: 'Northstar Cloud subscription',
-    date: '8 Oct 2026',
-    category: 'Software & Tools',
-    status: 'pending',
-    amount: '−8,500.00',
-    type: 'out',
-    proof: 'Receipt attached · NS-101',
-  },
-  {
-    id: 'row-3',
-    title: 'October studio rent',
-    date: '7 Oct 2026',
-    category: 'Premises & utilities',
-    status: 'reviewed',
-    amount: '−12,500.00',
-    type: 'out',
-    proof: 'Direct debit receipt',
-  },
-  {
-    id: 'row-4',
-    title: 'Design retainer · K2 Ventures',
-    date: '4 Oct 2026',
-    category: 'Customer receipts',
-    status: 'reviewed',
-    amount: '+28,000.00',
-    type: 'in',
-    proof: 'Invoice INV-2026-08',
-  },
-  {
-    id: 'row-5',
-    title: 'High-speed fiber connection',
-    date: '3 Oct 2026',
-    category: 'Premises & utilities',
-    status: 'pending',
-    amount: '−6,500.00',
-    type: 'out',
-    proof: 'Bill scanned · PTCL-88',
-  },
+const tabs=[{id:'cashbook',label:'Cashbook',icon:'book'},{id:'evidence',label:'Receipt review',icon:'file'},{id:'assistant',label:'Ask Raqam',icon:'spark'}] as const;
+type Tab=typeof tabs[number]['id'];
+type Filter='all'|'reviewed'|'pending';
+const rows=[
+  {id:'aster',title:'Brand identity · Aster Studio',date:'10 Oct',category:'Customer receipts',reviewed:true,amount:6400000n,direction:'in'},
+  {id:'northstar',title:'Northstar Cloud subscription',date:'8 Oct',category:'Software & tools',reviewed:false,amount:850000n,direction:'out'},
+  {id:'rent',title:'October studio rent',date:'7 Oct',category:'Premises & utilities',reviewed:true,amount:1250000n,direction:'out'},
+  {id:'k2',title:'Design retainer · K2 Ventures',date:'4 Oct',category:'Customer receipts',reviewed:true,amount:2800000n,direction:'in'},
+  {id:'fiber',title:'Fiber connection',date:'3 Oct',category:'Premises & utilities',reviewed:false,amount:650000n,direction:'out'},
 ];
 
 export function LandingPreview() {
-  const [activeTab, setActiveTab] = useState<Tab>('cashbook');
-  const [filter, setFilter] = useState<Filter>('all');
-  const [evidenceMode, setEvidenceMode] = useState<'verified' | 'raw'>('verified');
-
-  const filteredRows = MOCK_ROWS.filter((r) => {
-    if (filter === 'reviewed') return r.status === 'reviewed';
-    if (filter === 'pending') return r.status === 'pending';
-    return true;
-  });
-
-  return (
-    <div className={s.previewContainer} aria-label="Interactive Raqam preview">
-      {/* Tab Navigation Bar */}
-      <div className={s.previewTabsHeader}>
-        <div className={s.previewTabGroup} role="tablist" aria-label="Feature preview tabs">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'cashbook'}
-            className={`${s.previewTabBtn} ${activeTab === 'cashbook' ? s.previewTabBtnActive : ''}`}
-            onClick={() => setActiveTab('cashbook')}
-          >
-            <Icon name="book" size={14} />
-            <span>Cashbook Ledger</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'evidence'}
-            className={`${s.previewTabBtn} ${activeTab === 'evidence' ? s.previewTabBtnActive : ''}`}
-            onClick={() => setActiveTab('evidence')}
-          >
-            <Icon name="file" size={14} />
-            <span>Receipt Evidence</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'assistant'}
-            className={`${s.previewTabBtn} ${activeTab === 'assistant' ? s.previewTabBtnActive : ''}`}
-            onClick={() => setActiveTab('assistant')}
-          >
-            <Icon name="spark" size={14} />
-            <span>Grounded Assistant</span>
-          </button>
-        </div>
-
-        <div className={s.previewMeta}>
-          <span><strong>Sunday Studio</strong> (Demo)</span>
-          <span className={s.previewTag}>Interactive Preview</span>
-        </div>
+  const id=useId(),refs=useRef<(HTMLButtonElement|null)[]>([]);
+  const [tab,setTab]=useState<Tab>('cashbook'),[filter,setFilter]=useState<Filter>('all'),[mode,setMode]=useState<'reviewed'|'original'>('reviewed');
+  const filtered=rows.filter(row=>filter==='all'||(filter==='reviewed'?row.reviewed:!row.reviewed));
+  const cashIn=filtered.reduce((total,row)=>total+(row.direction==='in'?row.amount:0n),0n);
+  const cashOut=filtered.reduce((total,row)=>total+(row.direction==='out'?row.amount:0n),0n);
+  const totals: [string,bigint][]=[['Cash in',cashIn],['Cash out',cashOut],['Net cash movement',cashIn-cashOut]];
+  return <section className={s.preview} aria-label="Interactive Raqam example">
+    <div className={s.previewBar}><span className={s.previewBrand}><Mark/>raqam <span>/ Sunday Studio</span></span><span className={s.exampleLabel}>Synthetic example · PKR</span></div>
+    <div className={s.previewLayout}>
+      <div className={s.previewNav} role="tablist" aria-label="Product preview">
+        {tabs.map((item,index)=><button key={item.id} ref={element=>{refs.current[index]=element;}} type="button" role="tab" id={`${id}-${item.id}`} aria-controls={`${id}-${item.id}-panel`} aria-selected={tab===item.id} tabIndex={tab===item.id?0:-1} className={tab===item.id?s.previewNavActive:''} onClick={()=>setTab(item.id)} onKeyDown={event=>{let next=index;if(event.key==='ArrowRight'||event.key==='ArrowDown')next=(index+1)%tabs.length;else if(event.key==='ArrowLeft'||event.key==='ArrowUp')next=(index+tabs.length-1)%tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=tabs.length-1;else return;event.preventDefault();setTab(tabs[next]!.id);refs.current[next]?.focus();}}><Icon name={item.icon} size={18}/>{item.label}</button>)}
       </div>
-
-      {/* Tab 1: Cashbook View */}
-      {activeTab === 'cashbook' && (
-        <div className={s.previewPanel}>
-          {/* Stat Cards */}
-          <div className={s.cashbookStats}>
-            <div className={s.statCard}>
-              <div className={s.statLabel}>
-                <span>Cash in · PKR</span>
-                <span className={s.badgeReviewed}><Icon name="check" size={12} /> Verified</span>
-              </div>
-              <div className={`${s.statValue} ${s.statValueGreen}`}>92,000.00</div>
-            </div>
-            <div className={s.statCard}>
-              <div className={s.statLabel}>
-                <span>Cash out · PKR</span>
-                <span className={s.badgeReviewed}><Icon name="check" size={12} /> Verified</span>
-              </div>
-              <div className={`${s.statValue} ${s.statValueRed}`}>27,500.00</div>
-            </div>
-            <div className={s.statCard}>
-              <div className={s.statLabel}>
-                <span>Net movement · PKR</span>
-                <span style={{ fontSize: 11, color: '#9ba1ad' }}>October 2026</span>
-              </div>
-              <div className={`${s.statValue} ${s.statValueWhite}`}>+64,500.00</div>
-            </div>
-          </div>
-
-          {/* Filter Pills */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            <button
-              type="button"
-              onClick={() => setFilter('all')}
-              className={`${s.ghostPill} ${filter === 'all' ? s.primaryPill : ''}`}
-              style={{ padding: '4px 12px', fontSize: 12, minHeight: 32 }}
-            >
-              All Records ({MOCK_ROWS.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter('reviewed')}
-              className={`${s.ghostPill} ${filter === 'reviewed' ? s.primaryPill : ''}`}
-              style={{ padding: '4px 12px', fontSize: 12, minHeight: 32 }}
-            >
-              Reviewed (3)
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter('pending')}
-              className={`${s.ghostPill} ${filter === 'pending' ? s.primaryPill : ''}`}
-              style={{ padding: '4px 12px', fontSize: 12, minHeight: 32 }}
-            >
-              Needs Review (2)
-            </button>
-          </div>
-
-          {/* Rows */}
-          <div className={s.cashbookRows}>
-            {filteredRows.map((row) => (
-              <div key={row.id} className={s.cashRow}>
-                <div className={s.cashRowMeta}>
-                  <div className={s.cashRowTitle}>{row.title}</div>
-                  <div className={s.cashRowSub}>
-                    <span>{row.date}</span>
-                    <span>·</span>
-                    <span>{row.category}</span>
-                    <span>·</span>
-                    {row.status === 'reviewed' ? (
-                      <span className={s.badgeReviewed}>
-                        <Icon name="check" size={11} /> Reviewed
-                      </span>
-                    ) : (
-                      <span className={s.badgePending}>
-                        <Icon name="review" size={11} /> AI Proposed
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <div
-                    className={s.cashRowAmount}
-                    style={{ color: row.type === 'in' ? '#34d399' : '#ffffff' }}
-                  >
-                    {row.amount}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#8b92a0', textAlign: 'right', marginTop: 2 }}>
-                    PKR
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Tab 2: Evidence & OCR View */}
-      {activeTab === 'evidence' && (
-        <div className={s.previewPanel}>
-          <div className={s.evidenceGrid}>
-            <div className={s.evidenceLeft}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <div className={s.evidenceHeading}>Transaction Verification</div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => setEvidenceMode('verified')}
-                    className={`${s.ghostPill} ${evidenceMode === 'verified' ? s.primaryPill : ''}`}
-                    style={{ padding: '3px 10px', fontSize: 11, minHeight: 28 }}
-                  >
-                    Verified State
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEvidenceMode('raw')}
-                    className={`${s.ghostPill} ${evidenceMode === 'raw' ? s.primaryPill : ''}`}
-                    style={{ padding: '3px 10px', fontSize: 11, minHeight: 28 }}
-                  >
-                    Raw Model Output
-                  </button>
-                </div>
-              </div>
-
-              <div className={s.fieldRow}>
-                <span className={s.fieldName}>Counterparty</span>
-                <span className={s.fieldVal}>Northstar Cloud LLC</span>
-              </div>
-              <div className={s.fieldRow}>
-                <span className={s.fieldName}>Transaction Date</span>
-                <span className={s.fieldVal}>8 Oct 2026</span>
-              </div>
-              <div className={s.fieldRow}>
-                <span className={s.fieldName}>Reference Code</span>
-                <span className={s.fieldVal}>NS-101 (Matched)</span>
-              </div>
-              <div className={s.fieldRow}>
-                <span className={s.fieldName}>Extracted Amount</span>
-                <span className={s.fieldVal}>PKR 8,500.00 (Exact)</span>
-              </div>
-              <div className={s.fieldRow}>
-                <span className={s.fieldName}>Assigned Category</span>
-                <span className={s.fieldVal}>
-                  Software & Subscriptions
-                  <span className={s.badgeReviewed} style={{ marginLeft: 8 }}>Confirmed</span>
-                </span>
-              </div>
-              <div className={s.fieldRow}>
-                <span className={s.fieldName}>Integrity Status</span>
-                <span className={s.fieldVal} style={{ color: '#34d399' }}>
-                  <Icon name="check" size={14} /> 1-to-1 Match Locked
-                </span>
-              </div>
-            </div>
-
-            {/* Receipt Preview Paper */}
-            <div className={s.receiptCard}>
-              <div className={s.receiptHeader}>
-                <div>
-                  <div className={s.receiptTitle}>Northstar Cloud</div>
-                  <div className={s.receiptSubtitle}>Receipt #NS-101 · Billed to Sunday Studio</div>
-                </div>
-                <span className={s.badgeReviewed} style={{ fontSize: 10 }}>OCR Grounded</span>
-              </div>
-
-              <div style={{ fontSize: 12, color: '#4b5563', lineHeight: 1.6 }}>
-                <div><strong>Service:</strong> Cloud Infrastructure Plan</div>
-                <div><strong>Billing Date:</strong> 08-10-2026</div>
-                <div><strong>Payment Method:</strong> Visa ending in 4092</div>
-              </div>
-
-              <div className={s.receiptTotalRow}>
-                <div>
-                  <span style={{ color: '#6b7280', display: 'block', fontSize: 11 }}>Settled in PKR</span>
-                  <strong>Amount Paid</strong>
-                </div>
-                <div className={s.receiptTotalVal}>8,500.00</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 3: Grounded Assistant View */}
-      {activeTab === 'assistant' && (
-        <div className={s.previewPanel}>
-          <div className={s.assistantChat}>
-            <div className={s.chatBubbleUser}>
-              How much net cash movement did we record in October, and are there any unverified items?
-            </div>
-
-            <div className={s.chatBubbleAi}>
-              <div className={s.chatToolBadge}>
-                <Icon name="spark" size={13} />
-                Executed: list_transactions(month=&quot;2026-10&quot;) &amp; get_cash_summary()
-              </div>
-              <p style={{ margin: '0 0 10px' }}>
-                Based on your verified cashbook for <strong>October 2026</strong>:
-              </p>
-              <ul style={{ margin: '0 0 12px', paddingLeft: 20 }}>
-                <li><strong>Cash In:</strong> PKR 92,000.00 (from 2 customer payments)</li>
-                <li><strong>Cash Out:</strong> PKR 27,500.00 (across 3 operating expenses)</li>
-                <li><strong>Net Movement:</strong> <strong>+PKR 64,500.00</strong></li>
-              </ul>
-              <div style={{ background: 'rgba(255,255,255,0.04)', padding: '10px 14px', borderRadius: 8, fontSize: 13, border: '1px solid rgba(255,255,255,0.06)' }}>
-                <strong>Pending Action:</strong> You have <strong>2 records</strong> awaiting your explicit review: <em>Northstar Cloud (PKR 8,500.00)</em> and <em>High-speed fiber (PKR 6,500.00)</em>.
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {tabs.map(item=><div key={item.id} hidden={tab!==item.id} className={s.previewPanel} role="tabpanel" id={`${id}-${item.id}-panel`} aria-labelledby={`${id}-${item.id}`} tabIndex={0}>
+        {item.id==='cashbook'&&<>
+          <div className={s.previewHeading}><div><h2>Your cashbook, together.</h2><p>A clear view of your recorded cash activity.</p></div><Link href="/demo" className={s.previewOpen} aria-label="Open the full example workspace"><Icon name="arrow" size={18}/></Link></div>
+          <div className={s.previewTotals} aria-label="Cash totals for visible example records" aria-live="polite">{totals.map(([label,value])=><div key={label}><span>{label} <small>PKR</small></span><strong>{money(value.toString())}</strong></div>)}</div>
+          <div className={s.previewFilters} aria-label="Filter example records">{([{id:'all',label:'All records',count:5},{id:'reviewed',label:'Reviewed',count:3},{id:'pending',label:'Needs review',count:2}] as const).map(option=><button key={option.id} type="button" aria-pressed={filter===option.id} onClick={()=>setFilter(option.id)} className={filter===option.id?s.filterActive:''}>{option.label}<span>{option.count}</span></button>)}</div>
+          <div className={s.previewRows} aria-live="polite"><div className={s.rowHeader}><span>Transaction</span><span>Category review</span><span>Amount · PKR</span></div>{filtered.map(row=><div className={s.previewRow} key={row.id}><div className={s.previewRecord}><span className={s.rowIcon}><Icon name={row.direction==='in'?'arrow':'file'} size={17}/></span><div><strong>{row.title}</strong><span>{row.date} 2026 · {row.category}</span></div></div><span className={row.reviewed?s.reviewed:s.pending}>{row.reviewed?'Reviewed':'Needs review'}</span><strong className={s.rowAmount}>{row.direction==='in'?'+':'−'}{money(row.amount.toString())}</strong></div>)}</div>
+          <p className={s.previewFoot}>{filtered.length} visible example records · Totals follow this filter. Review status is separate.</p>
+        </>}
+        {item.id==='evidence'&&<>
+          <div className={s.previewHeading}><div><h2>The source, beside the details.</h2><p>Compare a proposed extraction with a reviewed correction.</p></div></div>
+          <div className={s.evidenceGrid}><div className={s.receiptPaper}><span className={s.paperMark}>N</span><h3>Northstar Cloud</h3><p>Receipt #NS-101 · Sunday Studio</p><div className={s.paperLine}><span>Date</span><strong>8 Oct 2026</strong></div><div className={s.paperLine}><span>Cloud subscription</span><strong>8,500.00</strong></div><div className={s.paperTotal}><span>Total · PKR</span><strong>8,500.00</strong></div><small>Synthetic source. A receipt alone does not prove bank settlement.</small></div><div><div className={s.evidenceToggle} aria-label="Evidence version"><button type="button" aria-pressed={mode==='reviewed'} onClick={()=>setMode('reviewed')}>Reviewed details</button><button type="button" aria-pressed={mode==='original'} onClick={()=>setMode('original')}>Original extraction</button></div><dl className={s.fieldList}><div><dt>Counterparty</dt><dd>{mode==='reviewed'?'Northstar Cloud':'Northstar Cl0ud'}</dd></div><div><dt>Date</dt><dd>8 Oct 2026</dd></div><div><dt>Reference</dt><dd>{mode==='reviewed'?'NS-101':'Unknown · needs review'}</dd></div><div><dt>Total</dt><dd>PKR 8,500.00</dd></div></dl><p className={s.evidenceNote} aria-live="polite">{mode==='reviewed'?'Example correction: the owner checked the name and reference against the receipt. Original extraction is preserved.':'Example AI proposal: the name is misread and the reference is unknown. These details still need human review.'}</p></div></div>
+        </>}
+        {item.id==='assistant'&&<>
+          <div className={s.previewHeading}><div><h2>A question for your cashbook.</h2><p>An illustrative answer, grounded in these five example records.</p></div></div><div className={s.previewChat}><div className={s.userQuestion}>How did cash move in October?</div><div className={s.sampleAnswer}><span className={s.assistantMark}><Icon name="spark" size={18}/> raqam</span><p>These five imported example records show <strong>PKR 92,000.00 cash in</strong> and <strong>PKR 27,500.00 cash out</strong>. Net cash movement is <strong>PKR 64,500.00</strong>.</p><p>Two records still need category review. Their cash movements are already included in the recorded totals.</p><details className={s.sourceDetails}><summary><Icon name="link" size={14}/> Inspect 5 example source records</summary><ul>{rows.map(row=><li key={row.id}>{row.title}: {row.direction==='in'?'+':'−'}PKR {money(row.amount.toString())}</li>)}</ul></details></div><p className={s.previewFoot}>Sample response · No live model call · Net movement is not profit.</p></div>
+        </>}
+      </div>)}
     </div>
-  );
+  </section>;
 }

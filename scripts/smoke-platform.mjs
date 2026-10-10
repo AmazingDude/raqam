@@ -5,7 +5,7 @@ const base = process.env.SMOKE_BASE_URL ?? 'http://localhost:3187';
 const configured = process.argv.includes('--configured');
 const home = await fetch(base);
 assert.equal(home.status, 200);
-assert.match(await home.text(), /Get Started Free|Open Workspace|Launch Workspace/);
+assert.match(await home.text(), /Less bookkeeping/);
 assert.equal(home.headers.get('x-content-type-options'), 'nosniff');
 const health = await fetch(`${base}/api/health`);
 assert.deepEqual(await health.json(), { status: configured ? 'configured_unverified' : 'setup_required' });
@@ -34,6 +34,7 @@ const privateRequests = [
   ['/api/documents/10000000-0000-4000-8000-000000000001/history', 'GET'],
   ['/api/documents/10000000-0000-4000-8000-000000000001/extraction', 'POST'],
   ['/api/category-proposals', 'GET'], ['/api/category-proposals', 'POST'],
+  ['/api/tax-readiness', 'GET'], ['/api/tax-readiness', 'POST'],
   ['/api/summary', 'GET'], ['/api/export', 'GET'],
 ];
 for (const [path, method] of privateRequests) {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 // Read-only HTTP checks. Does not log credentials, records or provider responses.
 const base = process.env.FRONTEND_BASE_URL ?? 'http://localhost:3000';
 const pages = [
-  ['/', /Bookkeeping you can actually trust|Get Started Free/], ['/demo', /Synthetic records/], ['/workspace', /Checking your session|Your workspace is almost ready/],
+  ['/', /Less bookkeeping/], ['/demo', /Synthetic records/], ['/workspace', /Checking your session|Your workspace is almost ready/],
 ];
 for (const [path, copy] of pages) {
   const response = await fetch(`${base}${path}`);

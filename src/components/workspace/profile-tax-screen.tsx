@@ -1,0 +1,29 @@
+'use client';
+import { useState } from 'react';
+import type { Workspace } from '../../lib/contracts/index.ts';
+import { Icon } from '../ui/icon.tsx';
+import s from '../ui/theme.module.css';
+
+export function ProfileScreen({workspace,onTaxReadiness}:{workspace:Workspace;onTaxReadiness:()=>void}) {
+  const [tab,setTab]=useState<'business'|'tax'>('business');
+  return <>
+    <div className={s.pageHeading}><div><h1>Business profile</h1><p>Keep business identity and tax facts reviewable and separate.</p></div><span className={`${s.badge} ${s.pending}`}>Setup incomplete</span></div>
+    <div className={s.tabs} aria-label="Profile sections"><button className={tab==='business'?s.selectedTab:''} aria-pressed={tab==='business'} onClick={()=>setTab('business')}>Business details</button><button className={tab==='tax'?s.selectedTab:''} aria-pressed={tab==='tax'} onClick={()=>setTab('tax')}>Tax profile</button></div>
+    {tab==='business'?<section className={s.profileGrid}>
+      <article className={s.panel}><div className={s.panelHeading}><div><h2>Workspace basics</h2><p className={s.small}>Currently saved for this workspace.</p></div><Icon name="book" size={20}/></div><dl className={s.profileDetails}><dt>Business name</dt><dd>{workspace.businessName}</dd><dt>Book currency</dt><dd>{workspace.currency} · Pakistani rupee</dd><dt>Accounting workflow</dt><dd>Reviewed double-entry ledger</dd></dl></article>
+      <article className={s.panel}><div className={s.panelHeading}><div><h2>More business details</h2><p className={s.small}>The current workspace API stores only a name and PKR currency.</p></div></div><div className={s.profileChecklist}><Fact title="Legal form" status="Not collected"/><Fact title="Business activity" status="Not collected"/><Fact title="Province and registrations" status="Not collected"/><Fact title="Ledger history and opening evidence" status="Review in Books"/></div><p className={s.noticeText}>Profile editing is not enabled yet because these details do not have an owner-scoped save contract. No changes here are presented as saved.</p></article>
+      <article className={s.panel}><div className={s.panelHeading}><div><h2>How profile setup will work</h2><p className={s.small}>A short guided review, with provenance on every answer.</p></div></div><ol className={s.profileSteps}><li>Raqam asks one or two relevant questions.</li><li>You confirm, correct, or leave each answer missing.</li><li>Saved facts show whether they are confirmed or assumed.</li><li>Tax rules request only the profile fields they need.</li></ol></article>
+    </section>:<section className={s.panel}><div className={s.panelHeading}><div><h2>Tax readiness profile</h2><p className={s.small}>Review your self-reported answers for the current normal Pakistan tax year.</p></div></div><div className={s.profileChecklist}><p>The guided interview covers taxpayer type, residency, region, filing history, income sources and records on hand. Answers stay as a draft until you explicitly save them.</p><button className={s.button} onClick={onTaxReadiness}>Open tax readiness interview</button></div><div className={s.notice}><p><strong>Nothing is assumed from silence.</strong> A readiness profile is not a verified taxpayer schedule or tax return. Tax rules, calculations and practitioner review remain separate gates.</p></div></section>}
+  </>;
+}
+
+function Fact({title,status}:{title:string;status:string}) {return <div className={s.profileFact}><span>{title}</span><span className={s.badge}>{status}</span></div>;}
+
+export function TaxWorkpaperScreen() {
+  return <>
+    <div className={s.pageHeading}><div><h1>Tax workpaper</h1><p>Prepare a source-linked draft for review against the selected FBR tax year.</p></div><span className={`${s.badge} ${s.pending}`}>Not ready to prepare</span></div>
+    <section className={s.taxGate} aria-labelledby="tax-gate-title"><div className={s.taxGateIcon}><Icon name="review" size={24}/></div><div><h2 id="tax-gate-title">Preparation is gated until the facts and rules are ready</h2><p>The readiness interview is available separately. A complete verified taxpayer schedule, effective-dated FBR rule pack, deterministic calculation service and practitioner review workflow are not connected to this workpaper yet. This screen does not calculate or save a tax return.</p></div></section>
+    <div className={s.taxColumns}><section className={s.panel}><div className={s.panelHeading}><div><h2>Before a workpaper can be prepared</h2><p className={s.small}>Each gate needs evidence and an explicit status.</p></div></div><div className={s.profileChecklist}><Fact title="Complete verified taxpayer schedule" status="Not connected"/><Fact title="Tax year and tax types" status="Missing"/><Fact title="Reviewed official rule version" status="Missing"/><Fact title="Ledger history and included records" status="Incomplete"/><Fact title="Withholding and other required schedules" status="Missing"/><Fact title="Qualified practitioner review" status="Required"/></div></section><section className={s.panel}><div className={s.panelHeading}><div><h2>Workpaper contents</h2><p className={s.small}>This is the planned review structure, not a generated return.</p></div></div><ul className={s.taxContents}><li>Selected taxpayer and tax-year facts</li><li>Included ledger sources and excluded records</li><li>Rule citations, effective dates, and rule-pack version</li><li>Deterministic calculations and source links</li><li>Missing evidence, assumptions, and open questions</li><li>Practitioner review status and export record</li></ul><button className={s.secondary} disabled title="Tax profile and workpaper services are not available">Prepare tax workpaper</button></section></div>
+    <p className={s.taxFooter}>AI may help map supplied evidence and explain discrepancies. It must abstain when a fact or applicable rule is unknown. Raqam will not file or pay taxes.</p>
+  </>;
+}

@@ -33,7 +33,7 @@ export default function BrowserHarness() {
       if(!path.startsWith('/api/'))return originalFetch(input,init);
       const url=new URL(path,window.location.origin),method=init?.method??'GET';
       if(init?.signal?.aborted)throw new DOMException('Aborted','AbortError');
-      if(url.pathname==='/api/export')return db.failExport?error('UNAVAILABLE','Simulated export unavailable. Retry.',503):new Response(exportCashbook(db.records,workspace.id),{headers:{'Content-Type':'text/csv','X-Raqam-Unresolved-Import-Rows':String([...db.outcomes.values()].filter(row=>row.outcome==='unresolved').length)}});
+      if(url.pathname==='/api/export')return db.failExport?error('UNAVAILABLE','Simulated export unavailable. Retry.',503):new Response(exportCashbook(db.records,workspace.id),{headers:{'Content-Type':'text/csv','X-Raqam-Transaction-Count':String(db.records.length),'X-Raqam-Unresolved-Import-Rows':String([...db.outcomes.values()].filter(row=>row.outcome==='unresolved').length)}});
       const batch=()=>({importId,preview,status:db.confirmed?'confirmed':'pending',confirmation:db.confirmation});
       if(path==='/api/imports'&&method==='POST')return ok({...batch(),duplicate:db.confirmed});
       if(path===`/api/imports/${importId}`)return ok(batch());

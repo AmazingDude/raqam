@@ -1,5 +1,9 @@
 const required = ['APP_URL', 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', 'CLERK_SECRET_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'];
 if (process.argv.includes('--ai')) required.push('GROQ_API_KEY', 'GROQ_VISION_MODEL', 'GROQ_TEXT_MODEL');
+if (!process.env.APP_URL && (process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL)) {
+  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL;
+  process.env.APP_URL = host.startsWith('http') ? host : `https://${host}`;
+}
 const missing = required.filter(name => !process.env[name]?.trim());
 const invalid = [];
 if (process.env.BYOK_ENCRYPTION_KEY?.trim()) {
