@@ -39,7 +39,7 @@ C: `src/lib/ai/**`, `tests/ai/**`, `docs/ai/**`, subject to A's actual bootstrap
 | Step 8 receipt integration | blocked pending hosted verification | A's authenticated upload/register/extract/history/review paths and B's live receipt field/source UI are present. Scripted service and PGlite tests pass; missing app env and unapplied hosted migration 008 prevent signed-in upload/correction/reload/cache and cash-total verification. |
 | C-04 categories / step 9 | implementation complete | Guide/version review and generation/list integration are present; live semantic evaluation remains step 19 |
 | Step 10 category integration | in_review | Generation/list and accept/change/reject/reload/rerun UI are integrated; signed-in persistence and cash/category reconciliation remain unverified |
-| C-05 matching | todo | Reviewed document fields, candidate/allocation snapshots |
+| C-05 matching | in_review | A2 provider-backed match candidate service validates evidence/candidate sets and stale snapshots; local tests pass. Hosted signed-in generation/review/reload and live quality acceptance remain open |
 | C-06 assistant | in_review | Four scoped read-only tools, bounded loop, endpoint and UI are integrated; signed-in browser, foreign-evidence and evaluation remain open |
 | C-07 integration | in_review | Local receipt/category/assistant/match integration is present; signed-in journeys and release checks remain open |
 | C-08 reserved evaluation | todo | Frozen configuration and independent A/B labels |

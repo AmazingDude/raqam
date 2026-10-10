@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import type { SupportingDocument, Transaction } from '../../contracts/index.ts';
-import type { AssistantResponse } from '../../contracts/assistant.ts';
-import { assistantToolResultSchemas } from '../../contracts/assistant.ts';
+import {
+  assistantHistorySchema, parseAssistantToolResult,
+  type AssistantResponse, type AssistantToolName, type AssistantToolResult,
+} from '../../contracts/assistant.ts';
 import { acceptedDocumentFieldsSchema, documentRecordSchema } from '../../contracts/documents.ts';
 import { assistantToolSchemas } from '../../contracts/schemas.ts';
 import { BackendError } from '../errors.ts';
@@ -9,9 +11,10 @@ import { formatAmount } from '../money.ts';
 import { createCashbookTools } from './cashbook-tools.ts';
 import { combinedSnapshot, documentSnapshot, historySnapshot } from './snapshot.ts';
 
-export type ToolObservation = {
+export type ToolObservation<Name extends AssistantToolName = AssistantToolName> = {
   text: string; records: Transaction[]; citations: AssistantResponse['citations']; partial: boolean;
-  details?: unknown;
+  result: AssistantToolResult[Name];
+  details: { result: AssistantToolResult[Name] };
 };
 type Options = {
   workspaceId: string; deadlineAt: number; signal?: AbortSignal;
@@ -19,10 +22,6 @@ type Options = {
   readHistory: (transactionIds: string[], documentIds: string[]) => Promise<unknown>;
 };
 const documentSchema = documentRecordSchema.shape.document;
-const historySchema = z.strictObject({ items: z.array(z.object({
-  kind: z.enum(['transaction', 'document']), id: z.string().min(1), partial: z.boolean(),
-  decisions: z.array(z.object({ version: z.number().int().positive(), created_at: z.string() })).max(20),
-})).max(20), partial: z.boolean() });
 const unavailable = () => new BackendError('UNAVAILABLE', 'Assistant evidence could not be verified. Please retry.');
 
 export function createAssistantTools(options: Options) {
@@ -44,6 +43,10 @@ export function createAssistantTools(options: Options) {
     try { const result = await Promise.race([Promise.resolve().then(() => { active(); return read(); }), stopped]); active(); return result; }
     catch (error) { if (error instanceof BackendError) throw error; throw unavailable(); }
     finally { if (timer) clearTimeout(timer); if (onAbort) signal?.removeEventListener('abort', onAbort); }
+  }
+  function validatedResult<Name extends AssistantToolName>(name: Name, value: unknown): AssistantToolResult[Name] {
+    try { return parseAssistantToolResult(name, value, workspaceId); }
+    catch { throw unavailable(); }
   }
   let documents: Promise<SupportingDocument[]> | undefined;
   async function docs() {
@@ -73,66 +76,76 @@ export function createAssistantTools(options: Options) {
     return { items: remaining.slice(0, limit), total: ordered.length, nextCursor: remaining.length > limit ? remaining[limit - 1]!.id : null };
   }
   return {
-    async list_transactions(input: unknown): Promise<ToolObservation> {
-      const result = assistantToolResultSchemas.list_transactions.parse(await cashbook.list_transactions(input));
+    async list_transactions(input: unknown): Promise<ToolObservation<'list_transactions'>> {
+      const result = validatedResult('list_transactions', await cashbook.list_transactions(input));
       const args = assistantToolSchemas.list_transactions.parse(input);
-      return { text: `Showing ${result.items.length} matching imported transactions${result.nextCursor ? '; more records are available on the next page' : '; this page completes the lookup'}. Amounts and review statuses come from the cashbook.`,
+      return { result, text: `Showing ${result.returnedCount} of ${result.totalCount} matching imported transactions${result.nextCursor ? '; more records are available on the next page' : result.complete ? '; this response completes the lookup' : '; this page does not establish full-scope completeness'}. Amounts and review statuses come from the cashbook.`,
         records: result.items, citations: citations(result.items), partial: !result.complete || args.cursor !== undefined, details: { result } };
     },
-    async get_cash_summary(input: unknown): Promise<ToolObservation> {
+    async get_cash_summary(input: unknown): Promise<ToolObservation<'get_cash_summary'>> {
       const args = assistantToolSchemas.get_cash_summary.parse(input);
-      const summary = assistantToolResultSchemas.get_cash_summary.parse(await cashbook.get_cash_summary(input));
+      const summary = validatedResult('get_cash_summary', await cashbook.get_cash_summary(input));
       const listed = await cashbook.list_transactions({ limit: 50, ...(args.dateFrom ? { dateFrom: args.dateFrom } : {}), ...(args.dateTo ? { dateTo: args.dateTo } : {}) });
-      return { text: `Recorded cash movement${args.dateFrom || args.dateTo ? ` from ${args.dateFrom ?? 'the earliest recorded date'} through ${args.dateTo ?? 'the latest recorded date'}` : ' across the whole workspace'}: PKR ${formatAmount(summary.summary.netMovementMinor)} net, from PKR ${formatAmount(summary.summary.inflowMinor)} cash in minus PKR ${formatAmount(summary.summary.outflowMinor)} cash out, across ${summary.summary.transactionCount} transactions. This is cash movement, not profit or a bank balance. ${summary.summary.unresolvedImportRowCount} unresolved import rows are counted across the whole workspace, regardless of this date range.`,
+      return { result: summary, text: `Recorded cash movement${args.dateFrom || args.dateTo ? ` from ${args.dateFrom ?? 'the earliest recorded date'} through ${args.dateTo ?? 'the latest recorded date'}` : ' across the whole workspace'}: PKR ${formatAmount(summary.summary.netMovementMinor)} net, from PKR ${formatAmount(summary.summary.inflowMinor)} cash in minus PKR ${formatAmount(summary.summary.outflowMinor)} cash out, across ${summary.summary.transactionCount} transactions. This is cash movement, not profit or a bank balance. ${summary.summary.unresolvedImportRowCount} unresolved import rows are counted across the whole workspace, regardless of this date range.`,
         records: listed.items, citations: citations(listed.items), partial: false, details: { result: summary } };
     },
-    async get_review_queue(input: unknown): Promise<ToolObservation> {
+    async get_review_queue(input: unknown): Promise<ToolObservation<'get_review_queue'>> {
       const parsed = assistantToolSchemas.get_review_queue.safeParse(input);
       if (!parsed.success) throw new BackendError('INVALID_INPUT', 'Provide valid review queue filters.');
       const args = parsed.data;
       if (args.kind === 'unresolved_document_fields') {
-        const documents = await docs();
-        const result = page(documents.filter(d => d.reviewStatus !== 'accepted' && d.reviewStatus !== 'rejected'), args.limit, args.cursor);
-        const output = assistantToolResultSchemas.get_review_queue.parse({ kind: args.kind, items: [], documents: result.items,
-          returnedCount: result.items.length, totalCount: result.total, complete: args.cursor === undefined && result.nextCursor === null,
-          nextCursor: result.nextCursor, snapshot: documentSnapshot(workspaceId, documents) });
+        const allDocuments = await docs();
+        const result = page(allDocuments.filter(d => d.reviewStatus !== 'accepted' && d.reviewStatus !== 'rejected'), args.limit, args.cursor);
+        const output = validatedResult('get_review_queue', {
+          kind: args.kind, items: [], documents: result.items, returnedCount: result.items.length, totalCount: result.total,
+          complete: args.cursor === undefined && result.nextCursor === null, nextCursor: result.nextCursor,
+          snapshot: documentSnapshot(workspaceId, allDocuments),
+        });
         return { text: `${result.total} supporting documents need field review. Showing ${result.items.length} documents; unknown fields remain unknown and receipts do not create cash movement. ${result.items.map(documentFacts).join(' ')}`,
-          records: [], citations: citations([], result.items), partial: !output.complete, details: { result: output } };
+          records: [], citations: citations([], result.items), partial: !output.complete, result: output, details: { result: output } };
       }
-      const all = await cashbook.allRecords();
+      const { records: all, snapshot } = await cashbook.allRecordsSnapshot();
       const matching = all.filter(r => args.kind === 'unreviewed_categories' ? r.categoryStatus !== 'accepted' : r.matchStatus !== 'accepted');
       const result = page(matching, args.limit, args.cursor);
-      const wholeSnapshot = await cashbook.get_cash_summary({ scope: 'valid_imported_cash' });
-      const output = assistantToolResultSchemas.get_review_queue.parse({ kind: args.kind, items: result.items, documents: [],
-        returnedCount: result.items.length, totalCount: result.total, complete: args.cursor === undefined && result.nextCursor === null,
-        nextCursor: result.nextCursor, snapshot: wholeSnapshot.snapshot });
+      const output = validatedResult('get_review_queue', {
+        kind: args.kind, items: result.items, documents: [], returnedCount: result.items.length, totalCount: result.total,
+        complete: args.cursor === undefined && result.nextCursor === null, nextCursor: result.nextCursor, snapshot,
+      });
       const text = args.kind === 'unreviewed_categories'
         ? `${result.total} of ${all.length} imported transactions have no accepted category. Pending suggestions remain unreviewed.`
         : `${result.total} of ${all.length} imported transactions have no accepted document match, including ${matching.filter(r => r.direction === 'out').length} outflows. A missing match is a review need, not proof of nonpayment.`;
       return { text: `${text} Showing ${result.items.length} matching records.`, records: result.items, citations: citations(result.items), partial: !output.complete,
-        details: { result: output } };
+        result: output, details: { result: output } };
     },
-    async get_record_evidence(input: unknown): Promise<ToolObservation> {
+    async get_record_evidence(input: unknown): Promise<ToolObservation<'get_record_evidence'>> {
       const parsed = assistantToolSchemas.get_record_evidence.safeParse(input);
       if (!parsed.success) throw new BackendError('INVALID_INPUT', 'Provide between 1 and 20 evidence record IDs.');
       const { transactionIds, documentIds } = parsed.data;
-      const all = transactionIds.length ? await cashbook.allRecords() : [];
-      const records = [...new Set(transactionIds)].map(id => all.find(r => r.id === id));
-      const allDocs = documentIds.length ? await docs() : [];
-      const evidenceDocs = [...new Set(documentIds)].map(id => allDocs.find(d => d.id === id));
+      const uniqueTransactionIds = [...new Set(transactionIds)], uniqueDocumentIds = [...new Set(documentIds)];
+      const cashbookRead = uniqueTransactionIds.length ? await cashbook.allRecordsSnapshot() : null;
+      const all = cashbookRead?.records ?? [];
+      const records = uniqueTransactionIds.map(id => all.find(r => r.id === id));
+      const allDocs = uniqueDocumentIds.length ? await docs() : [];
+      const evidenceDocs = uniqueDocumentIds.map(id => allDocs.find(d => d.id === id));
       if (records.some(r => !r) || evidenceDocs.some(d => !d)) throw new BackendError('NOT_FOUND', 'Record evidence not found.');
-      const history = historySchema.parse(await bounded(() => readHistory([...new Set(transactionIds)], [...new Set(documentIds)])));
-      if (history.items.some(item => !(item.kind === 'transaction' ? transactionIds : documentIds).includes(item.id))) throw unavailable();
+      const rawHistory = await bounded(() => readHistory(uniqueTransactionIds, uniqueDocumentIds));
+      const parsedHistory = assistantHistorySchema.safeParse(rawHistory);
+      if (!parsedHistory.success) throw unavailable();
+      const history = parsedHistory.data;
+      if (history.items.some(item => !(item.kind === 'transaction' ? uniqueTransactionIds : uniqueDocumentIds).includes(item.id))) throw unavailable();
       const selected = records as Transaction[], selectedDocs = evidenceDocs as SupportingDocument[];
-      const snapshots = [];
-      if (selected.length) snapshots.push((await cashbook.get_cash_summary({ scope: 'valid_imported_cash' })).snapshot);
-      if (selectedDocs.length) snapshots.push(documentSnapshot(workspaceId, await docs()));
-      snapshots.push(historySnapshot(workspaceId, history));
-      const output = assistantToolResultSchemas.get_record_evidence.parse({ transactions: selected, documents: selectedDocs, history,
-        returnedCount: selected.length + selectedDocs.length, totalCount: selected.length + selectedDocs.length,
-        complete: !history.partial, nextCursor: null, snapshot: combinedSnapshot(workspaceId, snapshots) });
+      const snapshots = [
+        ...(cashbookRead ? [cashbookRead.snapshot] : []),
+        ...(uniqueDocumentIds.length ? [documentSnapshot(workspaceId, allDocs)] : []),
+        historySnapshot(workspaceId, history),
+      ];
+      const output = validatedResult('get_record_evidence', {
+        transactions: selected, documents: selectedDocs, history,
+        returnedCount: selected.length + selectedDocs.length, totalCount: uniqueTransactionIds.length + uniqueDocumentIds.length,
+        complete: !history.partial, nextCursor: null, snapshot: combinedSnapshot(workspaceId, snapshots),
+      });
       return { text: `Consulted ${selected.length} imported transactions and ${selectedDocs.length} supporting documents. Original source references and current reviewed values are preserved. Document fields and proposals alone do not prove settlement. Returned ${history.items.reduce((count, item) => count + item.decisions.length, 0)} review history entries, limited to the latest 20 decisions per record. ${selectedDocs.map(documentFacts).join(' ')}`,
-        records: selected, citations: citations(selected, selectedDocs), partial: history.partial, details: { result: output } };
+        records: selected, citations: citations(selected, selectedDocs), partial: !output.complete, result: output, details: { result: output } };
     },
   };
 }

@@ -7,6 +7,7 @@ import { createCashbookTools } from './cashbook-tools.ts';
 import { createAssistantTools } from './full-tools.ts';
 import { z } from 'zod';
 import { documentFieldsSchema } from '../../contracts/schemas.ts';
+import { parseAssistantToolResult, type AssistantToolName, type AssistantToolResult } from '../../contracts/assistant.ts';
 
 // Call after requireSession/requireWorkspace. C receives only these read closures.
 export function createScopedCashbookTools(
@@ -66,4 +67,24 @@ export function createScopedAssistantTools(session: RequestSession, workspace: W
       return { items: history, partial: history.some(item => item.partial) };
     },
   });
+}
+
+export type ScopedAssistantResultTools = {
+  [Name in AssistantToolName]: (input: unknown) => Promise<AssistantToolResult[Name]>;
+};
+
+// C imports this result-only facade so its fact registry consumes A's validated payloads.
+// Identity and workspace remain closed over by the authenticated A factory above.
+export function createScopedAssistantResultTools(
+  session: RequestSession,
+  workspace: Workspace,
+  budget: { deadlineAt: number; signal?: AbortSignal },
+): ScopedAssistantResultTools {
+  const tools = createScopedAssistantTools(session, workspace, budget);
+  return {
+    async list_transactions(input) { return parseAssistantToolResult('list_transactions', (await tools.list_transactions(input)).result, workspace.id); },
+    async get_cash_summary(input) { return parseAssistantToolResult('get_cash_summary', (await tools.get_cash_summary(input)).result, workspace.id); },
+    async get_review_queue(input) { return parseAssistantToolResult('get_review_queue', (await tools.get_review_queue(input)).result, workspace.id); },
+    async get_record_evidence(input) { return parseAssistantToolResult('get_record_evidence', (await tools.get_record_evidence(input)).result, workspace.id); },
+  };
 }

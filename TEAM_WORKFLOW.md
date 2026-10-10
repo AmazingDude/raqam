@@ -4,11 +4,11 @@ The active work split uses **three people**, as requested on 10 October. Names, 
 
 ## Ownership
 
-**Latest assignment, 10 October:** another person continues A; the user and this chat now work in B on `codex/raqam-frontend`. Minimal root landing entry wiring is included in the approved frontend slice. All backend, contract, dependency and release boundaries below still apply.
-
-The user has claimed A on 10 October; B/C names and availability remain pending. A's work is on `codex/raqam-backend`, following `docs/raqam/CONTRACTS.md` and the local validation record. The user requested backend implementation and stepwise validation; B/C modules remain reserved.
+**Current assignment, 10 October:** the user is A, the platform/backend integrator, working on `codex/raqam-backend`, as reaffirmed in the current root `AGENTS.md` and `handoff.md`. An earlier frontend-track assignment is superseded. B owns the bookkeeping UI and independent browser journey; C owns the AI workflow and live model evaluation. B/C names and availability remain pending.
 
 The user now requested **two agents within backend A**. [BACKEND_TASKS.md](BACKEND_TASKS.md) is the active backend ownership/dependency map: A1 (this agent) owns schema/contracts/reviews/platform gates/integration on `codex/raqam-backend`; A2 (teammate's agent) owns dedicated document/proposal/assistant services on `codex/raqam-backend-services`. Use separate clones/worktrees. A2's new route/test paths are explicitly delegated; the sole-editor rule still applies to shared migrations/contracts/dependencies. B/C assignments remain intact.
+
+**Proposed expansion split, 10 October:** the newly requested bookkeeping MVP uses two implementer lanes in [BOOKKEEPING_MVP_TWO_PERSON_PLAN.md](docs/raqam/BOOKKEEPING_MVP_TWO_PERSON_PLAN.md): Person 1 owns contracts/platform/books and Person 2 owns workflow UI/AI. This split applies only to the proposed EXP-00–EXP-13 expansion after Gate 0; it does not silently reassign the current core hackathon A/B/C tasks, and names/availability still need recording. The two-person plan is the source of truth for new-feature file ownership and integration order.
 
 | Role | Responsibility | Coordination boundary |
 | --- | --- | --- |
