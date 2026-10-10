@@ -1,5 +1,7 @@
 # Receipt extraction and integration evidence
 
+**Current status (10 October 2026, main):** The older step narratives below describe earlier checkpoints and are historical where they say app integration, migration 008, or authenticated guards are absent. Current receipt extraction/evidence/cache persistence and receipt UI are integrated; category generation/list/review UI and the read-only assistant are integrated. `npm test` passes 112/112, strict TypeScript and production build pass. In the named synthetic workspace, authenticated reads confirm the receipt-context grant, direct reads to both provider-accounting tables are denied, and the reserve/save/allowance RPCs reject random nonexistent records (`P0002`). The check wrote zero records and made zero model calls. It does not establish signed-in upload/OCR/review/reload/cache behavior or category decision/reload/rerun/cash reconciliation; those hosted acceptance journeys remain open. Live category semantic evaluation remains step 19.
+
 Date: 10 October 2026. C1 scope: Person C steps 6–8 and C-owned Gemini review fixes. Working tree on codex/ai-two-person; the pending A baseline merge and unrelated changes remain uncommitted. This record separates C module behavior from A/B application acceptance.
 
 ## Step 6 — extraction module

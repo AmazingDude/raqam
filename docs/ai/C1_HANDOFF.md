@@ -1,18 +1,19 @@
 # C1 handoff — provider, OCR and categories
 
-**Owner:** user / C1. **Shared branch:** `codex/ai-two-person`. **Updated:** 10 October 2026, PKT.
+**Owner:** user / C1. **Shared branch:** `codex/ai-two-person`. **Updated:** 10 October 2026, PKT. Current implementation status below supersedes earlier session notes where they say app routes/UI are absent; those notes remain historical.
 Read [split/ownership](TWO_PERSON_EXECUTION.md), [original steps](IMPLEMENTATION_STEPS.md), [plan](PERSON_C_PLAN.md), [combined status](handoff.md), [contracts](contracts.md) and [feasibility](GROQ_FEASIBILITY.md). C1 edits this file; C2 records requests in its own handoff.
 
 ## Assigned work
 
 | Steps | State | Exact dependency / next action |
 | --- | --- | --- |
-| 4–5 | in_review | Module acceptance passed: 38 scripted tests, strict typecheck and production build. A/C2 interface acknowledgement and runtime integration pending; see PROVIDER_CONTRACT.md. |
-| 6 | in_review | C extraction module/scripted coverage and one live clean synthetic Groq sample passed; shared field-state/evidence adoption and A/B review integration remain pending. See integration.md. |
-| 7 | blocked | Deterministic owner/source/model/prompt/schema/preprocessing cache identity implemented; A DB reservation/save/review RPCs now exist; service wrapper, full cache identity and raw-evidence mapping are pending, so integrated cache/stale/correction acceptance is not established. |
-| 8 | blocked | A source/DB foundation and B upload/private viewer exist; extraction/review/correction APIs and B live field wiring are pending. No fake integration was run; see integration.md. |
-| 9–10 | todo | Wait for 2, 4–5 and accepted transactions/guide, then real review backend/UI. |
-| 17 | todo | Own combined-flow items 5–6 and integration.md; C2 supplies assistant items 1–4. Original predecessors 8/10/13/16 remain required. |
+| 4–5 | in_review | Provider module passes 38 scripted tests; current runtime consumers use the adapter and app tests/build pass. Formal A/C2 interface acknowledgement and a live app-provider request remain unverified; see PROVIDER_CONTRACT.md. |
+| 6 | in_review | Extraction module and one live clean synthetic Groq sample passed; canonical evidence mapping, API route and receipt UI are integrated. Signed-in upload-to-review acceptance remains open; see integration.md. |
+| 7 | in_review | Durable identity/cache and correction-safe persistence are integrated; local cache/stale/correction tests pass. Authenticated migration-008 read/deny/RPC-guard checks pass; hosted cache-hit and correction-safe retry behavior remain unverified. |
+| 8 | in_review | Receipt API and live UI are integrated. Authenticated migration-008 guards pass in the synthetic workspace; signed-in upload, live OCR, correction/review/reload/retry and unchanged-cash flow remain unverified; see integration.md. |
+| 9 | implementation complete | Seven-category guide/version review and authenticated generation/list wiring are integrated and locally tested. Live semantic-quality evaluation remains assigned to step 19. |
+| 10 | in_review | Generation/list and accept/change/reject/reload/rerun UI are integrated; hosted decision persistence and category/cash reconciliation remain unverified. |
+| 17 | in_review | Provider, OCR, category and assistant code paths are integrated; end-to-end hosted receipt/category acceptance and reserved evaluation remain open. |
 | 18 | todo | Repair only C1 modules/tests in response to C2's checks; A/B own actual isolation/persistence evidence. |
 | 19 | todo | Own frozen model/prompt manifest, quota schedule and live coordination; A/B independently score, C2 owns runner/report. |
 | 20 | todo | Own final C release/handoff record; original evaluation/cloud/demo gates apply. |

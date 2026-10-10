@@ -1,7 +1,9 @@
 # Raqam — Person C handoff
 
+**Current integration status (10 October 2026):** On `main`, provider runtime consumers use the adapter; extraction/evidence mapping and receipt API/UI are integrated; cache/correction-safe reruns have local tests; category guide/version, generation/list route and review UI are integrated; assistant endpoint/tools/UI are integrated. Current `npm test` is 112/112, strict TypeScript and production build pass. Authenticated migration-008 context-read, private-table-denial and three RPC nonexistent-record guards pass in the named synthetic workspace with zero writes. Signed-in receipt OCR/review/cache/cash invariants and category decision/reload/rerun/cash reconciliation remain open. Live category semantic evaluation remains step 19. Historical task entries below are superseded only where contradicted by this status.
+
 **Updated:** 10 October 2026, PKT. **Owner:** the user, Person C / Person 3.
-**State:** Step3/C-01 passed. Steps4–5 provider module is implemented. Step6 extraction remains in_review; step7/8 remain blocked on A's extraction/cache/history adapter and B's live document-field review. Remote main c2ffec2 now supplies document registration/list/detail/review routes; those routes do not yet invoke OCR. Step9 category proposal module is implemented with10 focused scripted tests; A's semantic guide-version adoption and production route mapping remain pending. Step10 is blocked because category proposal generation/listing is not exposed through A's authenticated application path and B's live review queue has no proposal controls. No live model-quality or integrated category decision test was run. See [integration evidence](integration.md).
+**State:** Provider adapter/runtime consumers, extraction/evidence/cache API and receipt UI, category proposal route/review UI, and bounded assistant endpoint/tools/UI are integrated on main. Local automated suite/build pass. Authenticated migration-008 read/deny/RPC guard checks pass; signed-in receipt/category journeys and release evidence remain open. See the current integration status and detailed gates below.
 **Read first:** [Person C plan](PERSON_C_PLAN.md), [numbered implementation steps](IMPLEMENTATION_STEPS.md), [PRD](../../PRD.md), [team ownership](../../TEAM_TASKS.md), [shared handoff](../../handoff.md), [build gates](../../BUILD_PLAN.md).
 
 **Two-contributor execution:** [TWO_PERSON_EXECUTION.md](TWO_PERSON_EXECUTION.md) assigns original steps 4–20 without changing the implementation plan. C1 (user) owns provider/OCR/categories; C2 owns matching/tools/assistant. Each writes its own [C1 handoff](C1_HANDOFF.md) or [C2 handoff](C2_HANDOFF.md); C1 alone consolidates this handoff. Shared integration branch: `codex/ai-two-person`.
@@ -33,13 +35,13 @@ C: `src/lib/ai/**`, `tests/ai/**`, `docs/ai/**`, subject to A's actual bootstrap
 | C-01 live feasibility | done | Actual image/schema/tool proof, real rate-limit handling, account RPD/TPM headers and C1 daily reserve recorded; no scripted output used for live acceptance |
 | Step 4 server-only provider | done (module) | Lazy configuration, three public operations and A shared schemas compile; scripted interface and server-only checks pass |
 | Step 5 bounded failures | done (module) | Two-attempt cap, absolute deadline, cancellation, rate-limit recovery and sanitized telemetry verified in 38 scripted tests |
-| C-02 adapter | in_review | Module checks pass; A/C2 acknowledgement, private model settings and runtime route integration remain pending |
-| C-03 extraction | in_review | C extraction/module and one live synthetic sample pass; agreed outcome/evidence and app adoption remain pending in integration.md |
-| C-04 categories / step 9 | in_review | C module validates versioned scoped transactions and returns complete guide-limited proposals, ambiguity abstentions, source evidence and accepted-category skips; A still needs to adopt the semantic guide version and map provenance/evidence into persistence |
-| Step 10 category integration | blocked | A has proposal decision RPC/service and transaction category review, but no authenticated category-generation/list path; B's live queue says proposals await APIs and exposes no live proposal accept/change/reject controls |
+| C-02 adapter | in_review | Provider module plus runtime adapter consumers are integrated; current suite/build pass. Formal C2 acknowledgement and live app-provider request remain unverified |
+| C-03 extraction | in_review | Extraction module/live synthetic sample, evidence mapping, route and UI are integrated; signed-in upload-to-review acceptance remains open |
+| C-04 categories / step 9 | implementation complete | Seven-label guide/version reviewed and category generation/listing integrated; live semantic-quality evaluation remains assigned to step 19 |
+| Step 10 category integration | in_review | Generation/list and accept/change/reject/reload/rerun UI are integrated; hosted signed-in persistence and category/cash reconciliation remain unverified. |
 | C-05 matching | todo | Reviewed document fields, candidate/allocation snapshots |
-| C-06 assistant | todo | A's four authorized read-only tools and fact contracts |
-| C-07 integration | blocked | A durable DB foundation and B source UI exist; live OCR/review/correction APIs plus B's live field wiring are pending |
+| C-06 assistant | in_review | Four scoped read-only tools, bounded answer loop, endpoint and UI are integrated; signed-in browser, foreign-evidence and evaluation checks remain open |
+| C-07 integration | in_review | Current local suite/build and authenticated migration-008 guard checks pass; receipt/category hosted journeys and final release checks remain open |
 | C-08 reserved evaluation | todo | Frozen configuration and independent A/B labels |
 | C-09 demo/release preparation | todo | Core gates and release candidate |
 | C-10 final defects/handoff | todo | Pinned release and completed checks |
