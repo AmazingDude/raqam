@@ -22,10 +22,28 @@ test('invoice reads reject foreign records, imprecise bigint JSON, missing lines
  const raw=databaseInvoice();for(const bad of [{...raw,workspace_id:crypto.randomUUID()},{...raw,total_minor:10000},{...raw,items:[]},{...raw,total_minor:'1'}])assert.throws(()=>mapInvoice(bad,invoiceWorkspace));
  assert.equal(mapInvoice(raw,invoiceWorkspace).totalMinor,'10000');
 });
+test('legacy database line metadata is accepted only for the current owner workspace',()=>{
+ const raw=databaseInvoice();
+ const line=(raw.items as Record<string,unknown>[])[0]!;
+ const legacy={...raw,items:[{...line,workspace_id:invoiceWorkspace,created_at:'2026-10-10T00:00:00Z'}]};
+ assert.equal(mapInvoice(legacy,invoiceWorkspace).items[0]!.invoiceId,invoiceId);
+ assert.throws(()=>mapInvoice({...legacy,items:[{...legacy.items[0],workspace_id:crypto.randomUUID()}]},invoiceWorkspace));
+ assert.throws(()=>mapInvoice({...legacy,items:[{...legacy.items[0],unexpected:'synthetic'}]},invoiceWorkspace));
+});
 test('invoice edits preserve omitted fields and reject missing/stale-shaped versions before writes',async()=>{
  const old=syntheticInvoice();old.clientAddress='Synthetic address';let saves=0;
  const db=session((name,args)=>{if(name==='read_workspace_invoice')return{data:databaseInvoice(old),error:null};saves++;assert.equal((args.p_invoice as Record<string,unknown>).client_address,'Synthetic address');return{data:databaseInvoice({...old,reviewVersion:1}),error:null};});
  const input={id:invoiceId,items:old.items.map(({description,quantity,rateMinor})=>({description,quantity,rateMinor}))};
  await assert.rejects(createOrUpdateInvoice(db,invoiceWorkspace,input),/Reload/);assert.equal(saves,0);
  assert.equal((await createOrUpdateInvoice(db,invoiceWorkspace,{...input,expectedVersion:0})).reviewVersion,1);assert.equal(saves,1);
+});
+test('an identical complete create retry reads the committed invoice without another write',async()=>{
+ const old=syntheticInvoice();let calls=0;
+ const db=session(name=>{calls++;assert.equal(name,'read_workspace_invoice');return{data:databaseInvoice(old),error:null};});
+ const input={id:old.id,invoiceNumber:old.invoiceNumber,status:old.status,issueDate:old.issueDate,dueDate:old.dueDate,
+   fromName:old.fromName,clientName:old.clientName,currency:old.currency,items:old.items.map(({id,description,quantity,rateMinor})=>({id,description,quantity,rateMinor}))};
+ assert.equal((await createOrUpdateInvoice(db,invoiceWorkspace,input)).id,old.id);assert.equal(calls,1);
+ await assert.rejects(createOrUpdateInvoice(db,invoiceWorkspace,{...input,clientName:'Changed synthetic client'}),/Reload/);
+ const edited=session(()=>({data:databaseInvoice({...old,reviewVersion:1}),error:null}));
+ await assert.rejects(createOrUpdateInvoice(edited,invoiceWorkspace,input),/Reload/);
 });

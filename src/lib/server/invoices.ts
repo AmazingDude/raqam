@@ -18,9 +18,21 @@ export function mapInvoice(row: unknown, workspaceId: string): Invoice {
   const raw = z.record(z.string(), z.unknown()).safeParse(row);
   if (!raw.success || !Array.isArray(raw.data.items)) throw databaseError();
   const mapped = camelRecord(raw.data);
-  mapped.items = raw.data.items.map(item => typeof item === 'object' && item !== null ? camelRecord(item as Record<string,unknown>) : item);
+  mapped.items = raw.data.items.map(item => {
+    if (typeof item !== 'object' || item === null) return item;
+    const fields = item as Record<string,unknown>;
+    // Earlier deployed snapshot functions retained table metadata. Verify its
+    // ownership before removing only these known database-only fields.
+    if ('workspace_id' in fields && fields.workspace_id !== workspaceId) throw databaseError();
+    const {workspace_id:_workspace,created_at:_created,...line} = fields;
+    return camelRecord(line);
+  });
   const parsed = invoiceSchema.safeParse(mapped);
-  if (!parsed.success || parsed.data.workspaceId !== workspaceId || parsed.data.items.some(item => item.invoiceId !== parsed.data.id)) throw databaseError();
+  if (!parsed.success) {
+    console.error('[invoices] Invalid database snapshot', parsed.error.issues.map(issue => ({code:issue.code,path:issue.path.join('.')})));
+    throw databaseError();
+  }
+  if (parsed.data.workspaceId !== workspaceId || parsed.data.items.some(item => item.invoiceId !== parsed.data.id)) throw databaseError();
   try {
     const totals = invoiceTotals(parsed.data.items, parsed.data.discountMinor, parsed.data.shippingMinor, parsed.data.taxMinor);
     if (totals.subtotalMinor !== parsed.data.subtotalMinor || totals.totalMinor !== parsed.data.totalMinor || parsed.data.items.some((item,i) => item.amountMinor !== totals.amounts[i])) throw new Error('Totals mismatch');
@@ -52,7 +64,10 @@ export function computeInvoicesSummary(invoices: Invoice[], currency = 'PKR', no
 }
 async function rpc(session: RequestSession, name: string, parameters: Record<string,unknown>) {
   const result = await session.database.rpc(name,parameters);
-  if (result.error) throw databaseError(result.error.code);
+  if (result.error) {
+    console.error('[invoices] RPC failed', {operation:name,code:/^[A-Z0-9]{5,12}$/.test(result.error.code ?? '') ? result.error.code : 'UNKNOWN'});
+    throw databaseError(result.error.code);
+  }
   return result.data as unknown;
 }
 export async function listInvoices(session: RequestSession, workspaceId: string, currency = 'PKR') {
@@ -67,6 +82,18 @@ export async function createOrUpdateInvoice(session: RequestSession, workspaceId
   if (!parsedInput.success) throw new BackendError('INVALID_INPUT','Check the invoice fields and use quantities with at most two decimals.');
   const saved = input.id ? await rpc(session,'read_workspace_invoice',{p_workspace_id:workspaceId,p_invoice_id:input.id}) : null;
   const previous = saved ? mapInvoice(saved,workspaceId) : null;
+  if (previous && input.expectedVersion === undefined && previous.reviewVersion === 0) {
+    // A create can commit before its response fails. A complete, identical
+    // retry reads the original result; it never writes or overwrites an edit.
+    const fields = ['invoiceNumber','status','issueDate','dueDate','fromName','clientName','currency'] as const;
+    const sameFields = fields.every(key => parsedInput.data[key] !== undefined) && Object.entries(parsedInput.data)
+      .every(([key,value]) => key === 'items' || value === previous[key as keyof Invoice]);
+    const sameLines = input.items.length === previous.items.length && input.items.every((item,index) => {
+      const old = previous.items[index]!;
+      return item.id === old.id && item.description === old.description && item.quantity === old.quantity && item.rateMinor === old.rateMinor;
+    });
+    if (sameFields && sameLines) return previous;
+  }
   if (previous && input.expectedVersion === undefined) throw new BackendError('CONFLICT','Reload the invoice before editing its saved version.');
   if (!previous && input.expectedVersion !== undefined) throw new BackendError('NOT_FOUND','Invoice not found. Reload the list.');
   const {expectedVersion: _version, ...changes} = parsedInput.data;
