@@ -4,7 +4,10 @@ node_modules/
 out/
 dist/
 coverage/
+*.tsbuildinfo
 .vercel/
+/supabase/.temp/
+/supabase/.branches/
 
 # Credentials and local configuration
 .env
@@ -22,6 +25,10 @@ coverage/
 .DS_Store
 Thumbs.db
 *.log
+
+# Local vision proof inputs and private extracted results
+/tests/ai/live/inputs/
+/artifacts/ai-live/
 
 # Previous candidate: keep locally, outside the Raqam repository
 /SHIFT_PROOF_BUILD_PLAN.md

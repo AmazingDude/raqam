@@ -1,7 +1,14 @@
 # Person C step 1 — observed repository baseline
 
-**Inspected:** 10 October 2026, PKT. **Status:** baseline inspection complete.  
-**Repository:** /home/home/Documents/work/Projects/Hackathon/raqam
+**Updated:** 10 October 2026, PKT. **Current checkout:** `/home/home/Documents/work/Projects/Hackathon/raqam-ai-two-person`, branch `codex/ai-two-person`.
+
+**Current integration:** A's baseline `4b1782cdc5bb1e236accc04512edbadeee5e4e47` is imported through a pending, uncommitted merge into C HEAD `75a4c61`. App, package/lock/config, canonical contracts/helpers, backend tests and migrations are present. C step3 files and ignored `.env.local` are preserved. C local changes have a retained safety stash and `/tmp/raqam-before-backend-0mp_m6lb` snapshot. No step4 implementation, commit, push or hosted migration is authorized in this integration task. A's case-colliding setup note is preserved as `docs/ai/PROVIDER_BASELINE.md` with reference-only updates.
+
+Commands: pinned npm11.12.1 `ci`; `npm test` for A's offline backend/security suite; `npm run typecheck`; `node tests/ai/live/feasibility.test.ts` for C's offline CLI regressions. The package's test script does not include C tests, so run both explicitly. Local Node24.13.1 satisfies engines>=22.18.0; A recorded25.9.0 in `.node-version`. Native strip execution and strict compilation are separate checks.
+
+Integration evidence: `npx --yes npm@11.12.1 ci --no-audit --no-fund` restored65 lockfile packages successfully; package/lock/config files were not modified. `npm test` passed38/38 offline backend/security tests; C CLI regressions passed17/17. Route type generation and strict `tsc --noEmit` passed after a C-only explicit guard for a possibly missing expected-fixture lookup. The first npm typecheck attempt ran before executable links were installed and failed `next: not found`; the installed-script check was rerun after restoration. No production build, live Groq call, hosted migration or service configuration was performed. Original frontend archive and all references are unchanged. Staged baseline diff reports two inherited extra EOF blank lines in A's migrations004/005; those files remain byte-identical to A rather than being reformatted during integration.
+
+The remaining sections are the original step1 history, not the current application inventory.
 
 ## Git snapshot
 
@@ -38,5 +45,6 @@ There are no executable or separately adopted A/B schemas in this checkout. Fiel
 
 ## Checks and remaining baseline blockers
 
-Read-only checks: Git status/log/remotes/revision, file inventory, targeted requirement/ownership searches, command availability and tool versions. No credentials or env file were read. No packages installed. No application tests/build/lint/typecheck can run because no app scaffold or commands exist. This is a snapshot; re-inspect before implementation as teammates may add code.
+**10 October follow-up:** fetched and inspected A's `origin/codex/raqam-backend` at `4b1782cdc5bb1e236accc04512edbadeee5e4e47`. It now has a Next.js app, npm lockfile, Groq SDK 1.6.0/Zod 4.6.5/TypeScript 5.9.3, Node >=22.18.0, server-only, canonical contract v0.1 and native SDK runtime tests. Earlier observations of absent app/packages describe this C checkout, not current A work. This inspection does not merge the baseline or rerun A's reported tests. Local C proof uses Node v24.13.1 built-ins; SDK installation is no longer an A blocker. See contracts.md section10 for actual imports, resolved money/field shapes and outstanding BA-00 seam decisions. No app build/typecheck was run in this manifest-free C checkout.
 
+Read-only checks: Git status/log/remotes/revision, file inventory, targeted requirement/ownership searches, command availability and tool versions. No credentials or env file were read. No packages installed. No application tests/build/lint/typecheck can run because no app scaffold or commands exist. This is a snapshot; re-inspect before implementation as teammates may add code.
