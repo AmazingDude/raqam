@@ -29,6 +29,8 @@ Breaks/travel and remaining official activities are outside these estimates. Ref
 
 ## Task board
 
+**BACKEND-TWO-AGENT-SPLIT — done:** user requested splitting remaining A work between this agent and a teammate's separate agent. Published exclusive A1/A2 files, BA-00–07 dependencies/acceptance checks, separate-branch handoff and a teammate prompt in `BACKEND_TASKS.md`; aligned `TEAM_TASKS.md`, `TEAM_WORKFLOW.md`, this plan and `handoff.md`, with an A2 worklog template. Verified PRD/RQ consistency, no competing backend file ownership, existing test-glob compatibility, local links and Git whitespace. No application implementation, repeated product tests or migration in this planning slice.
+
 Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo; Person 3/C AI workflow. Individual deliverables and exclusive ownership are in [TEAM_TASKS.md](TEAM_TASKS.md). A has started readiness/platform work; B/C names remain pending. The lead coordinates the complete task; contributors own their modules.
 
 | ID | Task | Blocked by | Suggested lead | Status |

@@ -2,6 +2,8 @@
 
 **Last updated:** 10 October 2026, PKT. Hosted CSV resolution/review repair passes **7/7 one-account live groups**; native API/database/RPC/private-file isolation passes **10/10 two-account groups** on `codex/raqam-backend`. Manual migrations/files/CLI are preferred for speed.
 
+**Latest assignment:** backend A is split between A1 (this agent + user: schema/reviews/platform/integration) and A2 (teammate's agent: document/proposal services/scoped assistant). Read [BACKEND_TASKS.md](BACKEND_TASKS.md) before backend edits. A2 uses a separate checkout/branch; B/C modules remain reserved.
+
 ## Current state
 
 - Product name confirmed: **Raqam**.
@@ -24,6 +26,7 @@
 - [Build plan](BUILD_PLAN.md): milestone gates and task tracking.
 - [Team workflow](TEAM_WORKFLOW.md): owner boundaries and integration process.
 - [Individual tasks](TEAM_TASKS.md): three-person feature split, first deliverables and module ownership.
+- [Two-agent backend plan](BACKEND_TASKS.md): remaining A1/A2 tasks, files, dependencies, acceptance checks and the prompt for the teammate's agent.
 - [Contracts](docs/raqam/CONTRACTS.md), [setup](docs/raqam/SETUP.md) and [validation](docs/raqam/VALIDATION.md): implemented boundaries, account instructions and measured local evidence.
 - [Skills](docs/SKILLS.md): relevant skills, dependencies and portability notes.
 - [Vocabulary](docs/raqam/GLOSSARY.md): current Raqam terms.
@@ -49,7 +52,7 @@ Core scope questions were answered. Do not repeat them unless the user changes d
 
 On the friend's PC, check out `codex/raqam-backend`, read the documents below, run `npm ci`, and configure ignored `.env.local` from `.env.example` using authorized private configuration. Local environment files, CLI login/link state and active test sessions are not transferred by Git. See `docs/raqam/SETUP.md` for fresh-clone instructions.
 
-Native Clerk readiness passes HTTP 200. Hosted resolution/review repair and bounded mutual isolation are verified; do not reapply 001–005. Verify hosted schema/history before any future CLI migration push. Next A work: complete remaining Storage mutation/concurrency/session gates and integrate the B/C core slices through owned contracts. Document/proposal/match persistence and scoped tools remain backend work; product/AI modules stay in B/C lanes. No stretch or deployment before its release request/gate.
+Native Clerk readiness passes HTTP 200. Hosted resolution/review repair and bounded mutual isolation are verified; do not reapply 001–005. Verify hosted schema/history before any future CLI migration push. **Next A1:** BA-00 missing contracts/RPC/result freeze, then BA-01 document/proposal schema; prepare migrations 006/007 for the user to apply manually. **Next A2:** read BACKEND_TASKS.md, branch separately from the latest backend baseline, scaffold document services and existing scoped cashbook tools, then wire writes after A1 publishes the foundation commit. A1 owns review/match approvals and remaining Storage/concurrency/session gates. No stretch or deployment before its release request/gate.
 
 B can consume commands in `docs/raqam/CONTRACTS.md`, including current row outcomes and explicit correction/rejection of confirmed unresolved rows. Local product verification remains 37/37 tests, strict types, production build, 5/5 embedded resolution schema checks and 16/16 signed-out private requests. This script-only continuation adds **7/7 hosted one-account groups**: persisted cash, exact totals, duplicate retries, audited reviews/409 denial, reviewed export, resolution, private-image retrieval and invalid-session/origin denial. Document/proposal/match persistence and scoped assistant tools remain future backend work. C's lane remains reserved; no stretch before the existing gate.
 
@@ -78,6 +81,8 @@ The two large organizer PDFs are also excluded from Git; share originals separat
 - Default `python` points to MSYS Python without PDF packages. PDF-capable Python: `C:/Users/Rehan/AppData/Local/Programs/Python/Python312/python.exe`.
 
 ## Session log
+
+- 10 October, BACKEND-TWO-AGENT-SPLIT planning: user requested two backend agents and committing/syncing the plan. A1 is this agent (contracts/schema/category-match approvals/platform gates/integration); A2 is the teammate's separate agent (document/OCR wrappers/proposal services/read-only assistant tools). Created BACKEND_TASKS.md with exclusive files, dependency-ordered BA-00–07 tasks, verification boundaries, separate-branch commands/prompt and coordinated handoff rules; aligned TEAM_TASKS/TEAM_WORKFLOW/BUILD_PLAN. Existing application evidence is unchanged; no product implementation/test rerun, migration, account change or deployment in this planning slice. Next: A1 publishes BA-00/01 and A2 begins unblocked scaffolding from the pushed planning baseline.
 
 - 10 October, live backend/isolation continuation: user reported running the supplied review repair. Verified prompt stale-review 409, then **6/6** baseline and **7/7** extended one-account groups, including a fixed correction/rejection fixture with preserved originals/retries/exact totals. User signed into a second development account. Added `scripts/smoke-isolation.mjs`; after correcting its confirmation RPC parameter to `p_rows`, the full run passes **10/10 groups** in both directions through native API/RLS/RPC/private-file access. Direct cash writes denied; fresh nonexistent DELETE IDs ensure no existing records are deleted. Tokens/IDs remain in memory; only named synthetic fixtures written, no accounts created. Both script syntax and whitespace pass; prior product 37/37/types/build/16-route evidence retained without redundant reruns. Local production stays on localhost:3000. Storage mutations/concurrent clients/browser expiry-switching/product/AI/deployment gates remain open. No migration or main merge in this slice.
 
