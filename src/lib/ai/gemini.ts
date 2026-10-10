@@ -11,7 +11,7 @@ import { PROVIDER_LIMITS as LIMITS, VERSION_PATTERN } from './config.ts';
 import { isGeminiModel, readGeminiConfiguration } from './gemini-config.ts';
 
 const GEMINI_ORIGIN = 'https://generativelanguage.googleapis.com/v1beta/models/';
-const PROVIDER_VERSION = 'gemini-provider-v1';
+export const GEMINI_PROVIDER_VERSION = 'gemini-provider-v1';
 const API_ERROR = z.object({ error: z.object({ code: z.number().optional(), message: z.string().optional(), status: z.string().optional(), details: z.array(z.unknown()).optional() }).passthrough() }).passthrough();
 const continuationSchema = z.strictObject({
   provider: z.literal('gemini'), model: z.string().refine(isGeminiModel),
@@ -126,7 +126,7 @@ export function createGeminiProvider(dependencies: ProviderDependencies = {}): G
     const model = configuration ? (mode === 'image' ? configuration.visionModel : configuration.textModel) : null;
     const metadata: ProviderMetadata = {
       requestId: contextSchema.safeParse(context).success ? context.requestId : null, mode, model: model && isGeminiModel(model) ? model : null,
-      providerVersion: PROVIDER_VERSION, promptVersion: versionsSchema.safeParse(versions).success ? versions.prompt : null,
+      providerVersion: GEMINI_PROVIDER_VERSION, promptVersion: versionsSchema.safeParse(versions).success ? versions.prompt : null,
       schemaVersion: versionsSchema.safeParse(versions).success ? versions.schema : null,
       attempts: 0, durationMs: 0, providerRequestIds: [], usage: null,
     };
