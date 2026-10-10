@@ -6,6 +6,7 @@ Updated: 10 October 2026, PKT. Requested by the user. This subdivides backend ro
 
 - **A1 = this Codex agent, working with the user:** data integrity, shared schema/contracts, reviewed categories/matches, platform checks and integration.
 - **A2 = teammate's agent:** supporting-document services, AI proposal route wrappers and the scoped read-only assistant backend.
+- **User-requested A1 setup addition:** pinned Groq/tsx and the standalone `tests/ai/live/feasibility.ts` runner are ready; see `docs/ai/FEASIBILITY.md`. C retains production AI adapters/prompts and the three-case live proof. Use `npm ci` after pulling the dependency change.
 - Start from the latest `origin/codex/raqam-backend`, which includes this plan. A1 stays on `codex/raqam-backend`. A2 creates `codex/raqam-backend-services` from that remote branch in a **separate clone or worktree**. Do not switch branches underneath another running agent in the same checkout.
 - Existing evidence: 37/37 product tests, strict types/build, 16 signed-out requests, 7/7 live one-account groups and 10/10 bounded two-account isolation groups. These are not a complete release gate.
 - Hosted migrations 001–005 have passing installed behavior. Do not rerun them. CLI history for SQL-editor application needs verification before future pushes. The user runs future reviewed migrations manually for speed.

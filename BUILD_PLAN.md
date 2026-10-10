@@ -75,6 +75,8 @@ Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo
 
 ### RQ-02 - OCR feasibility
 
+- **A-AI-RUNNER — done (setup only):** pinned Groq SDK 1.6.0/tsx 4.23.15 alongside existing Zod 4.6.5/TypeScript 5.9.3; recorded local Node 25.9.0/npm 11.12.1. Added `npm run test:ai:live` for `tests/ai/live/feasibility.ts`, helper/tests, ignored proof inputs/results and `docs/ai/FEASIBILITY.md`. Loads ignored `.env.local`, disables SDK logging and all retries, bounds each of at most three requests to 30 seconds. **42/42 tests**, strict types, command help, zero-request synthetic dry-run, missing-configuration denial and Git ignore checks pass. Groq key/model are not configured; no live OCR run or accuracy claim. This user-authorized proof-directory setup does not transfer C's production AI/prompt/live-evaluation ownership.
+
 - [ ] Test 3 fresh English printed JPEG/PNG receipts through the proposed runtime model: clean, changed layout, unreadable required field.
 - [ ] Schema validation, preserved unknowns and original-source reference work.
 - [ ] Record actual model ID, access, account limits, latency and extraction errors.
