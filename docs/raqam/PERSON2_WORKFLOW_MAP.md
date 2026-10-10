@@ -1,7 +1,8 @@
 # Person 2 workflow and module map
 
-**Status:** preparation only; proposed expansion features are not authorized for implementation until Gate 0 and Person 1's frozen contracts.  
-**Baseline inspected:** clean `origin/main` at `1284d65`, 10 October 2026 PKT.  
+**Status:** existing-contract workflow improvements implemented; expanded ledger features await Gate 0 and Person 1's frozen contracts.
+
+**Baseline inspected:** `origin/main` through `15be321`, 10 October 2026 PKT; see [the completion audit](../demo/PERSON2_STATUS.md) for checks and outstanding gates.
 **Scope:** map current screens/modules to the proposed journey and identify Person 1 dependencies. This is not a product specification or API contract.
 
 ## Current user journey
@@ -16,7 +17,7 @@
 | Ask about records | `AssistantScreen`, `src/lib/ai/fact-registry.ts` | Read-only, scoped assistant; numbers/evidence derive from validated tool observations. Demo answers are deterministic simulations. |
 | Export and reopen | `WorkspaceApp`, client API | CSV export and reload paths exist. Signed-in two-owner persistence/account-switch remains an integration gate. |
 
-Current workspace navigation is Cashbook, Documents, Review queue and Ask Raqam. The live app does not yet contain expense-draft capture, separate supplier-bill/customer-invoice lifecycles, invoice preview/download, explicit payment entry/linking, or a tax-workpaper screen. The current review queue covers document fields, categories and receipt-to-transaction matches; it is not yet the proposed cross-record exception queue.
+Current workspace navigation includes Cashbook, Documents, Review queue, Invoices, Ask Raqam and provider settings. Customer invoice entry/status APIs exist; saved invoices now have a verified HTML preview/download. Receipt review exposes original extraction evidence separately from corrections. The live app does not yet contain expense-draft capture, supplier-bill lifecycles, earned-date invoice journal posting, explicit payment entry/linking, or a tax-workpaper screen. The current review queue covers document fields, categories and receipt-to-transaction matches; it is not yet the proposed cross-record exception queue.
 
 ## Existing AI modules
 
@@ -51,4 +52,4 @@ Existing AI tests live in `tests/ai/` and cover provider, extraction, categories
 
 - Product scope remains proposed. The existing PRD is authoritative until Gate 0 decisions are accepted and reconciled across PRD, glossary, contracts, task board and migration plan.
 - Synthetic scenarios are in [`tests/ai/fixtures/person2-mvp-development-cases.md`](../../tests/ai/fixtures/person2-mvp-development-cases.md). They are development cases, not reserved held-out evaluation labels and not model prompts.
-- Next: Person 1 publishes the Gate 0 decision record and frozen shared contract. Person 2 can then review the contract against this journey and map the approved screens to actual routes before implementing the first vertical slice.
+- Next: Person 1 publishes the Gate 0 decision record and frozen expanded shared contracts. Person 2 then reviews those contracts and implements the dependent expense/bill/payment/report slices. Existing receipt/category/invoice work still needs signed-in persistence acceptance and independent evaluation; see the completion audit.
