@@ -38,11 +38,19 @@ test('equal-valued distinct source rows count separately; duplicate movements fa
   assert.throws(() => calculateCashSummary([transaction(), transaction({ id: 't2' })], 'w1', 0), /Duplicate/);
 });
 
+test('chat-entered transactions without imported rows contribute to totals independently', () => {
+  const summary = calculateCashSummary([
+    transaction({ id: 'manual-1', source: { sourceId: 'chat-source', rowNumber: null, kind: 'manual_chat' }, amountMinor: '3000000', direction: 'out' }),
+    transaction({ id: 'manual-2', source: { sourceId: 'chat-source', rowNumber: null, kind: 'manual_chat' }, amountMinor: '7500000', direction: 'in' }),
+  ], 'w1', 0);
+  assert.deepEqual([summary.transactionCount, summary.inflowMinor, summary.outflowMinor, summary.netMovementMinor], [2, '7500000', '3000000', '4500000']);
+});
+
 test('scope and malformed cash records cannot leak into totals', () => {
   assert.throws(() => calculateCashSummary([transaction({ workspaceId: 'w2' })], 'w1', 0), /Inaccessible/);
   assert.throws(() => calculateCashSummary([transaction({ amountMinor: '0.1' })], 'w1', 0));
   assert.throws(() => calculateCashSummary([transaction({ category: 'travel' })], 'w1', 0));
-  assert.throws(() => calculateCashSummary([transaction({ source: { sourceId: 'image1', rowNumber: null } })], 'w1', 0), /imported source/);
+  assert.throws(() => calculateCashSummary([transaction({ source: { sourceId: 'image1', rowNumber: null } })], 'w1', 0), /source reference is invalid/);
   assert.deepEqual(calculateCashSummary([], 'w1', 0).transactionIds, []);
   assert.deepEqual(calculateCashSummary([], 'w1', 0).categoryCoverage, { acceptedCount: 0, notAcceptedCount: 0 });
   assert.deepEqual(calculateCashSummary([], 'w1', 0).matchCoverage, { matchedCount: 0, notMatchedCount: 0 });

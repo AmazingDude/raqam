@@ -8,10 +8,13 @@ export function validateCashbook(records: readonly Transaction[], workspaceId: s
   return records.map(raw => {
     const record = transactionSchema.parse(raw);
     if (record.workspaceId !== workspaceId) throw new Error('Inaccessible transaction');
-    if (record.source.rowNumber === null) throw new Error('Cash movement requires an imported source row');
-    const sourceKey = JSON.stringify([record.source.sourceId, record.source.rowNumber]);
-    if (ids.has(record.id) || sourceRows.has(sourceKey)) throw new Error('Duplicate cash movement');
-    ids.add(record.id); sourceRows.add(sourceKey);
+    const manualChat = record.source.kind === 'manual_chat';
+    if (manualChat ? record.source.rowNumber !== null : record.source.rowNumber === null)
+      throw new Error('Cash movement source reference is invalid');
+    const sourceKey = manualChat ? null : JSON.stringify([record.source.sourceId, record.source.rowNumber]);
+    if (ids.has(record.id) || (sourceKey !== null && sourceRows.has(sourceKey))) throw new Error('Duplicate cash movement');
+    ids.add(record.id);
+    if (sourceKey !== null) sourceRows.add(sourceKey);
     return record;
   });
 }
