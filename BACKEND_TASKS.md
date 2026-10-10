@@ -37,9 +37,9 @@ Statuses below are assignments, not implementation claims. A1 coordinates this t
 | BA-02 | A2 | RQ-05 | Document registration, retrieval, extraction orchestration and explicit field review | BA-00; BA-01 for persistence; C OCR for live extraction | todo — first A2 feature |
 | BA-03 | A2 | RQ-06/07 | Category/match generation wrappers and proposal persistence/listing | BA-00/01; C engines for live generation | todo |
 | BA-04 | A1 | RQ-06/07/09 | Atomic category/match accept/change/reject, one-to-one constraints, correct cashbook match projection | BA-00/01; stored proposals/documents for combined checks | todo |
-| BA-05 | A2 | RQ-08 | Four scoped read-only tools and `/api/assistant` wrapper around C's bounded loop | BA-00; existing cashbook now; BA-02/04 for full document/match evidence | todo — unblocked scaffolding now |
+| BA-05 | A2 | RQ-08 | Four scoped read-only tools and `/api/assistant` wrapper around C's bounded loop | BA-00; existing cashbook now; BA-02/04 for full document/match evidence | in_progress — A1 reviewed/integrated A2's whole-workspace summary and transaction lookup; remaining tools/route/C adapter pending |
 | BA-06 | A1 | RQ-01/04/10 | Remaining Storage mutation, concurrency and session/security gates | Existing backend; new routes as they land | todo — can run alongside BA-02/03/05 |
-| BA-07 | A1, A2 supplies evidence | RQ-10/12 | Sequential integration and full backend-to-B/C checks | Completed slices above | todo |
+| BA-07 | A1, A2 supplies evidence | RQ-10/12 | Sequential integration and full backend-to-B/C checks | Completed slices above | in_progress — main/backend foundation plus first A2 tool slice integrated; full product/AI/live/release checks pending |
 
 ### BA-00/01 — A1 publishes the shared foundation first
 
