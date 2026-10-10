@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { csvPreviewSchema, importConfirmationSchema, type ImportPlanRow } from '../contracts/imports.ts';
 import { previewCsv, MAX_CSV_BYTES, type CsvPreview } from './csv.ts';
 import { previewExcel } from './excel.ts';
+import { previewPdf } from './pdf.ts';
 import { BackendError } from './errors.ts';
 import { readRequestBytes } from './http.ts';
 
@@ -14,7 +15,7 @@ function decodeDelimitedText(bytes: Uint8Array): string {
 
 export async function readCsvUpload(request: Request) {
   const contentType = request.headers.get('content-type');
-  if (!contentType?.startsWith('multipart/form-data;')) throw new BackendError('INVALID_INPUT', 'Upload one CSV or Excel transaction file as multipart form data.');
+  if (!contentType?.startsWith('multipart/form-data;')) throw new BackendError('INVALID_INPUT', 'Upload one CSV, TSV, Excel, or PDF transaction file as multipart form data.');
   const body = await readRequestBytes(request, MAX_CSV_BYTES + 8192);
   let form: FormData;
   try { form = await new Response(new Uint8Array(body), { headers: { 'Content-Type': contentType } }).formData(); }
@@ -22,8 +23,8 @@ export async function readCsvUpload(request: Request) {
   const file = form.get('file');
   const extension = file instanceof File ? file.name.toLowerCase().split('.').at(-1) : undefined;
   if ([...form.entries()].length !== 1 || !(file instanceof File) || file.size === 0 || file.size > MAX_CSV_BYTES ||
-    !['csv', 'tsv', 'xls', 'xlsx'].includes(extension ?? '') || file.name.length > 255 || file.name.includes('\0')) {
-    throw new BackendError('INVALID_INPUT', 'Choose one .csv, .tsv, .xls, or .xlsx transaction file up to 1 MiB.');
+    !['csv', 'tsv', 'xls', 'xlsx', 'pdf'].includes(extension ?? '') || file.name.length > 255 || file.name.includes('\0')) {
+    throw new BackendError('INVALID_INPUT', 'Choose one .csv, .tsv, .xls, .xlsx, or .pdf transaction file up to 1 MiB.');
   }
   const bytes = new Uint8Array(await file.arrayBuffer());
   let preview: CsvPreview;
@@ -32,7 +33,8 @@ export async function readCsvUpload(request: Request) {
       const text = decodeDelimitedText(bytes);
       if (text.includes('\0')) throw new Error('This file contains a character that cannot be stored in the transaction source.');
       preview = csvPreviewSchema.parse(previewCsv(text, createHash('sha256').update(bytes).digest('hex')));
-    } else preview = csvPreviewSchema.parse(previewExcel(bytes));
+    } else if (extension === 'xls' || extension === 'xlsx') preview = csvPreviewSchema.parse(previewExcel(bytes));
+    else preview = csvPreviewSchema.parse(await previewPdf(bytes));
   } catch (failure) {
     const message = failure instanceof Error && failure.name !== 'ZodError'
       ? failure.message

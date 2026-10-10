@@ -34,7 +34,7 @@ Transactions arrive with inconsistent descriptions, supporting receipts live sep
 
 | Requirement | Raqam response |
 | --- | --- |
-| Problem -> input -> meaningful AI -> output -> impact | Disorganized cash records -> CSV and receipt images -> extraction, categorization, semantic matching and tool-backed questions -> reviewed cashbook -> measured prototype correctness and review effort |
+| Problem -> input -> meaningful AI -> output -> impact | Disorganized cash records -> CSV, Excel, text-based PDF statements and receipt images -> extraction, categorization, semantic matching and tool-backed questions -> reviewed cashbook -> measured prototype correctness and review effort |
 | AI Integration Depth | AI participates in preparing records and investigating questions; code supplies financial totals and evidence lookup |
 | Problem-Solving Quality | Complete import-to-review-to-export workflow with explicit uncertainty |
 | Demo & Presentation | One small business, a few receipts, one correction, one unresolved case and a live grounded question |
@@ -60,7 +60,7 @@ Engineering size targets: up to **50 transactions and 10 receipt images per work
 | Core | Beyond core |
 | --- | --- |
 | Clerk sign-in; cloud records and private source images in Supabase | Organizations, roles, invitations, subscription billing |
-| CSV/TSV and Excel `.xls`/`.xlsx` transaction imports with preview, common bank-column mapping and row errors | PDF/image bank statements, universal parsing of unknown schemas, live bank connections |
+| CSV/TSV, Excel `.xls`/`.xlsx` and selectable-text PDF statement imports with preview, common bank-column mapping and row errors | Scanned/image-only bank statements, universal parsing of unknown schemas, live bank connections |
 | English printed receipt/invoice images, JPEG/PNG, OCR and correction | Handwriting, Urdu/Roman Urdu, multi-page PDF and layout guarantees |
 | AI category proposals; reviewed transaction records | Automatic accounting treatment, tax categories, unattended posting |
 | One-to-one transaction/document matching with review | Split payments, many-to-many allocations, FX, refunds/netting workflows |
@@ -73,7 +73,7 @@ Unsupported inputs must be identified, not silently forced into a simpler suppor
 ## 5. User journey
 
 1. Sign in and open the owner's business workspace; load a labeled synthetic example or import the user's authorized sample.
-2. Upload a supported CSV, preview direction/date/amount interpretation, correct or reject invalid rows, and confirm import.
+2. Upload a supported CSV, Excel workbook or selectable-text PDF statement; preview direction/date/amount interpretation, correct or reject invalid rows, and confirm import.
 3. Upload receipt images. OCR returns proposed fields with the original image visible. Confirm/correct required fields or mark the document unresolved.
 4. Run bookkeeping preparation. Review category and match proposals; accept, change or reject them.
 5. View the cashbook, cash movement summary, reviewed-category breakdown and unresolved-record queue.
@@ -96,7 +96,7 @@ Every feature below is required for the agreed core. Completion is measured by o
 
 ### F02 - Transaction import and cashbook foundation
 
-- Provide a downloadable CSV template with `date`, `description`, `direction` (`in`/`out`), `amount` and optional `reference`; also accept CSV/TSV and Excel `.xls`/`.xlsx` with recognized date/description/amount-direction or debit/credit columns. Import PKR only; map common date and amount notation into a preview, keep ambiguous or foreign-currency values unresolved, and require formula-based imported cells to be saved as values first.
+- Provide a downloadable CSV template with `date`, `description`, `direction` (`in`/`out`), `amount` and optional `reference`; also accept CSV/TSV, Excel `.xls`/`.xlsx`, and selectable-text PDF account statements with recognizable date/description/amount-direction or debit/credit columns. PDF statements are limited to 10 pages and 50 transaction rows; scanned/image-only PDFs are identified and require OCR outside this import flow. Import PKR only; map common date and amount notation into a preview, keep ambiguous or foreign-currency values unresolved, and require formula-based imported cells to be saved as values first.
 - Preserve the original file and row references. Preview valid rows, invalid rows and counts before confirmation; never silently drop a row.
 - Validate amount, direction, date and currency. Unknown/unparseable amounts stay unresolved, never zero.
 - Confirmed valid rows create transaction records; corrections retain original source values and the user's decision.
@@ -108,7 +108,7 @@ Every feature below is required for the agreed core. Completion is measured by o
 - Accept JPEG/PNG within validated app/host size limits. Reject unsupported or unreadable inputs with a clear recovery action.
 - Extract merchant/counterparty, document date, total, currency if present and reference if present. Preserve missing values and uncertainty.
 - Show the source image beside editable proposed fields. Required uncertain financial fields prevent the document being marked reviewed.
-- OCR by itself never creates a second cash transaction. The bank CSV is the cash-movement source; documents support those records.
+- OCR by itself never creates a second cash transaction. Imported bank transaction files, including supported text-based PDF statements, are the cash-movement source; receipts support those records.
 - Identical image re-upload does not create duplicate supporting evidence or repeat completed OCR unnecessarily.
 - Provider error, malformed output, timeout or rate limit leaves the source and existing books intact. Retrying is bounded and idempotent.
 

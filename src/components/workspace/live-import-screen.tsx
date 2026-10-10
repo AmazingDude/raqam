@@ -37,7 +37,7 @@ export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void>
   }
   async function upload(file: File) {
     await exclusive(async () => {
-      if (!/\.(csv|tsv|xls|xlsx)$/i.test(file.name) || !file.size || file.size > 1024 * 1024) throw new Error('Choose a .csv, .tsv, .xls, or .xlsx file up to 1 MiB, with up to 50 rows.');
+      if (!/\.(csv|tsv|xls|xlsx|pdf)$/i.test(file.name) || !file.size || file.size > 1024 * 1024) throw new Error('Choose a .csv, .tsv, .xls, .xlsx, or text-based .pdf file up to 1 MiB, with up to 50 rows.');
       const next = await run(signal => api.registerImport(file, signal));
       setBatch(next); setName(file.name); setOutcomes(null); setAttempt(null); setAcknowledged(false);
       setDrafts(Object.fromEntries(next.preview.rows.map(row => [row.rowNumber, initialDraft(row, next.preview.header)])));
@@ -47,7 +47,7 @@ export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void>
   }
   const available = batch?.preview.rows.filter(row => batch.status === 'pending' || outcomes?.rows.some(item => item.rowNumber === row.rowNumber && item.outcome === 'unresolved')) ?? [];
   function makeAttempt(): Attempt {
-    if (!batch) throw new Error('Upload a CSV first.');
+    if (!batch) throw new Error('Upload a transaction file first.');
     const rows: ImportConfirmation['rows'] = available.flatMap<ImportConfirmation['rows'][number]>(row => {
       const draft = drafts[row.rowNumber];
       if (!draft || draft.action === 'keep') return [];
@@ -81,10 +81,10 @@ export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void>
   const frozen = busy || attempt !== null;
   return <div className={s.stack}>
     <div className={s.pageHeading}><div><h1>Import transactions</h1><p>Review the original rows, then choose what enters your cashbook.</p></div><a className={s.secondary} href="/api/imports/template" download>Download template</a></div>
-    <section className={`${s.upload} ${s.stack}`}><h2>Choose a transaction file</h2><p>CSV, TSV, Excel .xls, or Excel .xlsx · up to 1 MiB and 50 rows · PKR. Common dates and bank column names are mapped in preview. Reopen an earlier import by uploading the same file.</p><label className={s.field}>Transaction file<input type="file" accept=".csv,.tsv,.xls,.xlsx,text/csv,text/tab-separated-values,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={frozen} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void upload(file); }}/></label></section>
+    <section className={`${s.upload} ${s.stack}`}><h2>Choose a transaction file</h2><p>CSV, TSV, Excel .xls/.xlsx, or text-based PDF · up to 1 MiB, 10 PDF pages, and 50 rows · PKR. Common dates and bank column names are mapped in preview. Scanned PDFs need OCR and are not supported yet. Reopen an earlier import by uploading the same file.</p><label className={s.field}>Transaction file<input type="file" accept=".csv,.tsv,.xls,.xlsx,.pdf,text/csv,text/tab-separated-values,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf" disabled={frozen} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void upload(file); }}/></label></section>
     {notice && <p role="status" className={s.success}>{notice}</p>}{error && <p role="alert" className={s.error}>{error}</p>}{busy && <p role="status">Saving or loading your import…</p>}
     {batch && <section className={s.panel}>
-      <div className={s.panelHeading}><div><h2>{name || 'Stored CSV'} · {batch.status === 'pending' ? 'Preview' : 'Confirmed import'}</h2><p className={s.small}>Original: {batch.preview.validCount} valid / {batch.preview.invalidCount} needing review</p></div><button className={s.secondary} disabled={busy} onClick={() => void exclusive(async () => { await loadState(batch.importId); await onChanged(); setNotice('Current import status loaded. Check your row choices before confirming.'); })}>Refresh import status</button></div>
+      <div className={s.panelHeading}><div><h2>{name || 'Stored transaction file'} · {batch.status === 'pending' ? 'Preview' : 'Confirmed import'}</h2><p className={s.small}>Original: {batch.preview.validCount} valid / {batch.preview.invalidCount} needing review</p></div><button className={s.secondary} disabled={busy} onClick={() => void exclusive(async () => { await loadState(batch.importId); await onChanged(); setNotice('Current import status loaded. Check your row choices before confirming.'); })}>Refresh import status</button></div>
       {outcomes && <p className={s.proposal} role="status">Current outcomes: {outcomes.importedCount} imported / {outcomes.rejectedCount} rejected / {outcomes.unresolvedCount} unresolved. Unresolved rows stay out of cash totals.</p>}
       {batch.status === 'confirmed' && !outcomes && <p className={`${s.proposal} ${s.error}`}>Current row outcomes are unavailable. Refresh import status before making further decisions.</p>}
       {batch.preview.rows.map(row => {
@@ -92,9 +92,9 @@ export function LiveImportScreen({ onChanged }: { onChanged: () => Promise<void>
         const outcome = outcomes?.rows.find(item => item.rowNumber === row.rowNumber)?.outcome;
         const editable = batch.status === 'pending' || outcome === 'unresolved';
         const update = (patch: Partial<Draft>) => { setDrafts(current => ({ ...current, [row.rowNumber]: { ...draft, ...patch } })); setAcknowledged(false); };
-        return <article key={row.rowNumber} className={s.proposal} aria-label={`CSV row ${row.rowNumber}`}>
+        return <article key={row.rowNumber} className={s.proposal} aria-label={`Transaction row ${row.rowNumber}`}>
           <div className={s.proposalHeading}><h3>Row {row.rowNumber}</h3><span className={`${s.badge} ${outcome === 'imported' ? s.good : s.pending}`}>{outcome ?? (row.transaction ? 'Valid preview' : 'Needs review')}</span></div>
-          <details><summary>Original CSV values</summary><dl className={s.details}>{row.original.map((value, index) => <div key={index} style={{display:'contents'}}><dt>{batch.preview.header[index] ?? `Extra field ${index + 1}`}</dt><dd style={{overflowWrap:'anywhere'}}>{value || '(blank)'}</dd></div>)}</dl></details>
+          <details><summary>Original source values</summary><dl className={s.details}>{row.original.map((value, index) => <div key={index} style={{display:'contents'}}><dt>{batch.preview.header[index] ?? `Extra field ${index + 1}`}</dt><dd style={{overflowWrap:'anywhere'}}>{value || '(blank)'}</dd></div>)}</dl></details>
           {row.transaction && <p>{row.transaction.date} · {row.transaction.description} · {row.transaction.direction === 'in' ? 'Cash in' : 'Cash out'} · PKR {money(row.transaction.amountMinor)}</p>}
           {row.errors.length > 0 && <ul>{row.errors.map((issue, index) => <li key={index}>{issue.field}: {issue.message}</li>)}</ul>}
           {editable && <><label className={s.field}>Decision for row {row.rowNumber}<select value={draft.action} disabled={frozen} onChange={event => update({ action: event.target.value as Draft['action'] })}><option value="keep">{batch.status === 'pending' && row.transaction ? 'Include original valid row' : 'Leave unresolved'}</option><option value="correct">Correct and include</option><option value="reject">Reject row</option></select></label>
