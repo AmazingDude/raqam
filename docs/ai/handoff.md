@@ -1,8 +1,10 @@
 # Raqam — Person C handoff
 
 **Updated:** 10 October 2026, PKT. **Owner:** the user, Person C / Person 3.  
-**State:** Person C steps 1 and 2 documentation prepared; AI implementation not started. Contract adoption is awaiting A/B.  
+**State:** Steps 1–2 documentation prepared; step 3 public-doc review complete, live Groq feasibility blocked by missing A-approved runtime and secure credential. AI implementation has not started; contract adoption is awaiting A/B.
 **Read first:** [Person C plan](PERSON_C_PLAN.md), [numbered implementation steps](IMPLEMENTATION_STEPS.md), [PRD](../../PRD.md), [team ownership](../../TEAM_TASKS.md), [shared handoff](../../handoff.md), [build gates](../../BUILD_PLAN.md).
+
+**Two-contributor execution:** [TWO_PERSON_EXECUTION.md](TWO_PERSON_EXECUTION.md) assigns original steps 4–20 without changing the implementation plan. C1 (user) owns provider/OCR/categories; C2 owns matching/tools/assistant. Each writes its own [C1 handoff](C1_HANDOFF.md) or [C2 handoff](C2_HANDOFF.md); C1 alone consolidates this handoff. Shared integration branch: `codex/ai-two-person`.
 
 **Coding entry point:** [IMPLEMENTATION_STEPS.md](IMPLEMENTATION_STEPS.md). The user can request specific numbered steps; the agent must read the plan/PRD, check dependencies and report acceptance evidence before completion.
 
@@ -25,8 +27,10 @@ C: `src/lib/ai/**`, `tests/ai/**`, `docs/ai/**`, subject to A's actual bootstrap
 | Step 1 baseline inspection | done | Actual checkout, pre-existing dirty state, absent app scaffold/config/commands, tool versions and ownership recorded in baseline.md |
 | Step 2 proposal preparation | in_review | PRD-aligned contract and synthetic example docs drafted; A/B adoption and concrete shared exports are not present in repo |
 | Step 1–2 review corrections | done | Cached/live extraction examples share a complete field-object shape; contracts.md section 8 now lists proposed packages, server configuration, deadlines and durable reservation requirements for A |
+| Step 3 Groq capability proof | blocked | Official docs and candidate modes recorded in feasibility.md; no app runner, approved dependencies or nonempty secure key; zero live requests |
+| Two-contributor coordination plan | done | Steps 4–20 mapped to exclusive files, dependency waves and separate handoffs; planning checks only; original implementation gates unchanged |
 | C-00 contract agreement | in_review | PRD requirements traced; amount serialization, required-field policy, exact schemas/imports, tool result shapes, snapshot/cache interface and test-seam adoption await A/B |
-| C-01 live feasibility | todo | Secure Groq access and actual model/limits needed |
+| C-01 live feasibility | blocked | `qwen/qwen3.8-27b` and `openai/gpt-oss-20b` are public documentation candidates; account access/limits and all live behaviors remain unverified until A approves a runner and supplies secure runtime access |
 | C-02 adapter | todo | C-00/C-01 and A-approved packages/runtime |
 | C-03 extraction | todo | A's private source/cache path and B's review panel |
 | C-04 categories | todo | Valid transaction inputs and agreed category guide |
@@ -41,20 +45,20 @@ No implementation task is done merely because its plan exists. Keep detailed cri
 
 ## Immediate next task
 
-Person C steps 1 and 2 were requested. Step 1's repository inspection is complete. Step 2's proposal/examples/seams are documented and ready for A/B review, but shared agreement is not complete: the checkout has no application scaffold or executable shared schema, and no A/B adoption evidence. Once A records the bootstrap layout/adopted contracts and B confirms renderable states, map them to actual exports and update this status. The existing docs branch is not an agreed implementation branch; A should name the app baseline before C code starts. C-01's live capability proof can proceed independently only when requested and secure Groq access is available.
+Step 1 inspection is complete. Step 2 proposal/examples/seams are documented and await A/B adoption; the checkout still has no app scaffold or executable shared schema. Step 3 reviewed current Groq documentation and recorded the public capability matrix in [feasibility.md](feasibility.md), but the live gate is blocked: no A-approved runner/dependencies and no nonempty secure Groq key. Next: A provides an approved runner/runtime and secure access; C then runs the bounded synthetic probes before C-02. The existing docs branch is not an agreed implementation branch; A should name the app baseline before code starts.
 
-Suggested future branch: `codex/ai-workflows`, based on A's agreed baseline. Current planning files were created on the existing `docs/rules-and-team-split` branch; no branch switch or new commit occurred. Inspect dirty work and isolate C files before implementing.
+The user requested shared C branch `codex/ai-two-person` for this split. Use separate clones/worktrees and the single-publisher procedure in TWO_PERSON_EXECUTION.md. The original dirty planning checkout is preserved; before runtime coding, A must still provide the agreed application baseline and contract imports. Branch publication is planning delivery, not implementation acceptance.
 
 ## Checks actually completed
 
-This task: read-only Git/remote/status/log/revision checks; repository file/config inventory; inspected PRD sections 6–8, team ownership/workflow, Person C plan/runbook/handoff; read spec-kit-planning, codebase-design and TDD seam/test/mocking guidance; checked installed Node/npm/pnpm/Bun/Python/Git versions. Documentation edits are recorded separately from these inspections. No test suite/build/lint/typecheck exists in the repo; none was run. No live model, app integration, browser, persistence, cloud or deployment check was run.
+Steps 1–2 checks remain as recorded below. Step 3: checked only presence of the proposed Groq key without printing its value; confirmed `.env.local` is ignored and its Groq setting is empty, process environment has no key, no app manifest/lockfile/test runner exists, and neither Node `groq-sdk` nor Python `groq` is installed. Read ecosystem-primer, LangChain fundamentals/middleware guidance, and current official Groq vision/model/structured-output/tool/rate-limit pages. No dependency was installed, no live provider request was made, and no app test/build/integration/cloud check ran.
 
 ## Open dependencies and cautions
 
-- Account/model access, exact quota, image caps, host timeout and bootstrap dependencies are unverified.
+- Step 3 live proof is blocked by the absence of an A-approved runtime/runner and secure nonempty Groq key. Public docs currently classify the Qwen vision candidate as preview; account permission and quota remain unknown.
 - Shared interface details are proposals until A adopts them; B must confirm rendering needs.
 - Independent reserved datasets/labels and live request budget must be coordinated early.
-- Bound all retries, tool loops, context and request duration. Do not combine schema-output and tool modes without verified support.
+- For eventual probes, use a one-request-per-case budget plus at most two model calls for the local tool round; no automatic retries. Check account-level budget first. Keep strict schema output and tool calling in separate requests per current Groq docs.
 - Corrected fields/accepted decisions never get replaced by rerun/cache results. Version checks belong in integration.
 - Assistant fact values come from deterministic authorized tools; model prose is not numerical authority.
 - No runtime framework/tracing/vector store is added solely because a skill suggests one.
@@ -77,6 +81,10 @@ This task: read-only Git/remote/status/log/revision checks; repository file/conf
 - 10 October 2026: implemented requested Person C runbook steps 1–2 as documentation. Added baseline.md with actual branch/revision/origin, pre-existing dirty state, absent app scaffold/commands and tool versions. Added contracts.md tracing accepted PRD rules and marking proposed types, tool shapes, field policy, cache interface and test seams as pending A/B adoption; added synthetic development examples.md. Updated this C handoff and appended a root handoff entry. Documentation checks only; no code, tests, packages or shared A/B files changed. Step 1 inspection done; step 2 is in review awaiting actual A/B adoption evidence. Next: have A/B review/adopt the shared contract before contract-dependent implementation.
 - 10 October 2026: user selected Person C, confirmed approximately 15–17 hours and retained all core AI features. Created `PERSON_C_PLAN.md` and this C-specific handoff. Proposed integration contracts and end-product behavior without changing A/B plans, PRD or application code. Verified planning documents; implementation/model access remains untested. Next: C-00 agreement and C-01 live feasibility when implementation is requested.
 - 10 October 2026: user requested extremely detailed numbered implementation instructions usable by coding agents. Added `IMPLEMENTATION_STEPS.md` with 20 steps mapped to existing C/RQ tasks, concrete contract proposals, per-step coding/verification guidance, scope limits and clean cloud-shipping procedures; linked it from the plan. Documentation checks completed; no numbered step implemented, no runtime/dependency/root-config changes, and no publication/deployment. Next: steps 1–2 when requested.
+
+- 10 October 2026: requested Person C step 3. Read repository instructions/PRD/task ownership/workflow and C plan/runbook/handoff; reviewed ecosystem-primer and applicable LangChain fundamentals/middleware guidance. Current official Groq docs list Qwen 3.8 27B for image/JSON-object/tool features (preview model), GPT OSS 20B for production and strict structured outputs, and prohibit combining tool use with Structured Outputs in one request. Added feasibility.md with sources, a bounded synthetic probe matrix and exact readiness blockers. Checked environment-key presence without revealing values: `.env.local` Groq key empty; process key absent; no A-approved app runtime, runner or SDK installed. No model request, mocked response, dependency install or application test occurred; response duration/errors/fields are N/A. Step 3/C-01 blocked, not passed. Next: A approves runner/runtime and arranges secure key/account-limit check, then C runs the probes before C-02.
+
+- 10 October 2026: user requested two contributors within Person C for original steps 4–20 and publication on a separate shared branch. Added TWO_PERSON_EXECUTION.md, C1_HANDOFF.md and C2_HANDOFF.md with exclusive source/test/doc ownership, the shared provider seam, unchanged predecessors/acceptance, single-publisher integration and per-person coding prompts. Updated only C coordination in this handoff. SHA-256 checks confirm original PRD/Person C plan/runbook/team documents unchanged; all 17 steps are assigned exactly once, exclusive path ownership and local links checked, and Git whitespace check passed. Live step 3 and contract adoption remain blocked/pending. No runtime implementation, dependency install, AI request or deployment.
 
 ## Entry template for later work
 
