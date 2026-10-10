@@ -17,6 +17,9 @@ export function Cashbook({ records, workspaceId, unresolved, onRecord, onImport,
   const excluded = live ? summary?.unresolvedImportRowCount : unresolved;
   const accepted = filtered.filter(r => r.categoryStatus === 'accepted').length;
   const matched = filtered.filter(r => r.matchStatus === 'accepted').length;
+  const categoryCount = live ? summary?.categoryCoverage.acceptedCount : accepted;
+  const matchCount = live ? summary?.matchCoverage.matchedCount : matched;
+  const coverageTotal = live ? summary?.transactionCount : filtered.length;
   const reversed = !!from && !!to && from > to;
   return <>
     <div className={s.pageHeading}><div><h1>Cashbook</h1><p>A clear view of your recorded cash activity.</p></div><button className={s.button} onClick={onImport}><Icon name="plus" size={17}/> Import transactions</button></div>
@@ -26,7 +29,15 @@ export function Cashbook({ records, workspaceId, unresolved, onRecord, onImport,
     <div className={s.totals} aria-label={live ? 'Whole-workspace cash totals' : 'Cash totals for the filtered loaded records'}>
       {[['Cash in', summary?.inflowMinor ?? null, 'Imported inflows'], ['Cash out', summary?.outflowMinor ?? null, 'Imported outflows'], ['Net cash movement', summary?.netMovementMinor ?? null, 'Cash in minus cash out']].map(([label, amount, foot]) => <section className={s.total} key={label}><div className={s.totalLabel}>{label}<Icon name="arrow" size={16}/></div><p className={s.totalValue}><span>PKR</span>{money(amount ?? null)}</p><p className={s.totalFoot}>{foot}</p></section>)}
     </div>
-    <div className={s.coverage}><div className={s.reviewProgress}><progress max={filtered.length||1} value={accepted} aria-label={`${accepted} of ${filtered.length} visible categories reviewed`}/><span><strong>{accepted}/{filtered.length}</strong> visible categories reviewed</span></div><span><strong>{matched}/{filtered.length}</strong> visible documents matched</span>{excluded !== undefined && excluded > 0 && <span className={`${s.badge} ${s.pending}`}>{excluded} import {excluded === 1 ? 'row' : 'rows'} excluded</span>}<button className={s.textButton} onClick={onReview}>Open review queue <Icon name="arrow" size={14}/></button></div>
+    <div className={s.coverage}>
+      <div className={s.reviewProgress}>
+        <progress max={coverageTotal || 1} value={categoryCount ?? 0} aria-label={`${categoryCount ?? 0} of ${coverageTotal ?? 0} ${live ? 'workspace' : 'visible'} categories reviewed`}/>
+        <span><strong>{categoryCount ?? '—'}/{coverageTotal ?? '—'}</strong> {live ? 'workspace categories accepted' : 'visible categories accepted'}</span>
+      </div>
+      <span><strong>{matchCount ?? '—'}/{coverageTotal ?? '—'}</strong> {live ? 'workspace transactions matched' : 'visible transactions matched'}</span>
+      {excluded !== undefined && (live || excluded > 0) && <span className={`${s.badge} ${excluded > 0 ? s.pending : ''}`}>{excluded} unresolved import {excluded === 1 ? 'row' : 'rows'} excluded from totals</span>}
+      <button className={s.textButton} onClick={onReview}>Open review queue <Icon name="arrow" size={14}/></button>
+    </div>
     <section className={s.panel} aria-label="Transactions">
       <div className={s.panelHeading}><h2>Transactions <span className={s.muted}>({filtered.length})</span></h2><span className={`${s.small} ${s.muted}`}>{live ? `PKR · ${filtered.length} visible records · workspace totals above` : `PKR · totals cover these ${filtered.length} records${hasMore ? ' only' : ''}`}</span></div>
       <div className={s.filters}>

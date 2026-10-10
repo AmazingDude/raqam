@@ -13,6 +13,22 @@ test('cash totals count all valid records once and separate reviewed category co
   assert.equal(summary.categories.transfers_owner_movements?.outflowMinor, '20');
   assert.equal(summary.unreviewed.inflowMinor, '10005');
   assert.equal(summary.unresolvedImportRowCount, 2);
+  assert.deepEqual(summary.categoryCoverage, { acceptedCount: 2, notAcceptedCount: 1 });
+  assert.deepEqual(summary.matchCoverage, { matchedCount: 0, notMatchedCount: 3 });
+  assert.equal(BigInt(summary.categories.software_services!.inflowMinor) + BigInt(summary.categories.transfers_owner_movements!.inflowMinor) + BigInt(summary.unreviewed.inflowMinor), BigInt(summary.inflowMinor));
+  assert.equal(BigInt(summary.categories.software_services!.outflowMinor) + BigInt(summary.categories.transfers_owner_movements!.outflowMinor) + BigInt(summary.unreviewed.outflowMinor), BigInt(summary.outflowMinor));
+});
+
+test('full-workspace category and match coverage counts accepted outcomes independently of cash totals', () => {
+  const summary = calculateCashSummary([
+    transaction({ category: 'customer_receipts', categoryStatus: 'accepted', matchStatus: 'accepted' }),
+    transaction({ id: 't2', source: { sourceId: 's1', rowNumber: 3 }, direction: 'out', amountMinor: '50', categoryStatus: 'rejected', matchStatus: 'proposed' }),
+    transaction({ id: 't3', source: { sourceId: 's1', rowNumber: 4 }, amountMinor: '20', categoryStatus: 'proposed' }),
+  ], 'w1', 4);
+  assert.deepEqual(summary.categoryCoverage, { acceptedCount: 1, notAcceptedCount: 2 });
+  assert.deepEqual(summary.matchCoverage, { matchedCount: 1, notMatchedCount: 2 });
+  assert.deepEqual([summary.inflowMinor, summary.outflowMinor, summary.netMovementMinor], ['10025', '50', '9975']);
+  assert.equal(summary.unresolvedImportRowCount, 4);
 });
 
 test('equal-valued distinct source rows count separately; duplicate movements fail closed', () => {
@@ -28,6 +44,8 @@ test('scope and malformed cash records cannot leak into totals', () => {
   assert.throws(() => calculateCashSummary([transaction({ category: 'travel' })], 'w1', 0));
   assert.throws(() => calculateCashSummary([transaction({ source: { sourceId: 'image1', rowNumber: null } })], 'w1', 0), /imported source/);
   assert.deepEqual(calculateCashSummary([], 'w1', 0).transactionIds, []);
+  assert.deepEqual(calculateCashSummary([], 'w1', 0).categoryCoverage, { acceptedCount: 0, notAcceptedCount: 0 });
+  assert.deepEqual(calculateCashSummary([], 'w1', 0).matchCoverage, { matchedCount: 0, notMatchedCount: 0 });
 });
 
 test('totals beyond JavaScript safe integer range remain exact', () => {

@@ -55,29 +55,37 @@ const positiveMinor = z.string().regex(/^(0|[1-9][0-9]*)$/);
 const bucketSchema = z.object({ inflowMinor: positiveMinor, outflowMinor: positiveMinor, netMovementMinor: signedMinor });
 export const cashSummarySchema = bucketSchema.extend({
   currency: z.literal('PKR'), transactionCount: z.number().int().min(0).max(MAX_WORKSPACE_TRANSACTIONS), transactionIds: z.array(z.string()).max(MAX_WORKSPACE_TRANSACTIONS),
-  unresolvedImportRowCount: z.number().int().nonnegative(), categories: z.partialRecord(categorySchema, bucketSchema), unreviewed: bucketSchema,
+  unresolvedImportRowCount: z.number().int().nonnegative(),
+  categoryCoverage: z.strictObject({ acceptedCount: z.number().int().nonnegative().max(MAX_WORKSPACE_TRANSACTIONS), notAcceptedCount: z.number().int().nonnegative().max(MAX_WORKSPACE_TRANSACTIONS) }),
+  matchCoverage: z.strictObject({ matchedCount: z.number().int().nonnegative().max(MAX_WORKSPACE_TRANSACTIONS), notMatchedCount: z.number().int().nonnegative().max(MAX_WORKSPACE_TRANSACTIONS) }),
+  categories: z.partialRecord(categorySchema, bucketSchema), unreviewed: bucketSchema,
 }).refine(summary => {
   const buckets = [...Object.values(summary.categories), summary.unreviewed];
   // Zod can continue object refinements after a string-format failure. Check
   // those formats before BigInt so malformed responses fail validation cleanly.
   if (![summary, ...buckets].every(bucket => bucketSchema.safeParse(bucket).success)) return false;
   return summary.transactionCount === summary.transactionIds.length && new Set(summary.transactionIds).size === summary.transactionCount &&
+    summary.categoryCoverage.acceptedCount + summary.categoryCoverage.notAcceptedCount === summary.transactionCount &&
+    summary.matchCoverage.matchedCount + summary.matchCoverage.notMatchedCount === summary.transactionCount &&
     [summary, ...buckets].every(bucket => BigInt(bucket.inflowMinor) - BigInt(bucket.outflowMinor) === BigInt(bucket.netMovementMinor)) &&
     buckets.reduce((sum, bucket) => sum + BigInt(bucket.inflowMinor), 0n) === BigInt(summary.inflowMinor) &&
     buckets.reduce((sum, bucket) => sum + BigInt(bucket.outflowMinor), 0n) === BigInt(summary.outflowMinor);
 }, 'Cash summary amounts and scope must agree');
 
-export async function exportResponse(response: Response): Promise<{ csv: string; unresolved: number }> {
+export async function exportResponse(response: Response): Promise<{ csv: string; unresolved: number; transactionCount: number }> {
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
     const error = z.object({ error: z.object({ code: z.string(), message: z.string() }) }).safeParse(body);
     throw new ClientError(error.success ? error.data.error.code : 'UNAVAILABLE', error.success ? error.data.error.message : 'Export could not complete. Retry.');
   }
   const unresolved = response.headers.get('X-Raqam-Unresolved-Import-Rows');
-  if (!response.headers.get('Content-Type')?.toLowerCase().startsWith('text/csv') || unresolved === null || !/^(0|[1-9][0-9]*)$/.test(unresolved) || !Number.isSafeInteger(Number(unresolved))) {
+  const transactionCount = response.headers.get('X-Raqam-Transaction-Count');
+  if (!response.headers.get('Content-Type')?.toLowerCase().startsWith('text/csv') || unresolved === null || transactionCount === null ||
+    !/^(0|[1-9][0-9]*)$/.test(unresolved) || !Number.isSafeInteger(Number(unresolved)) ||
+    !/^(0|[1-9][0-9]*)$/.test(transactionCount) || !Number.isSafeInteger(Number(transactionCount)) || Number(transactionCount) > MAX_WORKSPACE_TRANSACTIONS) {
     throw new ClientError('UNAVAILABLE', 'The export response could not be verified. Retry.');
   }
-  return { csv: await response.text(), unresolved: Number(unresolved) };
+  return { csv: await response.text(), unresolved: Number(unresolved), transactionCount: Number(transactionCount) };
 }
 
 async function request<T>(path: string, schema: z.ZodType<T>, signal: AbortSignal, init?: RequestInit): Promise<T> {

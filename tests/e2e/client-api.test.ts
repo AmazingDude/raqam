@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { api, cashSummarySchema, ClientError, exportResponse } from '../../src/lib/client/api.ts';
 
 const id = '30000000-0000-4000-8000-000000000001';
-const summary = { currency: 'PKR', inflowMinor: '90071992547409930', outflowMinor: '1', netMovementMinor: '90071992547409929', transactionCount: 1, transactionIds: [id], unresolvedImportRowCount: 2, categories: {}, unreviewed: { inflowMinor: '90071992547409930', outflowMinor: '1', netMovementMinor: '90071992547409929' } };
+const summary = { currency: 'PKR', inflowMinor: '90071992547409930', outflowMinor: '1', netMovementMinor: '90071992547409929', transactionCount: 1, transactionIds: [id], unresolvedImportRowCount: 2, categoryCoverage: { acceptedCount: 0, notAcceptedCount: 1 }, matchCoverage: { matchedCount: 0, notMatchedCount: 1 }, categories: {}, unreviewed: { inflowMinor: '90071992547409930', outflowMinor: '1', netMovementMinor: '90071992547409929' } };
 function envelope(data: unknown, status = 200) { return Response.json({ data, error: null }, { status }); }
 
 test('client summary validates exact cash, category reconciliation and complete scope without number rounding', () => {
@@ -13,6 +13,8 @@ test('client summary validates exact cash, category reconciliation and complete 
     { ...summary, netMovementMinor: '9.99' }, { ...summary, netMovementMinor: '0' },
     { ...summary, transactionCount: 2 }, { ...summary, transactionIds: [id, id], transactionCount: 2 },
     { ...summary, unreviewed: { ...summary.unreviewed, inflowMinor: '1' } },
+    { ...summary, categoryCoverage: { acceptedCount: 2, notAcceptedCount: 0 } },
+    { ...summary, matchCoverage: { matchedCount: 0, notMatchedCount: 0 } },
   ]) assert.equal(cashSummarySchema.safeParse(invalid).success, false);
 });
 
@@ -50,8 +52,11 @@ test('client commands send exact shared-contract decisions, stable request IDs a
 
 test('export only downloads verified CSV successes and surfaces failures without an error file', async () => {
   const csv = 'date,amount\r\n2026-10-10,100.01\r\n';
-  assert.deepEqual(await exportResponse(new Response(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'X-Raqam-Unresolved-Import-Rows': '2' } })), { csv, unresolved: 2 });
-  for (const response of [new Response('<html>sign in</html>'), new Response(csv, { headers: { 'Content-Type': 'text/csv' } }), new Response(csv, { headers: { 'Content-Type': 'text/csv', 'X-Raqam-Unresolved-Import-Rows': '-1' } })]) {
+  const headers = { 'Content-Type': 'text/csv; charset=utf-8', 'X-Raqam-Transaction-Count': '1', 'X-Raqam-Unresolved-Import-Rows': '2' };
+  assert.deepEqual(await exportResponse(new Response(csv, { headers })), { csv, transactionCount: 1, unresolved: 2 });
+  for (const response of [new Response('<html>sign in</html>'), new Response(csv, { headers: { 'Content-Type': 'text/csv' } }),
+    new Response(csv, { headers: { ...headers, 'X-Raqam-Unresolved-Import-Rows': '-1' } }),
+    new Response(csv, { headers: { ...headers, 'X-Raqam-Transaction-Count': '50001' } })]) {
     await assert.rejects(exportResponse(response), error => error instanceof ClientError && error.code === 'UNAVAILABLE');
   }
   await assert.rejects(exportResponse(Response.json({ data: null, error: { code: 'UNAUTHENTICATED', message: 'Sign in again.' } }, { status: 401 })), error => error instanceof ClientError && error.code === 'UNAUTHENTICATED');
@@ -89,6 +94,7 @@ test('category proposal client supports list, empty no-op reruns and versioned r
   const proposal={id:'30000000-0000-4000-8000-000000000004',workspaceId:id,transactionId:'30000000-0000-4000-8000-000000000005',transactionVersion:1,reviewVersion:0,rationale:'The row names a software subscription.',status:'accepted',provenance:{modelVersion:'synthetic-model',promptVersion:'categories-v1',schemaVersion:'categories-schema-v1'},suggestion:{kind:'category',category:'software_services'}};
   const calls:{path:string;init:RequestInit}[]=[];
   const responses=[
+    {items:[],nextCursor:proposal.id},
     {items:[],nextCursor:null},
     {requestId:id,items:[],duplicate:true},
     {requestId:id,proposal,reviewDecisionId:'30000000-0000-4000-8000-000000000006',affectedTransactionIds:[proposal.transactionId],match:null,duplicate:false},
@@ -97,13 +103,18 @@ test('category proposal client supports list, empty no-op reruns and versioned r
     calls.push({path:String(path),init});return envelope(responses[calls.length-1]);
   });
   const signal=new AbortController().signal;
-  assert.equal((await api.categoryProposals(signal,'pending')).items.length,0);
+  assert.equal((await api.categoryProposals(signal,'pending')).nextCursor,proposal.id);
+  assert.equal((await api.categoryProposals(signal,'pending',proposal.id)).items.length,0);
   assert.equal((await api.generateCategoryProposals({requestId:id,transactionIds:[proposal.transactionId]},signal)).duplicate,true);
   const result=await api.reviewProposal({requestId:id,proposalId:proposal.id,expectedVersion:0,decision:'accept'},signal);
   assert.equal(result.proposal.status,'accepted');
-  assert.deepEqual(calls.map(call=>call.path),['/api/category-proposals?limit=50&status=pending','/api/category-proposals','/api/reviews']);
-  assert.deepEqual(JSON.parse(String(calls[1]!.init.body)),{requestId:id,transactionIds:[proposal.transactionId]});
-  assert.deepEqual(JSON.parse(String(calls[2]!.init.body)),{requestId:id,proposalId:proposal.id,expectedVersion:0,decision:'accept'});
+  assert.deepEqual(calls.map(call=>call.path),[
+    '/api/category-proposals?limit=50&status=pending',
+    `/api/category-proposals?limit=50&status=pending&cursor=${proposal.id}`,
+    '/api/category-proposals', '/api/reviews',
+  ]);
+  assert.deepEqual(JSON.parse(String(calls[2]!.init.body)),{requestId:id,transactionIds:[proposal.transactionId]});
+  assert.deepEqual(JSON.parse(String(calls[3]!.init.body)),{requestId:id,proposalId:proposal.id,expectedVersion:0,decision:'accept'});
   assert.ok(calls.every(call=>call.init.cache==='no-store'&&call.init.credentials==='same-origin'&&call.init.signal===signal));
 });
 

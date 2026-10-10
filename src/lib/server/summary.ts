@@ -27,12 +27,22 @@ export function calculateCashSummary(records: readonly Transaction[], workspaceI
   const validated = validateCashbook(records, workspaceId);
   const all = emptyBucket(), unreviewed = emptyBucket();
   const categories: Partial<Record<Category, CashBucket>> = {};
+  let categoryAcceptedCount = 0;
+  let matchAcceptedCount = 0;
   for (const record of validated) {
     add(all, record);
     if (record.categoryStatus === 'accepted' && record.category !== null) {
       const bucket = categories[record.category] ?? emptyBucket();
       add(bucket, record); categories[record.category] = bucket;
+      categoryAcceptedCount += 1;
     } else { add(unreviewed, record); }
+    if (record.matchStatus === 'accepted') matchAcceptedCount += 1;
   }
-  return { ...all, currency: 'PKR', transactionCount: validated.length, transactionIds: validated.map(record => record.id), unresolvedImportRowCount, categories, unreviewed };
+  const transactionCount = validated.length;
+  return {
+    ...all, currency: 'PKR', transactionCount, transactionIds: validated.map(record => record.id), unresolvedImportRowCount,
+    categoryCoverage: { acceptedCount: categoryAcceptedCount, notAcceptedCount: transactionCount - categoryAcceptedCount },
+    matchCoverage: { matchedCount: matchAcceptedCount, notMatchedCount: transactionCount - matchAcceptedCount },
+    categories, unreviewed,
+  };
 }

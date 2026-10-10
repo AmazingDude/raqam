@@ -129,6 +129,7 @@ try {
     assert.equal(summary.inflowMinor, total('in')); assert.equal(summary.outflowMinor, total('out'));
     assert.ok(summary.unresolvedImportRowCount >= 1);
     const exported = await request('/api/export');
+    assert.equal(Number(exported.headers.get('X-Raqam-Transaction-Count')), summary.transactionCount);
     assert.ok(Number(exported.headers.get('X-Raqam-Unresolved-Import-Rows')) >= 1);
     assert.match(await exported.text(), /Synthetic validation expense,Live reviewed expense,out,10\.05,PKR,LIVE-2,travel,accepted,unmatched/);
     ok('audited review persistence, stale-write denial, exact summary and reviewed CSV export');
