@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { dateSchema, minorUnitsSchema } from './schemas.ts';
 
-export const MAX_IMPORT_ROWS = 50; // initial prototype guard; host/capacity gate pending
+import { MAX_IMPORT_ROWS, MAX_PDF_PAGES } from './limits.ts';
+export { MAX_IMPORT_ROWS } from './limits.ts';
 const requiredHeaders = ['date', 'description', 'direction', 'amount'] as const;
 export const importFieldMapSchema = z.strictObject({
   date: z.number().int().min(0), description: z.number().int().min(0),
@@ -25,6 +26,7 @@ export const csvPreviewSchema = z.strictObject({
   fieldMap: importFieldMapSchema.optional(),
   rows: z.array(z.strictObject({
     rowNumber: z.number().int().min(2), lineNumber: z.number().int().min(2),
+    pageNumber: z.number().int().min(1).max(MAX_PDF_PAGES).optional(),
     original: z.array(z.string()), transaction: cashRowSchema.nullable(),
     errors: z.array(z.strictObject({ field: z.string(), message: z.string() })),
     draftFields: importDraftFieldsSchema.optional(),

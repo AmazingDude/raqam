@@ -1,3 +1,4 @@
+import { MAX_WORKSPACE_TRANSACTIONS } from '../contracts/limits.ts';
 import { z } from 'zod';
 import { categorySchema, transactionSchema } from '../contracts/schemas.ts';
 import { csvPreviewSchema, importConfirmationSchema, importConfirmationResultSchema, importResolutionSchema, importResolutionResultSchema, importResolutionStateSchema } from '../contracts/imports.ts';
@@ -39,7 +40,7 @@ const signedMinor = z.string().regex(/^-?(0|[1-9][0-9]*)$/);
 const positiveMinor = z.string().regex(/^(0|[1-9][0-9]*)$/);
 const bucketSchema = z.object({ inflowMinor: positiveMinor, outflowMinor: positiveMinor, netMovementMinor: signedMinor });
 export const cashSummarySchema = bucketSchema.extend({
-  currency: z.literal('PKR'), transactionCount: z.number().int().min(0).max(50), transactionIds: z.array(z.string()).max(50),
+  currency: z.literal('PKR'), transactionCount: z.number().int().min(0).max(MAX_WORKSPACE_TRANSACTIONS), transactionIds: z.array(z.string()).max(MAX_WORKSPACE_TRANSACTIONS),
   unresolvedImportRowCount: z.number().int().nonnegative(), categories: z.partialRecord(categorySchema, bucketSchema), unreviewed: bucketSchema,
 }).refine(summary => {
   const buckets = [...Object.values(summary.categories), summary.unreviewed];

@@ -15,7 +15,7 @@ const batchSchema = z.object({
 export function importDatabaseError(error: { code?: string }): BackendError {
   if (error.code === 'P0002') return new BackendError('NOT_FOUND', 'Import not found.');
   if (error.code === 'PT409' || error.code === '40001') return new BackendError('CONFLICT', 'This row was already reviewed or the request ID was reused. Reload the import before deciding again.');
-  if (error.code === 'P0001') return new BackendError('CONFLICT', 'This import exceeds the prototype workspace limit of 50 transactions. Review or reject rows before confirming.');
+  if (error.code === 'P0001') return new BackendError('CONFLICT', 'This import exceeds the workspace limit of 50,000 transactions. Review or reject rows before confirming.');
   if (['22023', '22007', '22008', '22003', '23514', '23505'].includes(error.code ?? '')) return new BackendError('INVALID_INPUT', 'Import rows are invalid or changed. Reload the preview.');
   return new BackendError('UNAVAILABLE', 'Import could not complete. Existing records are unchanged; retry.');
 }
@@ -65,7 +65,7 @@ export async function readImportResolutions(session: RequestSession, workspace: 
 
 export async function resolveImport(session: RequestSession, workspace: Workspace, importId: string, body: unknown) {
   const input = importResolutionSchema.safeParse(body);
-  if (!input.success) throw new BackendError('INVALID_INPUT', 'Provide a requestId and 1–50 distinct row corrections or rejections.');
+  if (!input.success) throw new BackendError('INVALID_INPUT', 'Provide a requestId and 1-20,000 distinct row corrections or rejections.');
   const batch = await getImport(session, workspace, importId);
   if (batch.status !== 'confirmed') throw new BackendError('CONFLICT', 'Confirm the import preview before resolving remaining rows.');
   const result = await session.database.rpc('resolve_csv_import_rows', {

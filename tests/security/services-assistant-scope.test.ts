@@ -1,3 +1,4 @@
+import { MAX_WORKSPACE_TRANSACTIONS } from '../../src/lib/contracts/limits.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCashbookTools } from '../../src/lib/server/assistant/cashbook-tools.ts';
@@ -21,7 +22,7 @@ test('A2 cashbook tools fail closed on foreign, duplicate, malformed and over-ca
   const invalid = [
     [transaction({ workspaceId: 'w2' })], [transaction(), transaction()],
     [transaction({ amountMinor: '0.1' })], [transaction({ source: { sourceId: 'image', rowNumber: null } })],
-    Array.from({ length: 51 }, (_, n) => transaction({ id: `t${n}`, source: { sourceId: 's1', rowNumber: n + 2 } })),
+    Array.from({ length: MAX_WORKSPACE_TRANSACTIONS + 1 }, (_, n) => transaction({ id: `t${n}`, source: { sourceId: 's1', rowNumber: n + 2 } })),
   ];
   for (const records of invalid) {
     const tools = createCashbookTools({ workspaceId: 'w1', deadlineAt: Date.now() + 10_000,

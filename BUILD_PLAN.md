@@ -31,7 +31,19 @@ Breaks/travel and remaining official activities are outside these estimates. Ref
 
 **BACKEND-TWO-AGENT-SPLIT — done:** user requested splitting remaining A work between this agent and a teammate's separate agent. Published exclusive A1/A2 files, BA-00–07 dependencies/acceptance checks, separate-branch handoff and a teammate prompt in `BACKEND_TASKS.md`; aligned `TEAM_TASKS.md`, `TEAM_WORKFLOW.md`, this plan and `handoff.md`, with an A2 worklog template. Verified PRD/RQ consistency, no competing backend file ownership, existing test-glob compatibility, local links and Git whitespace. No application implementation, repeated product tests or migration in this planning slice.
 
-Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo; Person 3/C AI workflow. Individual deliverables and exclusive ownership are in [TEAM_TASKS.md](TEAM_TASKS.md). A has started readiness/platform work; B/C names remain pending. The lead coordinates the complete task; contributors own their modules.
+Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo; Person 3/C AI workflow. Individual deliverables and exclusive ownership are in [TEAM_TASKS.md](TEAM_TASKS.md). A coordinates the integration; B/C names remain pending. The lead coordinates the complete task; contributors own their modules.
+
+### Current integration checkpoint — 10 October 2026
+
+The integrated tree now includes receipt registration/extraction/review routes, category proposal persistence and review controls, long selectable-text PDF import, Gemini provider support, and the bounded Eve assistant. After merging `origin/main` through `68f82ef`, the local verification passes **121/121 backend/security tests**, **99/99 AI/provider/category/client tests**, strict TypeScript and the production build. The cash-summary assistant adapter and its tests were aligned to the current structured result contract after the production build exposed stale flat-field access. Migration 008 is user-applied and its read-only privilege result passes. Hosted status of migrations 009 (complete receipt source) and 010 (long statements) is not verified; check before applying either manually. No live provider key is configured, and no live OCR/category inference or full signed-in browser journey is claimed.
+
+| Current gate | Status and next evidence |
+| --- | --- |
+| RQ-04 statement import | Implementation supports CSV/TSV/Excel and selectable-text PDFs up to the documented bounds. Synthetic parser and long-import database tests pass; use a representative statement and verify signed-in persistence. Migration 010 must be confirmed/applied for hosted imports above 50 rows. |
+| RQ-05 receipt workflow | Upload/registration/extraction/cache/correction/review routes and screen wiring are present. Migration 008 is verified hosted; confirm 009 before testing registration against the latest source guard. Configure a provider privately, then validate extraction, cache, correction, reload and unchanged cash totals in the app. |
+| RQ-06 category review | Versioned proposal generation/list/decision controls are wired. Synthetic checks pass; validate live generation plus accept/change/reject, reload and rerun in the app with a configured provider. |
+| RQ-07 reconciliation | Audited one-to-one review behavior and persistence are implemented; hosted synthetic review groups passed. The integrated signed-in UI and two-account browser journey remain open. |
+| RQ-08 assistant | Scoped read-only tools, bounded provider routing and UI are present; synthetic provider/client tests pass. Live account access and signed-in foreign-evidence browser checks remain open. |
 
 | ID | Task | Blocked by | Suggested lead | Status |
 | --- | --- | --- | --- | --- |
@@ -39,11 +51,11 @@ Roles: user = Person 1/A platform/backend/integrator; Person 2/B product UI/demo
 | RQ-01 | Bootstrap and deploy authenticated persisted workspace | RQ-00 setup readiness; cutoff may remain pending | User (A); B workspace UI | in_progress |
 | RQ-02 | Prove live Groq OCR on 3 fresh English images | RQ-00 setup readiness; cutoff may remain pending | C | todo |
 | RQ-03 | Independently label dev/evaluation cases | None; follow confirmed PRD | A prepares; B independently checks | todo |
-| RQ-04 | Import/review CSV, TSV, Excel and selectable-text PDF transactions into persisted cashbook | RQ-01 | B coordinates; A import/persistence | in_progress |
-| RQ-05 | Upload/OCR/review a private supporting document | RQ-01, RQ-02 | A1 routes and current scoped UI integration; C OCR; B independent browser check | in_progress — user applied migration 008 and its RLS/grant check passes; signed-in list returns 200. Groq settings, live extraction/cache/review and browser verification remain |
-| RQ-06 | Propose/review categories; display exact cash summaries | RQ-04 | A1 category route/review integration; C engine; B independent browser check | in_progress — guide review passed and signed-in list returns 200; Groq generation plus decision/reload/rerun and cash-summary UI verification remain |
-| RQ-07 | Propose/review one-to-one reconciliation | RQ-04, RQ-05 | C coordinates; A approval constraints; B review UI | todo |
-| RQ-08 | Answer grounded questions through scoped tools | RQ-06, RQ-07 | C coordinates; A scoped tools/routes; B assistant UI | in_review — assistant route, four scoped tools and live UI connected; synthetic Groq checks pass; signed-in browser/evaluation gates remain |
+| RQ-04 | Import/review CSV, TSV, Excel and selectable-text PDF transactions into persisted cashbook | RQ-01 | B coordinates; A import/persistence | in_progress — long PDF path and 20,000-row parser limits pass synthetic checks; representative live statement/browser persistence remain |
+| RQ-05 | Upload/OCR/review a private supporting document | RQ-01, RQ-02 | A1 routes and current scoped UI integration; C OCR; B independent browser check | in_progress — migration 008 applied and checked; 009 hosted status unknown; provider config, live extraction/cache/review and signed-in browser verification remain |
+| RQ-06 | Propose/review categories; display exact cash summaries | RQ-04 | A1 category route/review integration; C engine; B independent browser check | in_progress — guide review, versioned persistence and review controls are integrated; live generation and accept/change/reject/reload/rerun remain |
+| RQ-07 | Propose/review one-to-one reconciliation | RQ-04, RQ-05 | C coordinates; A approval constraints; B review UI | in_review — hosted synthetic approval/correction/conflict groups pass; integrated signed-in browser journey remains |
+| RQ-08 | Answer grounded questions through scoped tools | RQ-06, RQ-07 | C coordinates; A scoped tools/routes; B assistant UI | in_review — bounded route, scoped tools and UI are integrated; synthetic provider tests pass; live provider and signed-in browser/evaluation gates remain |
 | RQ-09 | Export/reopen the reviewed cashbook | RQ-06, RQ-07 | A export/persistence; B controls/browser check | in_progress |
 | RQ-10 | Run reserved evaluation and release checks | RQ-03, RQ-05 through RQ-09 | A coordinates; B browser/independent scoring; C AI measurements | todo |
 | RQ-11 | Prepare deck, demo script and attribution | Can draft now; results require RQ-10 | B; A/C supply evidence/contributions | todo |
@@ -181,3 +193,5 @@ After manual 007 application, BA-04 hosted checks pass **11/11 two-account synth
 Local automated/backend checks are recorded separately in `docs/raqam/VALIDATION.md`; no complete product journey, live AI evaluation or deployment has passed.
 
 Do not mark implementation tasks done because these planning documents exist.
+
+- **RQ-04 long statements / runtime repair - 10 October, in review:** replaced the 10-page PDF limit with 1,000 pages/20 MiB/20,000 rows, integrated Apache-2.0 pdf-parse ruled-table extraction and PDF.js borderless fallback, corrected the compiled worker path and deployment tracing, and paginated row review. Migration 010 expands persistence to 50,000 workspace records, indexes source arrays during confirmation/resolution and keeps complete totals. Eve is an optional structured router for existing read-only assistant tools; it never parses PDF files or computes amounts. Local checks and manual setup are tracked in docs/raqam/LONG_STATEMENTS.md. Hosted migration 010, live model access, representative bank layouts and signed-in browser verification remain open; RQ-04 stays in_progress.

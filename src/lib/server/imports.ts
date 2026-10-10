@@ -1,3 +1,4 @@
+import { MAX_PDF_BYTES } from '../contracts/limits.ts';
 import { createHash } from 'node:crypto';
 import { csvPreviewSchema, importConfirmationSchema, type ImportPlanRow } from '../contracts/imports.ts';
 import { previewCsv, MAX_CSV_BYTES, type CsvPreview } from './csv.ts';
@@ -16,15 +17,15 @@ function decodeDelimitedText(bytes: Uint8Array): string {
 export async function readCsvUpload(request: Request) {
   const contentType = request.headers.get('content-type');
   if (!contentType?.startsWith('multipart/form-data;')) throw new BackendError('INVALID_INPUT', 'Upload one CSV, TSV, Excel, or PDF transaction file as multipart form data.');
-  const body = await readRequestBytes(request, MAX_CSV_BYTES + 8192);
+  const body = await readRequestBytes(request, MAX_PDF_BYTES + 8192);
   let form: FormData;
   try { form = await new Response(new Uint8Array(body), { headers: { 'Content-Type': contentType } }).formData(); }
   catch { throw new BackendError('INVALID_INPUT', 'Invalid multipart upload.'); }
   const file = form.get('file');
   const extension = file instanceof File ? file.name.toLowerCase().split('.').at(-1) : undefined;
-  if ([...form.entries()].length !== 1 || !(file instanceof File) || file.size === 0 || file.size > MAX_CSV_BYTES ||
+  if ([...form.entries()].length !== 1 || !(file instanceof File) || file.size === 0 || file.size > (extension === 'pdf' ? MAX_PDF_BYTES : MAX_CSV_BYTES) ||
     !['csv', 'tsv', 'xls', 'xlsx', 'pdf'].includes(extension ?? '') || file.name.length > 255 || file.name.includes('\0')) {
-    throw new BackendError('INVALID_INPUT', 'Choose one .csv, .tsv, .xls, .xlsx, or .pdf transaction file up to 1 MiB.');
+    throw new BackendError('INVALID_INPUT', 'Choose one .csv, .tsv, .xls, .xlsx, or .pdf transaction file. PDFs allow 20 MiB; other formats allow 1 MiB.');
   }
   const bytes = new Uint8Array(await file.arrayBuffer());
   let preview: CsvPreview;
@@ -34,8 +35,9 @@ export async function readCsvUpload(request: Request) {
       if (text.includes('\0')) throw new Error('This file contains a character that cannot be stored in the transaction source.');
       preview = csvPreviewSchema.parse(previewCsv(text, createHash('sha256').update(bytes).digest('hex')));
     } else if (extension === 'xls' || extension === 'xlsx') preview = csvPreviewSchema.parse(previewExcel(bytes));
-    else preview = csvPreviewSchema.parse(await previewPdf(bytes));
+    else preview = csvPreviewSchema.parse(await previewPdf(bytes, request.signal));
   } catch (failure) {
+    if (failure instanceof BackendError) throw failure;
     const message = failure instanceof Error && failure.name !== 'ZodError'
       ? failure.message
       : 'The transaction columns could not be mapped. Use a supported bank export or download the Raqam template.';
@@ -50,7 +52,8 @@ export function buildImportPlan(previewInput: unknown, decisionsInput: unknown):
   const decisions = importConfirmationSchema.safeParse(decisionsInput);
   if (!preview.success || !decisions.success) throw new BackendError('INVALID_INPUT', 'Provide valid row corrections or rejections.');
   const byRow = new Map(decisions.data.rows.map(row => [row.rowNumber, row]));
-  if ([...byRow.keys()].some(number => !preview.data.rows.some(row => row.rowNumber === number))) {
+  const sourceNumbers = new Set(preview.data.rows.map(row => row.rowNumber));
+  if ([...byRow.keys()].some(number => !sourceNumbers.has(number))) {
     throw new BackendError('INVALID_INPUT', 'A decision refers to a row outside this import.');
   }
   return preview.data.rows.map(row => {

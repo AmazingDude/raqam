@@ -8,6 +8,7 @@ import { proposalBatchResultSchema } from '../../src/lib/contracts/proposals.ts'
 const wA = '10000000-0000-4000-8000-000000000001', wB = '10000000-0000-4000-8000-000000000002';
 const sA = '30000000-0000-4000-8000-000000000001', sB = '30000000-0000-4000-8000-000000000002';
 const sCsv = '30000000-0000-4000-8000-000000000003', tx = '40000000-0000-4000-8000-000000000001';
+const sPending = '30000000-0000-4000-8000-000000000004', sFailed = '30000000-0000-4000-8000-000000000005';
 const key = (n: number) => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const unknowns = { counterparty: null, date: null, totalMinor: null, currency: null, reference: null };
 const reviewed = { ...unknowns, date: '2026-10-10', totalMinor: '10005', currency: 'PKR' };
@@ -26,7 +27,9 @@ async function fixture(run: (db: PGlite, owner: (subject: string) => Promise<voi
       alter table storage.objects enable row level security; grant usage on schema storage to authenticated,anon;
       grant select,insert,update,delete on storage.objects to authenticated;`);
     for (const name of ['202610100001_workspace_spine.sql', '202610100002_csv_imports.sql', '202610100003_cashbook_review.sql',
-      '202610100004_import_resolution.sql', '202610100005_review_conflict.sql', '202610100006_documents_proposals.sql']) {
+      '202610100004_import_resolution.sql', '202610100005_review_conflict.sql', '202610100006_documents_proposals.sql',
+      '202610100007_proposal_reviews_matches.sql', '202610100008_receipt_extraction_context.sql',
+      '202610100009_require_complete_receipt_source.sql']) {
       await db.exec(await readFile(new URL('../../supabase/migrations/' + name, import.meta.url), 'utf8'));
     }
     const readiness = await db.exec(await readFile(new URL('../../scripts/check-document-proposals.sql', import.meta.url), 'utf8'));
@@ -34,9 +37,13 @@ async function fixture(run: (db: PGlite, owner: (subject: string) => Promise<voi
     assert.ok(readiness[0]!.rows.every(row => row.owner_read_grant === true && row.any_direct_write_grant === false));
     // Explicit synthetic seed under the fixture administrator, not an application write path.
     await db.query('insert into public.workspaces(id,owner_subject,business_name) values($1,$2,$3),($4,$5,$6)', [wA, 'user_A', 'Synthetic A', wB, 'user_B', 'Synthetic B']);
-    for (const [id, wid, hash, type] of [[sA, wA, 'a', 'receipt_image'], [sB, wB, 'b', 'receipt_image'], [sCsv, wA, 'c', 'transaction_csv']] as const) {
-      await db.query('insert into public.sources(id,workspace_id,source_type,content_hash,storage_path,original_name) values($1,$2,$3,$4,$5,$6)',
-        [id, wid, type, hash.repeat(64), `${wid}/${hash}.png`, 'synthetic']);
+    for (const [id, wid, hash, type, status] of [
+      [sA, wA, 'a', 'receipt_image', 'complete'], [sB, wB, 'b', 'receipt_image', 'complete'],
+      [sCsv, wA, 'c', 'transaction_csv', 'complete'], [sPending, wA, 'd', 'receipt_image', 'pending'],
+      [sFailed, wA, 'e', 'receipt_image', 'failed'],
+    ] as const) {
+      await db.query('insert into public.sources(id,workspace_id,source_type,content_hash,storage_path,original_name,status) values($1,$2,$3,$4,$5,$6,$7)',
+        [id, wid, type, hash.repeat(64), `${wid}/${hash}.png`, 'synthetic', status]);
     }
     await db.query(`insert into public.transactions(id,workspace_id,source_id,source_row,original_values,date,original_description,description,direction,amount_minor)
       values($1,$2,$3,2,'["synthetic"]','2026-10-10','Synthetic','Synthetic','out',10005)`, [tx, wA, sCsv]);
@@ -121,6 +128,15 @@ test('document/proposal RPCs and tables deny foreign owners, direct writes, priv
     await db.exec('reset role; set role anon');
     await assert.rejects(db.query('select public.register_supporting_document($1)', [sA]), code('42501'));
     await assert.rejects(db.query('select * from public.supporting_documents'), code('42501'));
+  });
+});
+
+test('registration RPC rejects pending and failed receipt sources even when called directly', async () => {
+  await fixture(async db => {
+    await assert.rejects(register(db, sPending), code('22023'));
+    await assert.rejects(register(db, sFailed), code('22023'));
+    assert.deepEqual((await db.query('select id from public.supporting_documents order by id')).rows, []);
+    assert.equal((await db.query<{ count: number }>('select count(*)::int as count from public.transactions')).rows[0]!.count, 1);
   });
 });
 

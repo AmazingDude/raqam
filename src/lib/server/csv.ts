@@ -13,6 +13,7 @@ export type ImportFieldMap = {
 export type DraftFields = { date: string; description: string; direction: string; amount: string; reference: string };
 export type PreviewRow = {
   rowNumber: number; lineNumber: number; original: string[];
+  pageNumber?: number | undefined;
   transaction: ParsedCashRow | null; errors: { field: string; message: string }[]; draftFields?: DraftFields | undefined;
 };
 export type CsvPreview = {
@@ -198,7 +199,7 @@ function trimValue(row: string[], index: number | null): string {
   return index === null ? '' : (row[index] ?? '').trim();
 }
 
-function mapSourceRows(sourceRows: SourceRow[], contentHash: string): CsvPreview {
+function mapSourceRows(sourceRows: SourceRow[], contentHash: string, maxRows = 50): CsvPreview {
   let match: HeaderMatch | undefined;
   for (let index = 0; index < Math.min(sourceRows.length, 20); index++) {
     const header = sourceRows[index]!.values;
@@ -212,7 +213,7 @@ function mapSourceRows(sourceRows: SourceRow[], contentHash: string): CsvPreview
   tableRows.forEach((row, index) => { if (row.values.some(value => value.trim() !== '')) lastDataIndex = index; });
   if (lastDataIndex < 0) throw new Error('The transaction table has a header but no data rows.');
   const sourceDataRows = tableRows.slice(0, lastDataIndex + 1);
-  if (sourceDataRows.length > 50) throw new Error('This import contains more than 50 rows. Split the file into batches of up to 50 rows.');
+  if (sourceDataRows.length > maxRows) throw new Error(`This import contains more than ${maxRows} rows. Split the file into batches of up to ${maxRows} rows.`);
   const maxColumns = Math.max(match.header.length, ...sourceDataRows.map(row => row.values.length));
   if (maxColumns > 100) throw new Error('The transaction table has more than 100 columns. Remove unrelated columns or save a smaller copy.');
   const header = Array.from({ length: maxColumns }, (_, index) => match!.header[index] ?? `Extra field ${index + 1}`);
@@ -310,4 +311,11 @@ export function previewSpreadsheetRows(rows: unknown[][], bytes: Uint8Array, fir
     ...(dateOverrides.has(index) ? { dateOverride: dateOverrides.get(index)! } : {}),
   }));
   return mapSourceRows(sourceRows, createHash('sha256').update(bytes).digest('hex'));
+}
+
+export function previewPdfRows(rows: string[][], bytes: Uint8Array, maxRows: number, pages: number[]): CsvPreview {
+  const preview = mapSourceRows(rows.map((values, index) => ({ values, rowNumber: index + 1, lineNumber: index + 1 })),
+    createHash('sha256').update(bytes).digest('hex'), maxRows);
+  preview.rows.forEach((row, index) => { row.pageNumber = pages[index]!; });
+  return preview;
 }
