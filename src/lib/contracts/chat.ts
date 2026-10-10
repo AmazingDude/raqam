@@ -31,3 +31,10 @@ export const chatDraftSchema=z.strictObject({kind:z.enum(['question','clarify','
  z.strictObject({kind:z.literal('edit_cash'),transactionId:z.string(),values:modelCash}),
  z.strictObject({kind:z.literal('journal'),entryDate:z.string(),description:z.string().max(500),reversalOfId:z.string().nullable(),lines:z.array(z.strictObject({accountId:z.string(),debit:z.string(),credit:z.string()})).min(2).max(10)}),
 ])).max(10)});
+
+// Provider wire shape uses nullable fields instead of object unions, so all
+// configured providers can express it. Decode to the stricter domain union.
+export const chatDraftWireSchema=z.strictObject({kind:z.enum(['question','clarify','changes']),text:z.string().max(2000),actions:z.array(z.strictObject({
+ kind:z.enum(['create_cash','edit_cash','journal']),transactionId:z.string().nullable(),values:modelCash.nullable(),entryDate:z.string().nullable(),description:z.string().max(500).nullable(),reversalOfId:z.string().nullable(),lines:z.array(z.strictObject({accountId:z.string(),debit:z.string(),credit:z.string()})).max(10),
+})).max(10)});
+export function parseChatDraft(input:unknown){const wire=chatDraftWireSchema.parse(input);return chatDraftSchema.parse({...wire,actions:wire.actions.map(a=>a.kind==='journal'?{kind:a.kind,entryDate:a.entryDate,description:a.description,reversalOfId:a.reversalOfId,lines:a.lines}:a.kind==='edit_cash'?{kind:a.kind,transactionId:a.transactionId,values:a.values}:{kind:a.kind,values:a.values})});}

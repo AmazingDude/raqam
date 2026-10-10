@@ -41,3 +41,10 @@ test('human history must explicitly supply the year and amount even if a provide
  assert.equal(buildChatPlan(model,new Map(),ledger,'I paid rent on 2026-09-01.').plan,null);
  assert.ok(buildChatPlan(model,new Map(),ledger,'I paid rent 30,000.01 on 2026-09-01.').plan);
 });
+
+
+test('human amount grounding accepts sentence punctuation without accepting an invented amount',()=>{
+ const model=draft([{kind:'create_cash',values:{...values,amount:'30000'}}]);
+ assert.ok(buildChatPlan(model,new Map(),ledger,'On 2026-09-01 I paid rent of PKR 30000.').plan);
+ assert.equal(buildChatPlan(model,new Map(),ledger,'On 2026-09-01 I paid rent of PKR 30000.99.').plan,null);
+});
