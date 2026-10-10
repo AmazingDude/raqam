@@ -155,4 +155,3 @@ If any answer is no, stretch stays closed. Core **OCR, Clerk and Supabase are no
 Local automated/backend checks are recorded separately in `docs/raqam/VALIDATION.md`; no complete product journey, live AI evaluation or deployment has passed.
 
 Do not mark implementation tasks done because these planning documents exist.
-
