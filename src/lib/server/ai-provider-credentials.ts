@@ -49,8 +49,10 @@ export async function saveAIProviderConfig(session:RequestSession,workspace:Work
   if(workspace.ownerSubject!==session.subject) throw new BackendError('NOT_FOUND','Workspace not found.');
   const sealed=seal(workspace.id,input.provider,input.apiKey);
   checkedRpc(await session.database.rpc('save_ai_provider_credential',{p_workspace_id:workspace.id,p_provider:input.provider,...sealed,p_text_model:input.textModel,p_vision_model:input.visionModel}));
-  const listed=await listAIProviderConfigs(session,workspace);
-  if(!listed.selected) checkedRpc(await session.database.rpc('select_ai_provider',{p_workspace_id:workspace.id,p_provider:input.provider}));
+  // Saving a provider key is the user's explicit intent to use that provider.
+  // Select it even when another provider was previously active, so chat does
+  // not silently continue using a stale credential/model configuration.
+  checkedRpc(await session.database.rpc('select_ai_provider',{p_workspace_id:workspace.id,p_provider:input.provider}));
   return listAIProviderConfigs(session,workspace);
 }
 export async function selectAIProviderConfig(session:RequestSession,workspace:Workspace,provider:AIProviderName) {

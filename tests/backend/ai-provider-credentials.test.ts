@@ -30,6 +30,8 @@ test('BYOK stores authenticated ciphertext, returns no secret in listing, and de
     const loaded=await getSelectedAIProviderConfig(session,workspace);assert.equal(loaded?.apiKey,key);
     const environment=await selectedAIEnvironment(session,workspace,{});assert.equal(environment.AI_PROVIDER,'gemini');assert.equal(environment.GEMINI_API_KEY,key);
     const listing=await listAIProviderConfigs(session,workspace);assert.equal(listing.providers.find(row=>row.provider==='gemini')?.configured,true);
+    await saveAIProviderConfig(session,workspace,{provider:'groq',apiKey:'synthetic-groq-key-without-spaces',textModel:'openai/gpt-oss-20b',visionModel:'qwen/qwen3.8-27b'});
+    assert.equal((await listAIProviderConfigs(session,workspace)).selected,'groq','saving a new provider key should select it over a stale provider');
     await selectAIProviderConfig(session,workspace,'gemini');
     await deleteAIProviderConfig(session,workspace,'gemini');assert.equal((await listAIProviderConfigs(session,workspace)).selected,null);
   }finally{if(previous===undefined)delete process.env.BYOK_ENCRYPTION_KEY;else process.env.BYOK_ENCRYPTION_KEY=previous;}
