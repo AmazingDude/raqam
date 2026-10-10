@@ -24,8 +24,10 @@ export async function readCashbook(session: RequestSession, workspace: Workspace
   if (records.some(record => record.workspaceId !== workspace.id)) throw new BackendError('UNAVAILABLE', 'Cashbook scope could not be verified.');
   return { records, unresolvedImportRowCount: snapshot.unresolvedImportRowCount };
 }
-export async function readTransaction(session: RequestSession, workspace: Workspace, id: string) {
-  const result = await session.database.from('cashbook_records').select('*').eq('workspace_id', workspace.id).eq('id', id).maybeSingle();
+export async function readTransaction(session: RequestSession, workspace: Workspace, id: string, signal?: AbortSignal) {
+  let query = session.database.from('cashbook_records').select('*').eq('workspace_id', workspace.id).eq('id', id);
+  if (signal) query = query.abortSignal(signal);
+  const result = await query.maybeSingle();
   if (result.error) throw databaseError(result.error);
   if (!result.data) throw new BackendError('NOT_FOUND', 'Transaction not found.');
   const record = recordSchema.parse({ transaction: result.data, reviewVersion: result.data.review_version });

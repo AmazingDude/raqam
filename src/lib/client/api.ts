@@ -6,6 +6,13 @@ import { transactionReviewSchema } from '../contracts/cashbook.ts';
 import type { ImportConfirmation } from '../contracts/imports.ts';
 import type { TransactionReview } from '../contracts/cashbook.ts';
 import { assistantRequestSchema, assistantResponseSchema } from '../contracts/assistant.ts';
+import {
+  documentExtractionRequestSchema, documentMutationResultSchema, documentRecordSchema, documentRegistrationResultSchema,
+  receiptExtractionResponseSchema, documentReviewSchema,
+} from '../contracts/documents.ts';
+import {
+  categoryGenerationRequestSchema, proposalBatchResultSchema, proposalRecordSchema, proposalReviewSchema, proposalReviewResultSchema,
+} from '../contracts/proposals.ts';
 
 export class ClientError extends Error {
   code: string;
@@ -22,6 +29,8 @@ export const importBatchSchema = z.object({
   (!batch.confirmation || batch.confirmation.importId === batch.importId), 'Import receipt does not match the batch');
 export type ImportBatch = z.infer<typeof importBatchSchema>;
 const transactionDetailSchema = z.object({ transaction: transactionSchema, reviewVersion: z.number().int().nonnegative() });
+const documentPageSchema = z.strictObject({ items: z.array(documentRecordSchema).max(50), nextCursor: z.uuid().nullable() });
+const proposalPageSchema = z.strictObject({ items: z.array(proposalRecordSchema).max(50), nextCursor: z.uuid().nullable() });
 const reviewHistorySchema = z.object({ items: z.array(z.object({
   id: z.string(), workspaceId: z.string(), targetId: z.string(), actorSubject: z.string(),
   action: z.literal('correct'), previous: z.unknown(), current: z.unknown(),
@@ -100,5 +109,22 @@ export const api = {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(transactionReviewSchema.parse(input)),
   }),
   transactionReviews: (id: string, signal: AbortSignal, cursor: string | null = null) => request(`/api/transactions/${encodeURIComponent(id)}/reviews?limit=20&cursor=${encodeURIComponent(cursor ?? '0')}`, reviewHistorySchema, signal),
+  documents: (signal: AbortSignal) => request('/api/documents?limit=50', documentPageSchema, signal),
+  registerDocument: (sourceId: string, signal: AbortSignal) => request('/api/documents', documentRegistrationResultSchema, signal, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sourceId }),
+  }),
+  extractDocument: (id: string, input: z.infer<typeof documentExtractionRequestSchema>, signal: AbortSignal) => request(`/api/documents/${encodeURIComponent(id)}/extraction`, receiptExtractionResponseSchema, signal, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(documentExtractionRequestSchema.parse(input)),
+  }),
+  reviewDocument: (id: string, input: z.infer<typeof documentReviewSchema>, signal: AbortSignal) => request(`/api/documents/${encodeURIComponent(id)}`, documentMutationResultSchema.extend({ currentRecord: documentRecordSchema }), signal, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(documentReviewSchema.parse(input)),
+  }),
+  categoryProposals: (signal: AbortSignal, status: 'all' | 'pending' = 'all') => request(`/api/category-proposals?limit=50&status=${status}`, proposalPageSchema, signal),
+  generateCategoryProposals: (input: z.infer<typeof categoryGenerationRequestSchema>, signal: AbortSignal) => request('/api/category-proposals', proposalBatchResultSchema, signal, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(categoryGenerationRequestSchema.parse(input)),
+  }),
+  reviewProposal: (input: z.infer<typeof proposalReviewSchema>, signal: AbortSignal) => request('/api/reviews', proposalReviewResultSchema, signal, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(proposalReviewSchema.parse(input)),
+  }),
   export: async (signal: AbortSignal) => exportResponse(await fetch('/api/export', { signal, cache: 'no-store', credentials: 'same-origin' })),
 };

@@ -313,3 +313,14 @@ Prepare signed-in access before the slot; verify sign-in separately during QA. A
 - Team allocation email supplied in conversation: presentation slot and venue; personal contact details are intentionally not copied.
 - [Fortune](https://www.fortune.app/solutions): inspiration for bookkeeping/categorization/cash visibility; Raqam does not claim feature parity or validated differentiation.
 - [Grill-with-docs guide](https://github.com/mattpocock/skills/blob/main/docs/engineering/grill-with-docs.md): clarification workflow. See [skills shortlist](docs/SKILLS.md) for dependencies and implementation tools.
+
+## 15. Implementation progress (10 October 2026)
+
+This status note tracks work against the existing requirements; it does not change their acceptance criteria or claim the complete product gate.
+
+| PRD/RQ | Implementation status | Remaining verification |
+| --- | --- | --- |
+| F03 / RQ-05, workflow steps 7–8 | Owner-scoped source upload and document registration/list/detail/history/review/extraction routes are implemented. The live screen now registers a private upload, requests bounded extraction, displays the saved proposal beside its source, and sends versioned corrections/acceptance through the review API. | Hosted migration 008 is awaiting the user's manual application and `scripts/check-receipt-extraction.sql`; server-side Groq settings and a signed-in receipt journey have not been verified. No live extraction is claimed. |
+| F04 / RQ-06, workflow steps 9–10 | C's category engine is implemented; A1 reviewed the v1 guide against the seven PRD labels and connected authenticated generation/list persistence plus accept/change/reject controls to the existing review RPC. | Synthetic tests and code review do not establish semantic accuracy. Signed-in generation, review, reload and rerun remain to be exercised with a configured provider; cash totals and accepted categories must be rechecked there. |
+| RQ-03 / step 9 independent labels | Not complete. | A second person must independently check category expectations and held-out ambiguous cases. |
+| RQ-10 | Not complete. | Full signed-in browser journey, reserved evaluation, account isolation, live provider measurements and deployment checks remain release gates. |
