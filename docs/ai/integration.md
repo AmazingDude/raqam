@@ -81,7 +81,7 @@ Combined compatibility checks passed:93 AI/offline regressions (76 module +17 of
 
 ## C1 steps 7–10 current integration status — 10 October 2026
 
-The statements above about absent extraction/category routes and B review controls describe the earlier baseline and are superseded by current `main` (`54c667f`). A now has authenticated document register/list/detail/extraction/history/review routes, migration 008 reservation/evidence persistence, and the category-generation/list route. B's live workspace calls these APIs and provides receipt source/field review and category accept/change/reject controls. A's service tests exercise extraction through C with a scripted provider; PGlite security tests cover durable reservation/cache responses, stale completion fencing, saved corrections, proposal decisions and exact cash invariants. These are local simulated persistence checks, not managed Supabase or signed-in browser evidence.
+The statements above about absent extraction/category routes and B review controls describe the earlier baseline and are superseded by current `main` (`8780195`). A now has authenticated document register/list/detail/extraction/history/review routes, migration 008 reservation/evidence persistence, and the category-generation/list route. B's live workspace calls these APIs and provides receipt source/field review and category accept/change/reject controls. A's service tests exercise extraction through C with a scripted provider; PGlite security tests cover durable reservation/cache responses, stale completion fencing, saved corrections, proposal decisions and exact cash invariants. These are local simulated persistence checks, not managed Supabase or signed-in browser evidence.
 
 ### Step 7 — cache identity and correction-safe reruns
 
@@ -102,10 +102,10 @@ The statements above about absent extraction/category routes and B review contro
 ### Verification from this continuation
 
 - Focused C extraction/category tests: **25/25 passed**.
-- Full `npm test`: **113/113 passed**, including local PGlite receipt/cache/category persistence checks.
+- On the pre-Eve main base: full `npm test` **113/113 passed**, including local PGlite receipt/cache/category persistence checks. After syncing latest `origin/main` (`8780195`) and installing its lockfile, `npm test` passed all **32 test files**.
 - `npm run typecheck`: passed.
 - `git diff --check`: passed.
 - `node --env-file-if-exists=.env.local scripts/check-env.mjs --ai`: AI settings are present; Clerk/Supabase settings are absent, so signed-in checks remain blocked.
-- `npm run build`: the sandboxed attempt failed because Next's captured TypeScript child process returned empty stdout (`Unexpected end of JSON input`) even though the direct shell invocation returned valid JSON. Running the same configured `npm run build` outside the sandbox completed successfully through TypeScript, static generation and all routes. No source/config/dependency workaround was needed.
+- `npm run build`: the sandboxed attempt failed because Next's captured TypeScript child process returned empty stdout (`Unexpected end of JSON input`) even though the direct shell invocation returned valid JSON. The configured build then passed outside the sandbox on the prior base and again after syncing latest `origin/main` (`8780195`) and installing its lockfile. It completed TypeScript, static generation and all routes; no application workaround was needed.
 - Live provider check: the existing `--probe=tool` synthetic Groq runner passed in 2 inference requests, 0 retries; `openai/gpt-oss-20b` returned the fixed read-only tool call and exact `310000` minor-unit echo. Durations: 919ms and 354ms (1275ms combined). Remaining requests were 999 then 998; the 60/day reserve guard stayed intact. This is provider capability evidence only, not category-route, signed-in, OCR-quality or hosted integration evidence.
 - No hosted migration, signed-in browser flow, live category generation or receipt workflow was performed.
