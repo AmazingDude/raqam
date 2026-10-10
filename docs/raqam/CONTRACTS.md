@@ -186,4 +186,34 @@ Migration 007 creates owner-readable, write-restricted `proposal_reviews`, `acce
 
 The four existing `assistantToolSchemas` are canonical. Date filters apply to transactions by recorded cash date, inclusive, not upload time. A2's filtered summary must aggregate every scoped matching record under the bounded workspace cap. Unresolved import rows are a **whole-workspace** count because missing/invalid dates cannot reliably fall inside a selected range: return explicit `unresolvedImportRowScope: "workspace"` alongside the summary and requested range. Never describe that count as date-filtered. Whole-workspace existing `/api/summary` remains unchanged.
 
-C's `docs/ai/contracts.md` is retained without editing C-owned files: amount representation maps to `MinorUnits`/`parseAmount`/`formatAmount`; review-readiness proposal maps to confirmed D13; raw category/match outputs map to existing suggestion schemas. Field-level raw text/issue provenance, durable operation leases, numeric fact registry and detailed assistant result schemas remain **unadopted proposals**, not implemented claims. A2/C should coordinate those seams before wiring them. Native Node/Groq proof baseline is documented in `docs/ai/FEASIBILITY.md`; C1 owns that runner.
+C's `docs/ai/contracts.md` is retained without editing C-owned files: amount representation maps to `MinorUnits`/`parseAmount`/`formatAmount`; review-readiness maps to confirmed D13; raw category/match outputs map to existing suggestion schemas. Field-level raw-text provenance and durable operation leases remain separate proposals. The four assistant result schemas below are now adopted; C's numeric fact registry remains an internal C implementation that consumes them, not a competing tool API. Native Node/Groq proof baseline is documented in `docs/ai/FEASIBILITY.md`; C1 owns that runner.
+
+### BA-00 assistant result contract v1 — adopted
+
+Canonical runtime schemas and inferred result types are exported from `src/lib/contracts/assistant.ts`: `assistantToolResultSchemas`, `AssistantToolResult`, `AssistantSnapshot`, and `parseAssistantToolResult(name, value, expectedWorkspaceId)`. The request-bound adapter is `createScopedAssistantResultTools` from `src/lib/server/assistant/tools.ts`. It is created only after A verifies the Clerk session and workspace, closes over that workspace, and returns the four result payloads directly. C must not create another reader or accept caller/model ownership, SQL, URL/path, or mutation arguments. The observation wrapper used by A's existing assistant engine is separate; each wrapper carries the exact canonical object in its `result` field.
+
+Every result has `returnedCount`, `totalCount`, an explicit `complete`, `nextCursor` (null for non-paged results), and `snapshot: { workspaceId, version: 1, token, sources }`. The token is a SHA-256 digest over the full validated source read and canonical source list, not just record statuses. Snapshot source lists are unique. A binds the workspace into every snapshot; `parseAssistantToolResult` checks it against the current workspace. Keep the snapshot in the server-side fact registry and out of model-authored arguments/context.
+
+| Tool | Validated payload and count meaning | Snapshot sources / completeness |
+| --- | --- | --- |
+| `list_transactions` | `items` are validated cashbook rows; `returnedCount` is this page size; `totalCount` is the full filtered set | `cashbook`; `complete` is true only when the un-cursored response covers the full filtered set. A later cursor page remains `complete: false`, even if it has no next cursor. |
+| `get_cash_summary` | `summary` contains code-calculated exact `MinorUnits`, `currency: "PKR"`, contributing IDs/count, category totals and unreviewed totals; counts refer to every row in the date-filtered set | `cashbook`; always complete because this endpoint computes over the full scoped set. Never derive it from a list page. `dateFrom`/`dateTo` echo the inclusive request scope; unresolved imports remain workspace-wide. |
+| `get_review_queue` | `kind` selects either transaction `items` or supporting-document `documents`; counts refer to the full matching queue, not the returned page | `cashbook` for category/match queues; `documents` for unresolved document fields. Paged responses obey the same first-page completeness rule as `list_transactions`. |
+| `get_record_evidence` | `transactions`, `documents`, and bounded `history`; counts cover the unique requested records, and any missing/inaccessible ID fails closed | Always includes `history`, plus `cashbook` and/or `documents` when read. `complete` is false when any per-record history is truncated to the latest 20 decisions; `nextCursor` is null. |
+
+The result `snapshot.sources` is a compact provenance marker: list/summary use only `cashbook`; queue results use the source selected by `kind`; evidence combines the reads it actually performed. C maps its proposed fact-registry inputs as follows: fact values/currency/counts come only from the parsed result payload (especially `get_cash_summary.summary`), query scope comes from the already-validated tool arguments and result `kind`/date range, source IDs/locators come from each payload record's `source`, and snapshot provenance comes from the result snapshot object. Opaque fact/reference IDs remain request-local and C-generated. A's `text`/rendered observation is explanatory, never a numeric fact source. Any `complete: false` result stays explicitly partial; no numeric aggregate may be reconstructed from `items`.
+
+Required C imports (using the configured `@/*` alias):
+
+```ts
+import {
+  assistantToolResultSchemas,
+  parseAssistantToolResult,
+  type AssistantToolName,
+  type AssistantToolResult,
+} from '@/lib/contracts/assistant';
+import { assistantToolSchemas } from '@/lib/contracts/schemas';
+import { createScopedAssistantResultTools } from '@/lib/server/assistant/tools';
+```
+
+`createScopedAssistantResultTools(session, workspace, budget)` returns exactly the four named closures. `assistantToolSchemas` is the canonical argument export. Validate model tool names/arguments with those schemas, execute the closures sequentially, then validate the returned payload with `parseAssistantToolResult(name, value, currentWorkspaceId)` before adding facts/references. The C public trace may retain sanitized arguments, count, fact references and `complete`/error status; it must omit snapshot workspace IDs, secrets, raw prompts, SQL and private URLs.

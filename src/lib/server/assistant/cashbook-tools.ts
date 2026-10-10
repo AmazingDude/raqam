@@ -1,6 +1,6 @@
 import { MAX_WORKSPACE_TRANSACTIONS } from '../../contracts/limits.ts';
 import { z } from 'zod';
-import { cashSummaryResultSchema, listTransactionsResultSchema } from '../../contracts/assistant.ts';
+import { parseAssistantToolResult, type AssistantToolName, type AssistantToolResult } from '../../contracts/assistant.ts';
 import { assistantToolSchemas, transactionSchema } from '../../contracts/schemas.ts';
 import { BackendError } from '../errors.ts';
 import { cashbookSnapshot } from './snapshot.ts';
@@ -25,6 +25,10 @@ export function createCashbookTools(options: Options) {
   }
   const expired = () => new BackendError('UNAVAILABLE', 'The assistant request expired. Please retry.');
   const unverifiable = () => new BackendError('UNAVAILABLE', 'Cashbook tool data could not be verified. Please retry.');
+  function validatedResult<Name extends AssistantToolName>(name: Name, value: unknown): AssistantToolResult[Name] {
+    try { return parseAssistantToolResult(name, value, workspaceId); }
+    catch { throw unverifiable(); }
+  }
   function assertActive() {
     if (signal?.aborted || Date.now() >= deadlineAt) throw expired();
   }
@@ -73,6 +77,10 @@ export function createCashbookTools(options: Options) {
   return {
     // Internal scoped accessor. Never exposed as a model tool or bulk prompt.
     async allRecords() { const { records } = await load(); return structuredClone(records); },
+    async allRecordsSnapshot() {
+      const { records, assistantSnapshot } = await load();
+      return { records: structuredClone(records), snapshot: assistantSnapshot };
+    },
     async list_transactions(input: unknown) {
       const parsed = assistantToolSchemas.list_transactions.safeParse(input);
       if (!parsed.success) throw new BackendError('INVALID_INPUT', 'Provide valid bounded transaction filters.');
@@ -97,7 +105,7 @@ export function createCashbookTools(options: Options) {
       const items = remaining.slice(0, args.limit).map(record => transactionSchema.parse(record));
       const nextCursor = remaining.length > args.limit ? items.at(-1)!.id : null;
       assertActive();
-      return listTransactionsResultSchema.parse({
+      return validatedResult('list_transactions', {
         items, returnedCount: items.length, totalCount: filtered.length,
         complete: args.cursor === undefined && nextCursor === null,
         nextCursor, snapshot: assistantSnapshot,
@@ -111,7 +119,7 @@ export function createCashbookTools(options: Options) {
       const filtered = records.filter(record => (!dateFrom || record.date >= dateFrom) && (!dateTo || record.date <= dateTo));
       const summary = calculateCashSummary(filtered, workspaceId, unresolvedImportRowCount);
       assertActive();
-      return cashSummaryResultSchema.parse({
+      return validatedResult('get_cash_summary', {
         summary, dateFrom: dateFrom ?? null, dateTo: dateTo ?? null, unresolvedImportRowScope: 'workspace',
         returnedCount: summary.transactionCount, totalCount: summary.transactionCount,
         complete: true, nextCursor: null, snapshot: assistantSnapshot,
