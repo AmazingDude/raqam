@@ -78,3 +78,34 @@ Next joint check after A's authenticated generation/list integration and B's liv
 The user requested integrating the latest team commits and publishing C's seven module commits. The merge was conflict-free. A's document registration/list/detail/review service and routes now exist under `/api/documents` and `/api/documents/[id]`; these supersede the older route-absence statements above for those operations. The routes still do not invoke C extraction, provide the durable cache adapter/raw evidence mapping or expose document history. B's live document field controls and category proposal queue wiring remain pending. Category generation/list routes remain absent.
 
 Combined compatibility checks passed:93 AI/offline regressions (76 module +17 offline CLI),77 backend/security tests,four client API tests,strict typecheck and production build. Offline child processes initially failed with sandbox EPERM; the approved normal-process rerun passed. Existing checks do not directly exercise the new A document service via an authenticated browser. No live provider, hosted writes, browser flow or deployment ran. The earlier requested step9 review remains pending.
+
+## C1 steps 7–10 current integration status — 10 October 2026
+
+The statements above about absent extraction/category routes and B review controls describe the earlier baseline and are superseded by current `main` (`54c667f`). A now has authenticated document register/list/detail/extraction/history/review routes, migration 008 reservation/evidence persistence, and the category-generation/list route. B's live workspace calls these APIs and provides receipt source/field review and category accept/change/reject controls. A's service tests exercise extraction through C with a scripted provider; PGlite security tests cover durable reservation/cache responses, stale completion fencing, saved corrections, proposal decisions and exact cash invariants. These are local simulated persistence checks, not managed Supabase or signed-in browser evidence.
+
+### Step 7 — cache identity and correction-safe reruns
+
+**C module state: done.** `createExtractionCacheIdentity` now hashes the ordered tuple of owner, workspace, source hash, provider, provider implementation version, model, prompt, schema and preprocessing versions. The identity algorithm is labeled v2. A's extraction wrapper computes this identity before invoking `reserve_receipt_extraction`, and only calls `save_receipt_extraction` after the provider attempt; the migration's reservation and version fence reject duplicate/stale completion. Read/review mapping returns original extraction context separately from corrected fields. Regression testing showed the previous implementation produced the same cache key after a provider-version change; the new test failed before the fix and passes after it. Full A route/hosted cache behavior remains step 8 acceptance.
+
+### Step 8 — receipt review integration
+
+**State: blocked pending hosted verification.** The actual route/UI code is now present, and local automated evidence covers extraction mapping, provider failure, reservation/cache/busy behavior, stale completion, corrections/history mapping and no cash creation. `node --env-file-if-exists=.env.local scripts/check-env.mjs --ai` reports required Clerk/Supabase app settings absent. The main handoff also records migration 008 as awaiting manual application and `scripts/check-receipt-extraction.sql`. Therefore a signed-in upload → extraction → source comparison → correction/accept → reload → retry journey, live cache observation and authoritative before/after cash-total comparison were not run. No receipt-extraction request was made as part of the hosted workflow check; the separate two-request tool capability probe is recorded below.
+
+### Step 9 — category proposals
+
+**C module state: done.** Existing tests verify all seven PRD categories, exact transaction snapshots, unique complete eligible-ID coverage, trusted source evidence, ambiguity abstention, accepted-category skips, direction conflicts, malformed/foreign/duplicate outputs and provider failure behavior. A's BA-03/current PRD records guide-version adoption and provenance mapping. Tests do not establish live semantic accuracy; that remains independent step 19 evaluation.
+
+### Step 10 — category decisions and reruns
+
+**State: blocked pending signed-in verification.** Authenticated generation/list and live review controls are present. Local route/client/persistence/security tests show proposal storage, accepted decision protection and category review preserving exact cash totals. No signed-in generation, accept/change/reject reload, rerun, changed-description versioning or live accepted-category/remainder reconciliation was run because app credentials are missing. Migration 008 is not a category prerequisite. The inspected A-owned service bypassed explicit provider selection; under the user's direct request to fix the listed findings, the narrow construction point in `src/lib/server/categories.ts` is now a recorded C1 transfer and calls `createAIProvider()`. Default/unset or explicit Groq remains Groq; explicit Gemini uses the Gemini adapter, with no credential-driven fallback. Existing factory selection tests pass. No signed-in category route call was possible here.
+
+### Verification from this continuation
+
+- Focused C extraction/category tests: **25/25 passed**.
+- Full `npm test`: **113/113 passed**, including local PGlite receipt/cache/category persistence checks.
+- `npm run typecheck`: passed.
+- `git diff --check`: passed.
+- `node --env-file-if-exists=.env.local scripts/check-env.mjs --ai`: AI settings are present; Clerk/Supabase settings are absent, so signed-in checks remain blocked.
+- `npm run build`: the sandboxed attempt failed because Next's captured TypeScript child process returned empty stdout (`Unexpected end of JSON input`) even though the direct shell invocation returned valid JSON. Running the same configured `npm run build` outside the sandbox completed successfully through TypeScript, static generation and all routes. No source/config/dependency workaround was needed.
+- Live provider check: the existing `--probe=tool` synthetic Groq runner passed in 2 inference requests, 0 retries; `openai/gpt-oss-20b` returned the fixed read-only tool call and exact `310000` minor-unit echo. Durations: 919ms and 354ms (1275ms combined). Remaining requests were 999 then 998; the 60/day reserve guard stayed intact. This is provider capability evidence only, not category-route, signed-in, OCR-quality or hosted integration evidence.
+- No hosted migration, signed-in browser flow, live category generation or receipt workflow was performed.
