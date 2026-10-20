@@ -7,11 +7,11 @@ import type { DocumentRecord } from '../../lib/contracts/documents.ts';
 import type { ProposalRecord } from '../../lib/contracts/proposals.ts';
 import { validateCashbook } from '../../lib/server/summary.ts';
 import { api, ClientError } from '../../lib/client/api.ts';
-import { Icon, Mark } from '../ui/icon.tsx';
+import { Icon, Logo } from '../ui/icon.tsx';
 import { WorkspaceApp } from './workspace-app.tsx';
 import s from '../ui/theme.module.css';
 type State = { kind:'loading' } | { kind:'new' } | { kind:'error'; message:string; code:string } | { kind:'ready'; workspace:Workspace; records:Transaction[]; cursor:string|null; summary:CashSummary|null; summaryError:string; documents:DocumentRecord[]; documentsCursor:string|null; documentsError:string; proposals:ProposalRecord[]; categoryCursor:string|null; proposalsError:string; matchProposals:ProposalRecord[]; matchCursor:string|null; matchesError:string };
-function Gate({title,children}:{title:string;children:React.ReactNode}) {return <div className={s.root} data-raqam-ui><main className={s.gate}><Link href="/" className={s.brand}><Mark/>raqam</Link><section className={`${s.panel} ${s.gatePanel} ${s.stack}`}><h1 style={{fontSize:28,letterSpacing:-1}}>{title}</h1>{children}</section></main></div>;}
+function Gate({title,children}:{title:string;children:React.ReactNode}) {return <div className={s.root} data-raqam-ui><main className={s.gate}><Link href="/" className={s.brand}><Logo/></Link><section className={`${s.panel} ${s.gatePanel} ${s.stack}`}><h1 style={{fontSize:28,letterSpacing:-1}}>{title}</h1>{children}</section></main></div>;}
 function OwnedWorkspace() {
   const [state,setState]=useState<State>({kind:'loading'}),[name,setName]=useState(''),[saving,setSaving]=useState(false),[saveError,setSaveError]=useState(''),[reload,setReload]=useState(0);
   const controllers=useRef(new Set<AbortController>());const savingRef=useRef(false);

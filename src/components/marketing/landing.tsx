@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { auth } from '@clerk/nextjs/server';
-import { Icon, Mark } from '../ui/icon.tsx';
+import { Icon, Mark, Logo } from '../ui/icon.tsx';
 import { LandingPreview } from './landing-preview.tsx';
 import { LandingNav } from './landing-nav.tsx';
 import s from './landing.module.css';
@@ -30,7 +30,7 @@ export async function Landing() {
             <Link href="/demo" className={s.darkButton}>Explore an example</Link>
           </div>
           <p className={s.heroNote}>Built for small businesses. English. PKR. Your review.</p>
-          <div className={s.featureRail} aria-label="Your bookkeeping toolkit"><a href="#workflow"><Icon name="upload" size={17}/> Import</a><a href="#features"><Icon name="file" size={17}/> Receipts</a><a href="#features"><Icon name="review" size={17}/> Review</a><a href="#assistant"><Icon name="spark" size={17}/> Ask Raqam</a><a href="#workflow"><Icon name="download" size={17}/> Export</a></div>
+          <div className={s.featureRail} aria-label="Your bookkeeping toolkit"><a href="#workflow"><Icon name="upload" size={17}/> Import</a><a href="#features"><Icon name="file" size={17}/> Receipts</a><a href="#features"><Icon name="review" size={17}/> Review</a><a href="#assistant"><Mark size={20}/> Ask Raqam</a><a href="#workflow"><Icon name="download" size={17}/> Export</a></div>
         </section>
         <div className={s.productWrap}><LandingPreview/></div>
         <div className={s.lightBody}>
@@ -48,12 +48,12 @@ export async function Landing() {
           </section>
           <section className={s.featureSection} id="assistant" aria-labelledby="assistant-title">
             <div className={s.featureCopy}><p className={s.eyebrow}>A little help with the books</p><h2 id="assistant-title">Ask a question.<br/>Find the context.</h2><p>Ask Raqam about recorded cash activity and items waiting for review. Follow the references back to your records.</p><p className={s.quietNote}>The assistant reads your workspace. Changes stay in your hands.</p><Link href="/demo" className={s.textLink}>Meet your bookkeeping assistant <Icon name="arrow" size={17}/></Link></div>
-            <div className={s.chatVisual}><div className={s.visualTop}><Icon name="spark" size={18}/><span>Ask Raqam</span><span className={s.exampleLabel}>Sample answer</span></div><div className={s.userQuestion}>What needs my attention?</div><div className={s.sampleAnswer}><span className={s.assistantMark}><Mark/> raqam</span><p>Two example records are waiting for category review. Start with the Northstar Cloud subscription.</p><div className={s.answerSource}><Icon name="file" size={18}/><div><strong>Northstar Cloud</strong><span>8 Oct 2026 · PKR 8,500.00</span></div><span className={s.pending}>Needs review</span></div></div><p className={s.visualFoot}>Illustrative response using synthetic records. No live AI.</p></div>
+            <div className={s.chatVisual}><div className={s.visualTop}><Mark size={22}/><span>Ask Raqam</span><span className={s.exampleLabel}>Sample answer</span></div><div className={s.userQuestion}>What needs my attention?</div><div className={s.sampleAnswer}><span className={s.assistantMark}><Mark/> raqam</span><p>Two example records are waiting for category review. Start with the Northstar Cloud subscription.</p><div className={s.answerSource}><Icon name="file" size={18}/><div><strong>Northstar Cloud</strong><span>8 Oct 2026 · PKR 8,500.00</span></div><span className={s.pending}>Needs review</span></div></div><p className={s.visualFoot}>Illustrative response using synthetic records. No live AI.</p></div>
           </section>
           <section className={s.principles} aria-label="Your records, handled with care"><div><Icon name="book" size={22}/><h3>Numbers with a foundation</h3><p>Cash totals are calculated in code, in exact paisa.</p></div><div><Icon name="review" size={22}/><h3>You keep the final say</h3><p>Suggestions and reviewed decisions stay distinct.</p></div><div><Icon name="file" size={22}/><h3>Context stays connected</h3><p>Original sources and review history stay available.</p></div></section>
           <section className={s.faqSection} id="faq" aria-labelledby="faq-title"><div><p className={s.eyebrow}>Good to know</p><h2 id="faq-title">A few things<br/>you might be wondering.</h2><p className={s.faqIntro}>A clearer start to your cashbook.</p></div><div className={s.faqList}>{questions.map(([question,answer])=><details className={s.faqItem} key={question}><summary>{question}<span className={s.faqPlus} aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></section>
           <section className={s.finalCta}><div className={s.ctaMark}><Mark/></div><h2>Make room for<br/>the work you love.</h2><p>Your records, receipts and next steps.<br/>A little more together.</p><div className={s.heroActions}><Link href="/workspace" className={s.lightButton}>Open workspace <Icon name="arrow" size={17}/></Link><Link href="/demo" className={s.darkButton}>Explore an example</Link></div></section>
-          <footer className={s.footer}><div><Link href="/" className={s.brand} aria-label="Raqam home"><Mark/>raqam</Link><p>Clearer books. A calmer business.</p></div><nav aria-label="Footer navigation"><a href="#workflow">How it works</a><Link href="/demo">Example workspace</Link><Link href="/workspace">Your workspace</Link><a href="#faq">FAQs</a></nav><div className={s.footerBottom}><span>© 2026 Raqam · Built by edge runners</span><span>English · PKR</span></div></footer>
+          <footer className={s.footer}><div><Link href="/" className={s.brand} aria-label="Raqam home"><Logo/></Link><p>Clearer books. A calmer business.</p></div><nav aria-label="Footer navigation"><a href="#workflow">How it works</a><Link href="/demo">Example workspace</Link><Link href="/workspace">Your workspace</Link><a href="#faq">FAQs</a></nav><div className={s.footerBottom}><span>© 2026 Raqam · Built by edge runners</span><span>English · PKR</span></div></footer>
         </div>
       </main>
     </div>
