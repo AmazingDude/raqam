@@ -10,6 +10,8 @@
 
 ## Latest integration record
 
+- 20 October 2026 (README refresh): replaced the outdated foundation-only README with a product overview, one transparent R logo at the top, feature/workflow explanations, checked local setup commands, architecture map, current scope limits and documentation navigation. Validated local links/assets, npm script references and whitespace. Documentation only; no app/provider/database/GUI processes were started. Prepared on `docs/raqam-readme` for a separate PR.
+
 - 20 October 2026 (R-only transparent branding revision): user requested only the emblem and genuine transparency for black and workspace backgrounds. Built-in imagegen produced `public/brand/raqam-mark.png` from the supplied source; both shared logo components and generated browser/Apple icons now use that asset. Removed the wordmark from logo placements and retained the original source. Alpha checks confirm transparent corners and negative space for the asset and both 192px icons. Typecheck, production build and whitespace checks pass. No GUI; preview restarted at localhost:3000 for user review. Changes remain local.
 
 - 20 October 2026 (supplied Raqam branding): saved the original supplied artwork unchanged at `public/brand/raqam-logo.png`; full-logo and compact-emblem components now share it across marketing, workspace, authentication and assistant identities. Replaced the old SVG browser icon with statically generated 192px PNG browser/Apple icons. Original/source checksums match; generated icon metadata confirms 192×192 PNG. Typecheck, production build and whitespace checks pass. No GUI, provider request or running app server; changes remain local for review.
