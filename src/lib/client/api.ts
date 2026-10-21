@@ -13,6 +13,7 @@ import type { ImportConfirmation } from '../contracts/imports.ts';
 import type { CashSummaryRange, TransactionReview } from '../contracts/cashbook.ts';
 import { assistantRequestSchema, assistantResponseSchema } from '../contracts/assistant.ts';
 import { taxReadinessSaveSchema, taxReadinessStateSchema } from '../contracts/tax-readiness.ts';
+import { taxWorkpaperReadQuerySchema, taxWorkpaperSaveSchema, taxWorkpaperStateSchema } from '../contracts/tax-workpaper.ts';
 import {
   documentExtractionRequestSchema, documentMutationResultSchema, documentRecordSchema, documentRegistrationResultSchema,
   receiptExtractionResponseSchema, documentReviewSchema, documentHistoryItemSchema,
@@ -182,6 +183,22 @@ export const api = {
   taxReadiness: async (workspaceId: string, signal: AbortSignal) => {
     const state = await request('/api/tax-readiness', taxReadinessStateSchema, signal);
     if (state.profile && state.profile.workspaceId !== workspaceId) throw new ClientError('UNAVAILABLE', 'The saved profile could not be verified. Reload your workspace.');
+    return state;
+  },
+  taxWorkpaper: async (workspaceId: string, taxYear: number, signal: AbortSignal) => {
+    const query = taxWorkpaperReadQuerySchema.parse({ taxYear });
+    const state = await request(`/api/tax-workpapers?${new URLSearchParams({ taxYear: String(query.taxYear) })}`, taxWorkpaperStateSchema, signal);
+    if (state.case && state.case.workspaceId !== workspaceId) throw new ClientError('UNAVAILABLE', 'The tax workpaper belongs to a different workspace.');
+    return state;
+  },
+  saveTaxWorkpaper: async (workspaceId: string, input: z.infer<typeof taxWorkpaperSaveSchema>, signal: AbortSignal) => {
+    const command = taxWorkpaperSaveSchema.parse(input);
+    const state = await request('/api/tax-workpapers', taxWorkpaperStateSchema, signal, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(command),
+    });
+    if (!state.case || state.case.workspaceId !== workspaceId || state.case.taxYear !== command.taxYear ||
+        state.case.version !== command.expectedVersion + 1 || JSON.stringify(state.case.facts) !== JSON.stringify(command.facts))
+      throw new ClientError('UNAVAILABLE', 'The saved tax workpaper could not be verified. Reload your workspace.');
     return state;
   },
   saveTaxReadiness: async (workspaceId: string, input: z.infer<typeof taxReadinessSaveSchema>, signal: AbortSignal) => {

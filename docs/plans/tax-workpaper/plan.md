@@ -1,6 +1,6 @@
 # Real Pakistan income-tax workpaper: implementation plan
 
-**Status:** proposed implementation plan; research and code audit complete, application implementation not started. 21 October 2026.
+**Status:** implementation in progress. Initial case/facts API and owner-scoped persistence are implemented locally; schedules, rule packs, calculations, review and exports remain pending. 21 October 2026.
 
 **Baseline:** [backend audit](../../audits/tax-workpaper-backend.md), PRD D18/D21 and BUILD_PLAN EXP-12/13. This extends the existing tax-readiness slice; it does not replace the bookkeeping PRD or mark the release gates complete. [Sources and verification limits](research.md). [Execution tasks](tasks.md).
 
