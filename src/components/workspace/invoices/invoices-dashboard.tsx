@@ -21,13 +21,13 @@ interface InvoicesDashboardProps {
 
 function getClientAvatarStyle(name: string): { bg: string; color: string } {
   const palette = [
-    { bg: '#fee2e2', color: '#b91c1c' },
-    { bg: '#fef3c7', color: '#b45309' },
-    { bg: '#dcfce7', color: '#15803d' },
-    { bg: '#e0e7ff', color: '#4338ca' },
-    { bg: '#f3e8ff', color: '#7e22ce' },
-    { bg: '#fae8ff', color: '#a21caf' },
-    { bg: '#e0f2fe', color: '#0369a1' },
+    { bg: 'var(--bad-bg)', color: 'var(--bad)' },
+    { bg: 'var(--pending-bg)', color: 'var(--pending)' },
+    { bg: 'var(--good-bg)', color: 'var(--good)' },
+    { bg: 'var(--rq-info-bg)', color: 'var(--rq-info)' },
+    { bg: 'var(--rq-info-bg)', color: 'var(--rq-info)' },
+    { bg: 'var(--rq-pink-bg)', color: 'var(--rq-pink)' },
+    { bg: 'var(--rq-info-bg)', color: 'var(--rq-info)' },
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -97,7 +97,7 @@ export function InvoicesDashboard({
         {/* Sent Card */}
         <div className={`${s.widgetCard} ${s.cardSent}`}>
           <div className={s.widgetHeader}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rq-info)" strokeWidth="2">
               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
             </svg>
             <span>Sent</span>
@@ -111,7 +111,7 @@ export function InvoicesDashboard({
         {/* Paid Card */}
         <div className={`${s.widgetCard} ${s.cardPaid}`}>
           <div className={s.widgetHeader}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--good)" strokeWidth="2">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
@@ -126,7 +126,7 @@ export function InvoicesDashboard({
         {/* Overdue Card */}
         <div className={`${s.widgetCard} ${s.cardOverdue}`}>
           <div className={s.widgetHeader}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pending)" strokeWidth="2">
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
@@ -230,13 +230,13 @@ export function InvoicesDashboard({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: '#6b7280' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--muted)' }}>
                   Loading invoices...
                 </td>
               </tr>
             ) : filteredInvoices.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: '#6b7280' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--muted)' }}>
                   No invoices found. Click <strong>+ Create Invoice</strong> or ask Raqam AI to create one!
                 </td>
               </tr>
@@ -322,11 +322,11 @@ export function InvoicesDashboard({
 
                     <td>
                       {inv.remindersEnabled ? (
-                        <span style={{ color: '#4f46e5', fontSize: '13px', fontWeight: 500 }}>
+                        <span style={{ color: 'var(--rq-info)', fontSize: '13px', fontWeight: 500 }}>
                           Reminder preference
                         </span>
                       ) : (
-                        <span style={{ color: '#6366f1', fontSize: '13px', cursor: 'pointer' }}>
+                        <span style={{ color: 'var(--rq-info)', fontSize: '13px', cursor: 'pointer' }}>
                           Reminders unavailable
                         </span>
                       )}
@@ -345,7 +345,7 @@ export function InvoicesDashboard({
                     </td>
 
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6b7280' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--muted)' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <rect x="3" y="12" width="4" height="8" />
                           <rect x="10" y="8" width="4" height="12" />

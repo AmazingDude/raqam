@@ -65,7 +65,7 @@ export function InvoicesScreen({ demo = false, businessName = '', currency = 'PK
   }
   if(view==='editor')return <InvoiceEditor initialInvoice={activeInvoice} businessName={businessName} workspaceCurrency={currency} demo={demo} onSave={handleSave} onCancel={()=>{if(!busy){setView('dashboard');setActiveInvoice(null);}}}/>;
   return <>
-    {loadError&&<div role="alert" style={{padding:'12px 20px',background:'#fef2f2',color:'#b91c1c',borderRadius:8,margin:'16px 24px'}}>{loadError}<button type="button" disabled={busy} onClick={()=>{void exclusive(refreshData).catch(error=>setLoadError(error instanceof Error?error.message:'Reload failed.'));}}>Reload invoices</button></div>}
+    {loadError&&<div role="alert" style={{padding:'12px 20px',background:'var(--bad-bg)',color:'var(--bad)',borderRadius:8,margin:'16px 24px'}}>{loadError}<button type="button" disabled={busy} onClick={()=>{void exclusive(refreshData).catch(error=>setLoadError(error instanceof Error?error.message:'Reload failed.'));}}>Reload invoices</button></div>}
     <InvoicesDashboard invoices={invoices} summary={summary} loading={loading} busy={busy} onCreateNew={()=>{setActiveInvoice(null);setView('editor');}}
       onEditInvoice={invoice=>{setActiveInvoice(invoice);setView('editor');}} onPreviewInvoice={invoice=>setPreviewInvoice(invoice)} onUpdateStatus={handleUpdateStatus} onDeleteInvoice={handleDelete}/>
     {previewInvoice&&<InvoicePreview invoice={previewInvoice} onClose={()=>setPreviewInvoice(null)}/>}

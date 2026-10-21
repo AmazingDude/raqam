@@ -143,7 +143,7 @@ export function InvoiceEditor({
         <div className={s.toolbarGroup}>
           <button
             className={s.toolIconButton}
-            style={{ color: showAssistant ? '#9333ea' : '#4b5563' }}
+            style={{ color: showAssistant ? 'var(--rq-info)' : 'var(--muted)' }}
             title="Ask Raqam AI"
             type="button"
             onClick={() => setShowAssistant((prev) => !prev)}
@@ -174,7 +174,7 @@ export function InvoiceEditor({
               background: 'none',
               border: 'none',
               fontSize: '13px',
-              color: '#6b7280',
+              color: 'var(--muted)',
               cursor: 'pointer',
               marginLeft: '6px',
             }}
@@ -366,7 +366,7 @@ export function InvoiceEditor({
                             style={{
                               background: 'none',
                               border: 'none',
-                              color: '#9ca3af',
+                              color: 'var(--muted)',
                               cursor: 'pointer',
                               padding: '2px 6px',
                             }}
@@ -426,7 +426,7 @@ export function InvoiceEditor({
           <div className={s.paymentDetailsBlock}>
             {showPaymentLink ? (
               <div>
-                <span style={{ fontSize: '12px', color: '#6b7280' }}>Payment Link:</span>
+                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Payment Link:</span>
                 <input
                   className={s.editableInput}
                   style={{ width: '100%' }}
@@ -447,7 +447,7 @@ export function InvoiceEditor({
 
             {showPaymentDetails ? (
               <div style={{ marginTop: '6px' }}>
-                <span style={{ fontSize: '12px', color: '#6b7280' }}>Payment Details:</span>
+                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Payment Details:</span>
                 <textarea
                   className={s.editableInput}
                   style={{ width: '100%', minHeight: '48px' }}
@@ -474,7 +474,7 @@ export function InvoiceEditor({
               <span>{currencySymbol}{subtotal}</span>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', fontSize: '12px', color: '#6b7280' }}>
+            <div style={{ display: 'flex', gap: '8px', fontSize: '12px', color: 'var(--muted)' }}>
               <button
                 className={s.addTextLink}
                 type="button"
