@@ -1,0 +1,15 @@
+select
+  to_regclass('public.tax_workpaper_cases') is not null as case_table_installed,
+  to_regclass('public.tax_workpaper_case_saves') is not null as case_operations_installed,
+  coalesce((select relrowsecurity and relforcerowsecurity from pg_class where oid='public.tax_workpaper_cases'::regclass), false) as forced_rls_enabled,
+  exists (select 1 from pg_policies where schemaname='public' and tablename='tax_workpaper_cases' and policyname='tax_workpaper_cases_owner_read' and cmd='SELECT' and roles @> array['authenticated']::name[]) as owner_read_policy_installed,
+  has_table_privilege('authenticated','public.tax_workpaper_cases','SELECT') as authenticated_case_read,
+  not (has_table_privilege('authenticated','public.tax_workpaper_cases','INSERT') or has_table_privilege('authenticated','public.tax_workpaper_cases','UPDATE') or has_table_privilege('authenticated','public.tax_workpaper_cases','DELETE')) as direct_case_writes_denied,
+  not (has_table_privilege('anon','public.tax_workpaper_cases','SELECT') or has_table_privilege('anon','public.tax_workpaper_cases','INSERT')) as anonymous_case_access_denied,
+  not (has_table_privilege('authenticated','public.tax_workpaper_case_saves','SELECT') or has_table_privilege('authenticated','public.tax_workpaper_case_saves','INSERT')) as operation_writes_denied,
+  to_regprocedure('public.tax_workpaper_facts_valid(jsonb)') is not null as facts_validator_installed,
+  to_regprocedure('public.save_tax_workpaper_case(integer,jsonb,boolean,integer,uuid)') is not null as save_function_installed,
+  coalesce((select prosecdef and proconfig @> array['search_path=""']::text[] from pg_proc where oid='public.save_tax_workpaper_case(integer,jsonb,boolean,integer,uuid)'::regprocedure), false) as save_definer_locked,
+  has_function_privilege('authenticated','public.save_tax_workpaper_case(integer,jsonb,boolean,integer,uuid)','EXECUTE') as authenticated_save_allowed,
+  not has_function_privilege('anon','public.save_tax_workpaper_case(integer,jsonb,boolean,integer,uuid)','EXECUTE') as anonymous_save_denied,
+  exists (select 1 from pg_constraint where conrelid='public.tax_workpaper_cases'::regclass and contype='u' and conkey=(select array_agg(attnum order by attnum) from pg_attribute where attrelid='public.tax_workpaper_cases'::regclass and attname in ('workspace_id','tax_year'))) as case_year_unique;

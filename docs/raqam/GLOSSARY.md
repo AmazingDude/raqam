@@ -69,3 +69,26 @@ A locator for the original supplied row or document supporting a record, proposa
 
 **Workspace**:
 One owner's business records and supporting evidence. It is separate from other owners' workspaces.
+
+## Income-tax preparation
+
+**Tax-readiness profile**:
+An owner's confirmed, self-reported facts about a taxpayer and tax year. Completing it does not establish that the supporting records or tax calculations are complete.
+
+**Tax workpaper**:
+The supporting preparation record for a taxpayer and tax year, connecting facts, evidence, schedules, legal treatment and calculations. It is distinct from a filed return.
+
+**Tax schedule**:
+A structured statement of amounts and supporting facts for one income-tax topic, such as business adjustments, tax withheld or wealth reconciliation.
+
+**Tax rule pack**:
+The reviewed set of legal provisions, calculation rules and form mappings applicable to a specified tax year and supported taxpayer circumstances.
+
+**Workpaper snapshot**:
+A fixed version of a workpaper's facts, supporting records, applicable rules and calculated results at a particular preparation stage.
+
+**Practitioner review**:
+An identified qualified tax practitioner's recorded examination and decision on a particular workpaper version. It is distinct from the owner's confirmation of their own facts.
+
+**Completed workpaper**:
+A supported annual preparation workpaper with all applicable evidence and calculation checks satisfied and practitioner review recorded. It does not mean FBR has received or accepted a return.

@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Logo } from '../../../components/ui/icon.tsx';
+import { ThemeToggle } from '../../../components/ui/theme-provider.tsx';
 import s from '../../auth-page.module.css';
 
 export const dynamic = 'force-dynamic';
@@ -10,5 +11,5 @@ export const dynamic = 'force-dynamic';
 export default async function SignUpPage() {
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || !process.env.CLERK_SECRET_KEY) redirect('/');
   if ((await auth()).userId) redirect('/workspace');
-  return <main className={s.page}><Link href="/" className={s.brand} aria-label="Raqam home"><Logo/></Link><SignUp routing="path" path="/sign-up" signInUrl="/sign-in" forceRedirectUrl="/workspace" /><Link href="/demo" className={s.exampleLink}>Explore an example first</Link></main>;
+  return <main className={s.page}><Link href="/" className={s.brand} aria-label="Raqam home"><Logo/></Link><ThemeToggle/><SignUp routing="path" path="/sign-up" signInUrl="/sign-in" forceRedirectUrl="/workspace" /><Link href="/demo" className={s.exampleLink}>Explore an example first</Link></main>;
 }
